@@ -37,7 +37,7 @@ void coarse_grid_correction_PRECISION_setup( level_struct *l, struct Thread *thr
     END_LOCKED_MASTER(threading)
 #else
     END_LOCKED_MASTER(threading)
-    coarse_operator_PRECISION_setup_vectorized( l->is_PRECISION.operator, l, threading );
+    coarse_operator_PRECISION_setup_vectorized( l->is_PRECISION.op, l, threading );
 #endif
     
     START_LOCKED_MASTER(threading)
@@ -266,7 +266,7 @@ void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct T
 
 #ifdef INTERPOLATION_SETUP_LAYOUT_OPTIMIZED_PRECISION
   define_interpolation_PRECISION_operator( l->is_PRECISION.test_vector, l, threading );  
-  gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.operator, n, l, threading );
+  gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.op, n, l, threading );
 #else
   gram_schmidt_on_aggregates_PRECISION( l->is_PRECISION.interpolation, n, l, threading );
   define_interpolation_PRECISION_operator( l->is_PRECISION.interpolation, l, threading );
@@ -281,10 +281,10 @@ void re_setup_PRECISION( level_struct *l, struct Thread *threading ) {
     if ( !l->idle ) {
 #ifdef INTERPOLATION_SETUP_LAYOUT_OPTIMIZED_PRECISION
       define_interpolation_PRECISION_operator( l->is_PRECISION.test_vector, l, threading );
-      gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.operator, l->num_eig_vect, l, threading );
+      gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.op, l->num_eig_vect, l, threading );
       if ( l->depth > 0 )
-        gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.operator, l->num_eig_vect, l, threading );
-      coarse_operator_PRECISION_setup_vectorized( l->is_PRECISION.operator, l, threading );
+        gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.op, l->num_eig_vect, l, threading );
+      coarse_operator_PRECISION_setup_vectorized( l->is_PRECISION.op, l, threading );
       START_LOCKED_MASTER(threading)
 #else
       for ( int i=0; i<l->num_eig_vect; i++ ) {
@@ -370,10 +370,10 @@ void inv_iter_2lvl_extension_setup_PRECISION( int setup_iter, level_struct *l, s
       
 #ifdef INTERPOLATION_SETUP_LAYOUT_OPTIMIZED_PRECISION
       define_interpolation_PRECISION_operator( l->is_PRECISION.test_vector, l, threading );
-      gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.operator, l->num_eig_vect, l, threading );
+      gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.op, l->num_eig_vect, l, threading );
       if ( l->depth > 0 )
-        gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.operator, l->num_eig_vect, l, threading );
-      coarse_operator_PRECISION_setup_vectorized( l->is_PRECISION.operator, l, threading );
+        gram_schmidt_on_aggregates_PRECISION_vectorized( l->is_PRECISION.op, l->num_eig_vect, l, threading );
+      coarse_operator_PRECISION_setup_vectorized( l->is_PRECISION.op, l, threading );
       START_LOCKED_MASTER(threading)
 #else
       for ( int i=0; i<l->num_eig_vect; i++ )

@@ -184,10 +184,14 @@ fi
 
 # run programm
 
+MPIRUN=/usr/lib64/mpi/gcc/openmpi/bin/mpirun
+NVPROF=
+
 if [ ${ipa[0]} = 0  ]
 then
 #   /opt/mpich/ch-p4/bin/mpirun $shareoption -np $np $exec $inputfile
-  mpirun -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $exec $inputfile
+  #mpirun -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $exec $inputfile
+  $MPIRUN -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $NVPROF ./$exec $inputfile
 else
   cp $inputfile output/${opf}.txt
   echo "" >> output/${opf}.txt
@@ -197,5 +201,6 @@ else
   echo "+----------------------------------------------------------------------------------+" >> ../output/${opf}.txt
   echo "" >> output/${opf}.txt
   echo "" >> output/${opf}.txt
-  mpirun -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $exec $inputfile >> ../output/${opf}.txt & disown
+  #mpirun -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $exec $inputfile >> ../output/${opf}.txt & disown
+  $MPIRUN -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $NVPROF ./$exec $inputfile >> ../output/${opf}.txt & disown
 fi

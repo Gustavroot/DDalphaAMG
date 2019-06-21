@@ -433,8 +433,8 @@ void coarse_operator_PRECISION_test_routine( level_struct *l, struct Thread *thr
 #ifdef INTERPOLATION_OPERATOR_LAYOUT_OPTIMIZED_PRECISION
     double norm = 0.0;
     double dot = 0.0;
-    float *op = (float *)l->is_PRECISION.operator;
-    float *op2 = (float *)(l->is_PRECISION.operator+0*SIMD_LENGTH_PRECISION*l->vector_size)+1;
+    float *op = (float *)l->is_PRECISION.op;
+    float *op2 = (float *)(l->is_PRECISION.op+0*SIMD_LENGTH_PRECISION*l->vector_size)+1;
     for ( int i=0; i<l->inner_vector_size; i++ )
       norm += (op[2*i*SIMD_LENGTH_PRECISION+0] + I*op[2*i*SIMD_LENGTH_PRECISION+SIMD_LENGTH_PRECISION])*conj(op[2*i*SIMD_LENGTH_PRECISION+0] + I*op[2*i*SIMD_LENGTH_PRECISION+SIMD_LENGTH_PRECISION]);
     for ( int i=0; i<l->inner_vector_size; i++ )

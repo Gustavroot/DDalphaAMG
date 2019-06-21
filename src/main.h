@@ -23,8 +23,11 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
-#include <mpi.h>
+#ifndef IMPORT_FROM_EXTERN_C
+  #include <mpi.h>
+#endif
 #include <complex.h>
+#include <cuComplex.h>
 #include <math.h>
 #include <time.h>
 #include <stdarg.h>
@@ -208,17 +211,21 @@
   typedef struct block_struct {
     int start, color, no_comm, *bt;
   } block_struct;
-  
+
+  // CUDA typedefs
+  typedef cuDoubleComplex cu_cmplx_double;
+  typedef cuFloatComplex cu_cmplx_float;
+
   #include "main_pre_def_float.h"
   #include "main_pre_def_double.h"
-  
+
   extern complex_double _COMPLEX_double_ONE;
   extern complex_double _COMPLEX_double_ZERO;
   extern complex_double _COMPLEX_double_MINUS_ONE;
   extern complex_float  _COMPLEX_float_ONE;
   extern complex_float  _COMPLEX_float_ZERO;
   extern complex_float  _COMPLEX_float_MINUS_ONE;
-  
+
   typedef struct plot_table_line {
     
     double values[_NUM_OPTB];

@@ -26,6 +26,13 @@
   typedef PRECISION complex *config_PRECISION;
   typedef PRECISION complex *vector_PRECISION;
 
+  // CUDA typedefs
+  typedef cu_cmplx_PRECISION* cuda_vector_PRECISION;
+  typedef cu_cmplx_PRECISION* cuda_config_PRECISION;
+
+  struct Thread;
+  struct level_struct;
+
   typedef struct {
     int length[8], *boundary_table[8], max_length[4],
         comm_start[8], in_use[8], offset, comm,
@@ -68,9 +75,9 @@
     int num_restart, restart_length, timing, print, kind,
         initial_guess_zero, layout, v_start, v_end, total_storage;
     void (*preconditioner)();
-    void (*eval_operator)();
+    void (*eval_operator)( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op, struct level_struct *l, struct Thread *threading );
   } gmres_PRECISION_struct;
-  
+
   typedef struct {
     operator_PRECISION_struct op;
     vector_PRECISION buf1, buf2, buf3, buf4, buf5, bbuf1, bbuf2, bbuf3, oe_bbuf[6];
@@ -83,12 +90,12 @@
         **block_list, *block_list_length;
     block_struct *block;
   } schwarz_PRECISION_struct;
-  
+
   typedef struct {
     int num_agg, *agg_index[4], agg_length[4], *agg_boundary_index[4],
         *agg_boundary_neighbor[4], agg_boundary_length[4], num_bootstrap_vect;
     vector_PRECISION *test_vector, *interpolation, *bootstrap_vector, tmp;
-    complex_PRECISION *operator, *eigenvalues, *bootstrap_eigenvalues;
+    complex_PRECISION *op, *eigenvalues, *bootstrap_eigenvalues;
   } interpolation_PRECISION_struct;
   
   typedef struct {
@@ -97,7 +104,7 @@
     double count[_NUM_PROF];
     char name[_NUM_PROF][50];
   } profiling_PRECISION_struct;
-  
+
   #ifdef PROFILING
     #define PROF_PRECISION_START_UNTHREADED( TYPE ) do{ l->prof_PRECISION.time[TYPE] -= MPI_Wtime(); }while(0)
     #define PROF_PRECISION_START_THREADED( TYPE, threading ) do{ if(threading->core + threading->thread == 0) l->prof_PRECISION.time[TYPE] -= MPI_Wtime(); }while(0)

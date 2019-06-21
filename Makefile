@@ -2,32 +2,51 @@
 CC = mpicc -std=gnu99 -Wall -pedantic
 CPP = cpp
 MAKEDEP = $(CPP) -MM
+NVCC=/usr/local/cuda/bin/nvcc
 
 # --- DO NOT CHANGE -----------------------------------
 SRCDIR = src
 BUILDDIR = build
 GSRCDIR = $(BUILDDIR)/gsrc
 SRC = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.c,$(wildcard $(SRCDIR)/*.c)))
+SRC_CUDA = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.cu,$(wildcard $(SRCDIR)/*.cu)))
 SRCGEN = $(patsubst $(SRCDIR)/%,%,$(wildcard $(SRCDIR)/*_generic.c))
+SRCGEN_CUDA = $(patsubst $(SRCDIR)/%,%,$(wildcard $(SRCDIR)/*_generic.cu))
 GSRCFLT = $(patsubst %_generic.c,$(GSRCDIR)/%_float.c,$(SRCGEN))
+GSRCFLT_CUDA = $(patsubst %_generic.cu,$(GSRCDIR)/%_float.cu,$(SRCGEN_CUDA))
 GSRCDBL = $(patsubst %_generic.c,$(GSRCDIR)/%_double.c,$(SRCGEN))
+GSRCDBL_CUDA = $(patsubst %_generic.cu,$(GSRCDIR)/%_double.cu,$(SRCGEN_CUDA))
 GSRC = $(patsubst %,$(GSRCDIR)/%,$(SRC)) $(GSRCFLT) $(GSRCDBL)
+GSRC_CUDA = $(patsubst %,$(GSRCDIR)/%,$(SRC_CUDA)) $(GSRCFLT_CUDA) $(GSRCDBL_CUDA)
 HEA = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.h,$(wildcard $(SRCDIR)/*.h)))
 HEAGEN = $(patsubst $(SRCDIR)/%,%,$(wildcard $(SRCDIR)/*_generic.h))
 GHEAFLT = $(patsubst %_generic.h,$(GSRCDIR)/%_float.h,$(HEAGEN))
 GHEADBL = $(patsubst %_generic.h,$(GSRCDIR)/%_double.h,$(HEAGEN))
 GHEA = $(patsubst %,$(GSRCDIR)/%,$(HEA)) $(GHEAFLT) $(GHEADBL)
 OBJ = $(patsubst $(GSRCDIR)/%.c,$(BUILDDIR)/%.o,$(GSRC))
+OBJ_CUDA = $(patsubst $(GSRCDIR)/%.cu,$(BUILDDIR)/%.o,$(GSRC_CUDA))
 OBJDB = $(patsubst %.o,%_db.o,$(OBJ))
-DEP = $(patsubst %.c,%.dep,$(GSRC))
+DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 
 # --- FLAGS -------------------------------------------
-OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 
+OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -I/usr/local/cuda/include/ -DCUDA_OPT
 CFLAGS = -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST -DPROFILING
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
 OPT_VERSION_FLAGS =$(OPT_FLAGS) -O3 -ffast-math
 DEBUG_VERSION_FLAGS = $(OPT_FLAGS)
+
+OPT_FLAGS_CUDA = 
+CFLAGS_CUDA = -DPROFILING
+OPT_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA) -O3 # what about --ffast-math ?
+DEBUG_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA)
+
+# --- FLAGS FOR CUDA ---------------------------------
+NVCC_EXTRA_COMP_FLAGS = -I/home/ramirez/installs/openmpi/include/ -L/home/ramirez/installs/openmpi/lib64/
+NVCC_EXTRA_COMP_FLAGS += -lmpi
+NVCC_EXTRA_COMP_FLAGS += -arch=sm_50
+#NVCC_EXTRA_COMP_FLAGS += -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
+#NVCC_EXTRA_COMP_FLAGS += -lcudart -L/usr/local/cuda/lib64/
 
 # --- FLAGS FOR HDF5 ---------------------------------
 # H5HEADERS=-DHAVE_HDF5 /usr/include
@@ -46,11 +65,11 @@ documentation: doc/user_doc.pdf
 .SUFFIXES:
 .SECONDARY:
 
-dd_alpha_amg : $(OBJ)
-	$(CC) $(OPT_VERSION_FLAGS) $(LIMEH) -o $@ $(OBJ) $(H5LIB) $(LIMELIB) -lm
+dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
+	$(NVCC) --compiler-options='$(OPT_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJ) $(H5LIB) $(LIMELIB) -lm -lcudart -L/usr/local/cuda/lib64/
 
 dd_alpha_amg_db : $(OBJDB)
-	$(CC) -g $(DEBUG_VERSION_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(H5LIB) $(LIMELIB) -lm
+	$(NVCC) -g --compiler-options='$(DEBUG_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(H5LIB) $(LIMELIB) -lm -lcudart -L/usr/local/cuda/lib64/
 
 lib/libdd_alpha_amg.a: $(OBJ)
 	ar rc $@ $(OBJ)
@@ -72,6 +91,12 @@ $(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h
 	$(CC) -g $(CFLAGS) $(DEBUG_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -DDEBUG -c $< -o $@
 
+$(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
+	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -rdc=true -lcudadevrt -L/usr/local/cuda/lib64/ -c $< -o $@
+
+$(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
+	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -rdc=true -lcudadevrt -L/usr/local/cuda/lib64/ -DDEBUG -c $< -o $@
+
 $(GSRCDIR)/%.h: $(SRCDIR)/%.h $(firstword $(MAKEFILE_LIST))
 	cp $< $@
 
@@ -81,11 +106,20 @@ $(GSRCDIR)/%_float.h: $(SRCDIR)/%_generic.h $(firstword $(MAKEFILE_LIST))
 $(GSRCDIR)/%_double.h: $(SRCDIR)/%_generic.h $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
 
+$(GSRCDIR)/%.cu: $(SRCDIR)/%.cu $(firstword $(MAKEFILE_LIST))
+	cp $< $@
+
 $(GSRCDIR)/%.c: $(SRCDIR)/%.c $(firstword $(MAKEFILE_LIST))
 	cp $< $@
 
+$(GSRCDIR)/%_float.cu: $(SRCDIR)/%_generic.cu $(firstword $(MAKEFILE_LIST))
+	sed -f float.sed $< > $@
+
 $(GSRCDIR)/%_float.c: $(SRCDIR)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
+
+$(GSRCDIR)/%_double.cu: $(SRCDIR)/%_generic.cu $(firstword $(MAKEFILE_LIST))
+	sed -f double.sed $< > $@
 
 $(GSRCDIR)/%_double.c: $(SRCDIR)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
@@ -93,6 +127,11 @@ $(GSRCDIR)/%_double.c: $(SRCDIR)/%_generic.c $(firstword $(MAKEFILE_LIST))
 %.dep: %.c $(GHEA)
 	$(MAKEDEP) $< | sed 's,\(.*\)\.o[ :]*,$(BUILDDIR)/\1.o $@ : ,g' > $@
 	$(MAKEDEP) $< | sed 's,\(.*\)\.o[ :]*,$(BUILDDIR)/\1_db.o $@ : ,g' >> $@
+
+%.dep: %.cu $(GHEA)
+	$(MAKEDEP) $< | sed 's,\(.*\)\.o[ :]*,$(BUILDDIR)/\1.o $@ : ,g' > $@
+	$(MAKEDEP) $< | sed 's,\(.*\)\.o[ :]*,$(BUILDDIR)/\1_db.o $@ : ,g' >> $@
+
 clean:
 	rm -f $(BUILDDIR)/*.o
 	rm -f $(GSRCDIR)/*

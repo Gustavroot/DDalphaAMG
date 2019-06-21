@@ -1555,6 +1555,18 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
     }
   }
 
+  /*
+  // Saving vector to output file, for correctness comparisons
+  int total_nr_vectentries = s->num_blocks * s->block_vector_size;
+  if(g.my_rank == 0){
+    printf("%d\n", total_nr_vectentries);
+    printf("Saving vector into file and exiting...\n");
+    field_saver( eta, total_nr_vectentries, "PRECISION", "/home/ramirez/DDalphaAMG/output_xrl_orig.txt" );
+  }
+  MPI_Barrier(MPI_COMM_WORLD);
+  MPI_Abort(MPI_COMM_WORLD, 911);
+  */
+
   for ( i=nb_thread_start; i<nb_thread_end; i++ ) {
     if ( l->relax_fac != 1.0 )
       vector_PRECISION_scale( phi, x, l->relax_fac, s->block[i].start*l->num_lattice_site_var, s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );
