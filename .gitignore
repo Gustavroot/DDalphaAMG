@@ -1,3 +1,10 @@
 dd_alpha_amg
 dd_alpha_amg_db
 
+# Ignore everything in conf/, except some default code/configs. This allows to add new test configs
+conf/*
+!conf/4x4x4x4b6.0000id3n1
+!conf/8x8x8x8b6.0000id3n1
+!conf/convert/
+!conf/random/
+!conf/split/
