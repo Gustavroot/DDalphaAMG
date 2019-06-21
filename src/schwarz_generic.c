@@ -1554,7 +1554,7 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
       res = _RES;
     }
   }
-  
+
   for ( i=nb_thread_start; i<nb_thread_end; i++ ) {
     if ( l->relax_fac != 1.0 )
       vector_PRECISION_scale( phi, x, l->relax_fac, s->block[i].start*l->num_lattice_site_var, s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );
