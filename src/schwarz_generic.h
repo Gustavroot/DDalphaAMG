@@ -52,6 +52,8 @@ struct Thread;
                                     schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
   void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
                           schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
+  void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
+                               schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
   void sixteen_color_schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
                                         schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
   

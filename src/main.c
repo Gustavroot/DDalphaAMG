@@ -55,7 +55,14 @@ int main( int argc, char **argv ) {
     printf("| This program comes with ABSOLUTELY NO WARRANTY.                      |\n");
     printf("+----------------------------------------------------------------------+\n\n");
   }
-  
+
+  // Link this MPI process with a CUDA device
+  // TODO: make this in a general way, creating a new MPI setup that maps nodes to GPUs
+  //cuda_safe_call( cudaSetDevice(g.my_rank/2) );
+#ifdef CUDA_OPT
+  cuda_safe_call( cudaSetDevice(0) );
+#endif
+
   method_init( &argc, &argv, &l );
   
   no_threading = (struct Thread *)malloc(sizeof(struct Thread));

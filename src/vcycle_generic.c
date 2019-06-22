@@ -34,8 +34,18 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
   if ( g.method == 1 ) {
     additive_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
   } else if ( g.method == 2 ) {
+#ifdef CUDA_OPT
+    // Enabled for now on the finest grid only
+    if( l->depth==0 && g.odd_even ){
+      schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    }
+    else{
+      schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    }
+#else
     //red_black_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
     schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+#endif
   } else if ( g.method == 3 ) {
     sixteen_color_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
   } else {

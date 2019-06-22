@@ -1,5 +1,5 @@
 # --- COMPILER ----------------------------------------
-CC = mpicc -std=gnu99 -Wall -pedantic
+CC = mpicc -std=gnu11 -Wall -pedantic
 CPP = cpp
 MAKEDEP = $(CPP) -MM
 NVCC=/usr/local/cuda/bin/nvcc
@@ -29,15 +29,18 @@ OBJDB = $(patsubst %.o,%_db.o,$(OBJ))
 DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 
 # --- FLAGS -------------------------------------------
-OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -I/usr/local/cuda/include/ -DCUDA_OPT
-CFLAGS = -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST -DPROFILING
+COMMON_FLAGS = -DCUDA_OPT -DCUDA_ERROR_CHECK -DPROFILING
+#COMMON_FLAGS = -DPROFILING
+
+OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -I/usr/local/cuda/include/
+CFLAGS = -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_FLAGS)
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
 OPT_VERSION_FLAGS =$(OPT_FLAGS) -O3 -ffast-math
 DEBUG_VERSION_FLAGS = $(OPT_FLAGS)
 
 OPT_FLAGS_CUDA = 
-CFLAGS_CUDA = -DPROFILING
+CFLAGS_CUDA = $(COMMON_FLAGS)
 OPT_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA) -O3 # what about --ffast-math ?
 DEBUG_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA)
 

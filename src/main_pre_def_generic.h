@@ -27,8 +27,10 @@
   typedef PRECISION complex *vector_PRECISION;
 
   // CUDA typedefs
+#ifdef CUDA_OPT
   typedef cu_cmplx_PRECISION* cuda_vector_PRECISION;
   typedef cu_cmplx_PRECISION* cuda_config_PRECISION;
+#endif
 
   struct Thread;
   struct level_struct;

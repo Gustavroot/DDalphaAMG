@@ -27,10 +27,15 @@
   #include <mpi.h>
 #endif
 #include <complex.h>
-#include <cuComplex.h>
 #include <math.h>
 #include <time.h>
 #include <stdarg.h>
+
+#ifdef CUDA_OPT
+  #include <cuComplex.h>
+  #include <cuda.h>
+  #include <cuda_runtime.h>
+#endif
 
 #ifdef JUROPA
 #include <mkl.h>
@@ -213,8 +218,10 @@
   } block_struct;
 
   // CUDA typedefs
+#ifdef CUDA_OPT
   typedef cuDoubleComplex cu_cmplx_double;
   typedef cuFloatComplex cu_cmplx_float;
+#endif
 
   #include "main_pre_def_float.h"
   #include "main_pre_def_double.h"
@@ -497,6 +504,10 @@
 #include "dirac_double.h"
 #include "oddeven_float.h"
 #include "oddeven_double.h"
+#ifdef CUDA_OPT
+  #include "cuda_oddeven_float.h"
+  #include "cuda_oddeven_double.h"
+#endif
 #include "linalg.h"
 #include "linalg_float.h"
 #include "linalg_double.h"
@@ -538,4 +549,6 @@
 #include <lime_reader.h>
 #endif
 #include "lime_io.h"
-#include "miscellaneous.h"
+#ifdef CUDA_OPT
+  #include "miscellaneous.h"
+#endif

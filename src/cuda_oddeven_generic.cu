@@ -1,3 +1,4 @@
+#ifdef CUDA_OPT
 //#include "main.h"
 
 #include <mpi.h>
@@ -16,3 +17,4 @@ extern "C" void cuda_block_solve_oddeven_PRECISION( cuda_vector_PRECISION phi, c
   // TODO
 
 }
+#endif
