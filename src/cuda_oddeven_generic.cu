@@ -11,10 +11,12 @@ extern "C"{
 
 }
 
-extern "C" void cuda_block_solve_oddeven_PRECISION( cuda_vector_PRECISION phi, cuda_vector_PRECISION r, cuda_vector_PRECISION latest_iter,
-                                                    schwarz_PRECISION_struct *s, int stream_id, cudaStream_t *stream ){
+  extern "C" void cuda_block_solve_oddeven_PRECISION( cuda_vector_PRECISION phi, cuda_vector_PRECISION r, cuda_vector_PRECISION latest_iter,
+                                                      int start, schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
 
-  // TODO
+    block_solve_oddeven_PRECISION( (vector_PRECISION)phi, (vector_PRECISION)r, (vector_PRECISION)latest_iter,
+                                   start, s, l, threading );
 
-}
+  }
+
 #endif

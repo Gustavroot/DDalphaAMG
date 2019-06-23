@@ -35,11 +35,23 @@ void smoother_PRECISION_def( level_struct *l ) {
 }
 
 
+// TODO
+#ifdef CUDA_OPT
+void smoother_PRECISION_def_CUDA( level_struct *l ) { }
+#endif
+
+
 void smoother_PRECISION_free( level_struct *l ) {
   
   if ( g.method >= 0 )
     schwarz_PRECISION_free( &(l->s_PRECISION), l );
 }
+
+
+// TODO
+#ifdef CUDA_OPT
+void smoother_PRECISION_free_CUDA( level_struct *l ) { }
+#endif
 
 
 void schwarz_PRECISION_init( schwarz_PRECISION_struct *s, level_struct *l ) {
@@ -69,6 +81,12 @@ void schwarz_PRECISION_init( schwarz_PRECISION_struct *s, level_struct *l ) {
   s->block_list_length = NULL;
   s->num_colors = 0;
 }
+
+
+// TODO
+#ifdef CUDA_OPT
+void schwarz_PRECISION_init_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) { }
+#endif
 
 
 void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
@@ -214,6 +232,12 @@ void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
 }
 
 
+// TODO
+#ifdef CUDA_OPT
+void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) {}
+#endif
+
+
 void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l ) {
   
   int i, n, mu, nu, *bl = l->block_lattice, vs = (l->depth==0)?l->inner_vector_size:l->vector_size;
@@ -307,6 +331,12 @@ void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l ) {
   }
 #endif
 }
+
+
+// TODO
+#ifdef CUDA_OPT
+void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) { }
+#endif
 
 
 void schwarz_layout_PRECISION_define( schwarz_PRECISION_struct *s, level_struct *l ) {
@@ -1074,6 +1104,13 @@ void schwarz_PRECISION_setup( schwarz_PRECISION_struct *s, operator_double_struc
 }
 #endif
 
+
+// TODO
+#ifdef CUDA_OPT
+void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_struct *op_in, level_struct *l ) { }
+#endif
+
+
 void additive_schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
                                  schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
   
@@ -1649,10 +1686,16 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
 }
 
 
+#ifdef CUDA_OPT
 void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res,
                              schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
   
   START_NO_HYPERTHREADS(threading)
+
+  // DESIGN OPTIONS
+
+  //1.1 the CUDA streams are a member of schwarz_PRECISION_struct, but not of
+  //    schwarz_PRECISION_struct (because this last one will go entirely into GPU memory)
 
   int color, k, mu, i,  nb = s->num_blocks, init_res = res;
   vector_PRECISION r = s->buf1;
@@ -1661,15 +1704,18 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   vector_PRECISION x = s->buf3;
   void (*block_op)() = (l->depth==0)?block_d_plus_clover_PRECISION:coarse_block_operator_PRECISION,
        (*boundary_op)() = (l->depth==0)?block_PRECISION_boundary_op:coarse_block_PRECISION_boundary_op,
-       (*n_boundary_op)() = (l->depth==0)?n_block_PRECISION_boundary_op:n_coarse_block_PRECISION_boundary_op,
-       (*block_solve)() = (l->depth==0&&g.odd_even)?block_solve_oddeven_PRECISION:local_minres_PRECISION;
-  
+       (*n_boundary_op)() = (l->depth==0)?n_block_PRECISION_boundary_op:n_coarse_block_PRECISION_boundary_op;
+
+  cuda_vector_PRECISION r_dev = (cuda_vector_PRECISION)r,
+                        x_dev = (cuda_vector_PRECISION)x,
+                        latest_iter_dev = (cuda_vector_PRECISION)latest_iter;
+
   SYNC_CORES(threading)
   
   int nb_thread_start;
   int nb_thread_end;
   compute_core_start_end_custom(0, nb, &nb_thread_start, &nb_thread_end, l, threading, 1);
-  
+
   if ( res == _NO_RES ) {
     vector_PRECISION_copy( r, eta, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l );
     vector_PRECISION_define( x, 0, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l );
@@ -1722,7 +1768,19 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
           // local minres updates x, r and latest iter
           PROF_PRECISION_START( _SM2 );
           END_MASTER(threading)
-          block_solve( x, r, latest_iter, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+
+          //2. cuda_vector_PRECISION_copy_H2D(...), cuda_vector_PRECISION_copy_D2H(...), cuda_vector_PRECISION_copy_D2D(...)
+          //   CALL HERE: cuda_vector_PRECISION_copy_H2D(...)
+
+          if( l->depth==0&&g.odd_even ){
+            cuda_block_solve_oddeven_PRECISION( x_dev, r_dev, latest_iter_dev, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+          }
+          else{
+            local_minres_PRECISION( x, r, latest_iter, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+          }
+
+          //3. cuda_vector_PRECISION_copy_D2H(...)
+
           START_MASTER(threading)
           PROF_PRECISION_STOP( _SM2, 1 );
           END_MASTER(threading)
@@ -1763,7 +1821,19 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
           // local minres updates x, r and latest iter
           PROF_PRECISION_START( _SM4 );
           END_MASTER(threading)
-          block_solve( x, r, latest_iter, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+
+          //4. cuda_vector_PRECISION_copy_H2D(...), cuda_vector_PRECISION_copy_D2H(...), cuda_vector_PRECISION_copy_D2D(...)
+          //   CALL HERE: cuda_vector_PRECISION_copy_H2D(...)
+
+          if( l->depth==0&&g.odd_even ){
+            cuda_block_solve_oddeven_PRECISION( x_dev, r_dev, latest_iter_dev, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+          }
+          else{
+            local_minres_PRECISION( x, r, latest_iter, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+          }
+
+          //5. cuda_vector_PRECISION_copy_D2H()
+
           START_MASTER(threading)
           PROF_PRECISION_STOP( _SM4, 1 );
           END_MASTER(threading)
@@ -1877,6 +1947,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
   END_NO_HYPERTHREADS(threading)
 }
+#endif
 
 
 void sixteen_color_schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
@@ -2082,6 +2153,12 @@ void schwarz_PRECISION_def( schwarz_PRECISION_struct *s, operator_double_struct 
   schwarz_layout_PRECISION_define( s, l );
   schwarz_PRECISION_setup( s, op, l );
 }
+
+
+// TODO
+#ifdef CUDA_OPT
+void schwarz_PRECISION_def_CUDA( schwarz_PRECISION_struct *s, operator_double_struct *op, level_struct *l ) { }
+#endif
 
 
 void schwarz_PRECISION_mvm_testfun( schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {

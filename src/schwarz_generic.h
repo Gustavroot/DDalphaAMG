@@ -32,19 +32,36 @@ struct Thread;
                                            int k, schwarz_PRECISION_struct *s, level_struct *l );
   void n_coarse_block_PRECISION_boundary_op( vector_PRECISION eta, vector_PRECISION phi,
                                              int k, schwarz_PRECISION_struct *s, level_struct *l );
-  
+
   void smoother_PRECISION_def( level_struct *l );
   void smoother_PRECISION_free( level_struct *l );
-  
+#ifdef CUDA_OPT
+  void smoother_PRECISION_def_CUDA( level_struct *l );
+  void smoother_PRECISION_free_CUDA( level_struct *l );
+#endif
+
   void schwarz_PRECISION_init( schwarz_PRECISION_struct *s, level_struct *l );
+#ifdef CUDA_OPT
+  void schwarz_PRECISION_init_CUDA( schwarz_PRECISION_struct *s, level_struct *l );
+#endif
   void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l );
+#ifdef CUDA_OPT
+  void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l );
+#endif
   void schwarz_layout_PRECISION_define( schwarz_PRECISION_struct *s, level_struct *l );
   void schwarz_PRECISION_boundary_update( schwarz_PRECISION_struct *s, level_struct *l );
-  
+
   void schwarz_PRECISION_setup( schwarz_PRECISION_struct *s, operator_double_struct *op_in, level_struct *l );
-  
+#ifdef CUDA_OPT
+  void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_struct *op_in, level_struct *l );
+#endif
+
   void schwarz_PRECISION_def( schwarz_PRECISION_struct *s, operator_double_struct *op, level_struct *l );
   void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l );
+#ifdef CUDA_OPT
+  void schwarz_PRECISION_def_CUDA( schwarz_PRECISION_struct *s, operator_double_struct *op, level_struct *l );
+  void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l );
+#endif
   
   void additive_schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
                                    schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
@@ -52,8 +69,10 @@ struct Thread;
                                     schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
   void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
                           schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
+#ifdef CUDA_OPT
   void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
                                schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
+#endif
   void sixteen_color_schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
                                         schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
   

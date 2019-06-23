@@ -189,6 +189,11 @@ void level_PRECISION_init( level_struct *l ) {
   operator_PRECISION_init( &(l->op_PRECISION) );
   operator_PRECISION_init( &(l->oe_op_PRECISION) );
   schwarz_PRECISION_init( &(l->s_PRECISION), l );
+#ifdef CUDA_OPT
+  if( l->depth==0 && g.odd_even ){
+    schwarz_PRECISION_init_CUDA( &(l->s_PRECISION), l );
+  }
+#endif
   interpolation_PRECISION_struct_init( &(l->is_PRECISION) );
   fgmres_PRECISION_struct_init( &(l->p_PRECISION) );
   fgmres_PRECISION_struct_init( &(l->sp_PRECISION) );

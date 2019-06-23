@@ -24,8 +24,9 @@ GHEAFLT = $(patsubst %_generic.h,$(GSRCDIR)/%_float.h,$(HEAGEN))
 GHEADBL = $(patsubst %_generic.h,$(GSRCDIR)/%_double.h,$(HEAGEN))
 GHEA = $(patsubst %,$(GSRCDIR)/%,$(HEA)) $(GHEAFLT) $(GHEADBL)
 OBJ = $(patsubst $(GSRCDIR)/%.c,$(BUILDDIR)/%.o,$(GSRC))
-OBJ_CUDA = $(patsubst $(GSRCDIR)/%.cu,$(BUILDDIR)/%.o,$(GSRC_CUDA))
 OBJDB = $(patsubst %.o,%_db.o,$(OBJ))
+OBJ_CUDA = $(patsubst $(GSRCDIR)/%.cu,$(BUILDDIR)/%.o,$(GSRC_CUDA))
+OBJ_CUDADB = $(patsubst %.o,%_db.o,$(OBJ_CUDA))
 DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 
 # --- FLAGS -------------------------------------------
@@ -69,10 +70,10 @@ documentation: doc/user_doc.pdf
 .SECONDARY:
 
 dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
-	$(NVCC) --compiler-options='$(OPT_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJ) $(H5LIB) $(LIMELIB) -lm -lcudart -L/usr/local/cuda/lib64/
+	$(NVCC) --compiler-options='$(OPT_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJ) $(OBJ_CUDA) $(H5LIB) $(LIMELIB) -lm -lcudart -L/usr/local/cuda/lib64/
 
-dd_alpha_amg_db : $(OBJDB)
-	$(NVCC) -g --compiler-options='$(DEBUG_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(H5LIB) $(LIMELIB) -lm -lcudart -L/usr/local/cuda/lib64/
+dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
+	$(NVCC) -g --compiler-options='$(DEBUG_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(OBJ_CUDADB) $(H5LIB) $(LIMELIB) -lm -lcudart -L/usr/local/cuda/lib64/
 
 lib/libdd_alpha_amg.a: $(OBJ)
 	ar rc $@ $(OBJ)
@@ -97,7 +98,7 @@ $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h
 $(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
 	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -rdc=true -lcudadevrt -L/usr/local/cuda/lib64/ -c $< -o $@
 
-$(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
+$(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
 	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -rdc=true -lcudadevrt -L/usr/local/cuda/lib64/ -DDEBUG -c $< -o $@
 
 $(GSRCDIR)/%.h: $(SRCDIR)/%.h $(firstword $(MAKEFILE_LIST))
