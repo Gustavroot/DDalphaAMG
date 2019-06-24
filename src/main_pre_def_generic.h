@@ -80,6 +80,13 @@
     void (*eval_operator)( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op, struct level_struct *l, struct Thread *threading );
   } gmres_PRECISION_struct;
 
+#ifdef CUDA_OPT
+  // CUDA structs
+  typedef struct {
+    cuda_vector_PRECISION buf1, buf2, buf3;
+  } cuda_schwarz_PRECISION_struct;
+#endif
+
   typedef struct {
     operator_PRECISION_struct op;
     vector_PRECISION buf1, buf2, buf3, buf4, buf5, bbuf1, bbuf2, bbuf3, oe_bbuf[6];
@@ -91,6 +98,9 @@
         block_vector_size, num_block_sites, block_boundary_length[9],
         **block_list, *block_list_length;
     block_struct *block;
+#ifdef CUDA_OPT
+    cuda_schwarz_PRECISION_struct cu_s;
+#endif
   } schwarz_PRECISION_struct;
 
   typedef struct {

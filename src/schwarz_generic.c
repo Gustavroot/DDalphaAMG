@@ -45,6 +45,11 @@ void smoother_PRECISION_free( level_struct *l ) {
   
   if ( g.method >= 0 )
     schwarz_PRECISION_free( &(l->s_PRECISION), l );
+#ifdef CUDA_OPT
+  if( l->depth==0 && g.odd_even ){
+    schwarz_PRECISION_free_CUDA( &(l->s_PRECISION), l );
+  }
+#endif
 }
 
 
@@ -234,7 +239,15 @@ void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
 
 // TODO
 #ifdef CUDA_OPT
-void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) {}
+void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) {
+
+  // FIXME: what is the role of 'vs' here ?
+  //MALLOC( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
+  cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).buf1 )), 3*l->schwarz_vector_size*sizeof(cu_cmplx_PRECISION) ) );
+  cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).buf2 )), 3*l->schwarz_vector_size*sizeof(cu_cmplx_PRECISION) ) );
+  cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).buf3 )), 3*l->schwarz_vector_size*sizeof(cu_cmplx_PRECISION) ) );
+
+}
 #endif
 
 
@@ -335,7 +348,13 @@ void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l ) {
 
 // TODO
 #ifdef CUDA_OPT
-void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) { }
+void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) {
+
+  cuda_safe_call( cudaFree( (s->cu_s).buf1 ) );
+  cuda_safe_call( cudaFree( (s->cu_s).buf2 ) );
+  cuda_safe_call( cudaFree( (s->cu_s).buf3 ) );
+
+}
 #endif
 
 
@@ -1686,6 +1705,9 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
 }
 
 
+// TODO: the following function does the same as schwarz_PRECISION(...), so we can merge them (can we?). For now,
+//       work on it as a separate function, and later on unify them
+
 #ifdef CUDA_OPT
 void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res,
                              schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
@@ -1706,9 +1728,9 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
        (*boundary_op)() = (l->depth==0)?block_PRECISION_boundary_op:coarse_block_PRECISION_boundary_op,
        (*n_boundary_op)() = (l->depth==0)?n_block_PRECISION_boundary_op:n_coarse_block_PRECISION_boundary_op;
 
-  cuda_vector_PRECISION r_dev = (cuda_vector_PRECISION)r,
-                        x_dev = (cuda_vector_PRECISION)x,
-                        latest_iter_dev = (cuda_vector_PRECISION)latest_iter;
+  cuda_vector_PRECISION r_dev = (s->cu_s).buf1,
+                        x_dev = (s->cu_s).buf3,
+                        latest_iter_dev = (s->cu_s).buf2;
 
   SYNC_CORES(threading)
   
@@ -1730,10 +1752,22 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   END_MASTER(threading)
   
   SYNC_CORES(threading)
-  
+
+  // Creation of CUDA Events, for time measurement and sync
+  cudaEvent_t start_event, stop_event;
+  cuda_safe_call( cudaEventCreate(&start_event) );
+  cuda_safe_call( cudaEventCreate(&stop_event) );
+
+  // FIXME: one stream for now, just for copy tests
+  cudaStream_t *streams_schwarz = (cudaStream_t*) malloc( 1 * sizeof(cudaStream_t) );
+
   for ( k=0; k<cycles; k++ ) {
     
     for ( color=0; color<s->num_colors; color++ ) {
+
+      // Start whole iteration
+      cuda_safe_call( cudaEventRecord(start_event, 0) );
+
       if ( res == _RES ) {
         START_LOCKED_MASTER(threading)
         for ( mu=0; mu<4; mu++ ) {
@@ -1769,17 +1803,26 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
           PROF_PRECISION_START( _SM2 );
           END_MASTER(threading)
 
-          //2. cuda_vector_PRECISION_copy_H2D(...), cuda_vector_PRECISION_copy_D2H(...), cuda_vector_PRECISION_copy_D2D(...)
-          //   CALL HERE: cuda_vector_PRECISION_copy_H2D(...)
+          // Copy x and r to GPU
+          // TODO: change this to copy only the portions of x and r needed by the block_solve
+          //cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, s->block_vector_size, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, s->block_vector_size, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, s->block_vector_size, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
 
           if( l->depth==0&&g.odd_even ){
-            cuda_block_solve_oddeven_PRECISION( x_dev, r_dev, latest_iter_dev, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+            //cuda_block_solve_oddeven_PRECISION( x_dev, r_dev, latest_iter_dev, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+            cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x, (cuda_vector_PRECISION)r, (cuda_vector_PRECISION)latest_iter, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
           }
           else{
             local_minres_PRECISION( x, r, latest_iter, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
           }
 
-          //3. cuda_vector_PRECISION_copy_D2H(...)
+          // Retrieve x and r back from GPU to CPU
+          // TODO: change this to, correspondigly as above, copy only the portions of x and r needed by the block_solve
+          cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, s->block_vector_size, s->block_vector_size, l, _D2H, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, s->block_vector_size, s->block_vector_size, l, _D2H, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, s->block_vector_size, s->block_vector_size, l, _D2H, _CUDA_ASYNC, 0, streams_schwarz );
 
           START_MASTER(threading)
           PROF_PRECISION_STOP( _SM2, 1 );
@@ -1822,17 +1865,26 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
           PROF_PRECISION_START( _SM4 );
           END_MASTER(threading)
 
-          //4. cuda_vector_PRECISION_copy_H2D(...), cuda_vector_PRECISION_copy_D2H(...), cuda_vector_PRECISION_copy_D2D(...)
-          //   CALL HERE: cuda_vector_PRECISION_copy_H2D(...)
+          // Copy x and r to GPU
+          // TODO: change this to copy only the portions of x and r needed by the block_solve
+          //cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, s->block_vector_size, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, s->block_vector_size, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, s->block_vector_size, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
 
           if( l->depth==0&&g.odd_even ){
-            cuda_block_solve_oddeven_PRECISION( x_dev, r_dev, latest_iter_dev, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+            //cuda_block_solve_oddeven_PRECISION( x_dev, r_dev, latest_iter_dev, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+            cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x, (cuda_vector_PRECISION)r, (cuda_vector_PRECISION)latest_iter, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
           }
           else{
             local_minres_PRECISION( x, r, latest_iter, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
           }
 
-          //5. cuda_vector_PRECISION_copy_D2H()
+          // Retrieve x and r back from GPU to CPU
+          // TODO: change this to, correspondigly as above, copy only the portions of x and r needed by the block_solve
+          cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, s->block_vector_size, s->block_vector_size, l, _D2H, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, s->block_vector_size, s->block_vector_size, l, _D2H, _CUDA_ASYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, s->block_vector_size, s->block_vector_size, l, _D2H, _CUDA_ASYNC, 0, streams_schwarz );
 
           START_MASTER(threading)
           PROF_PRECISION_STOP( _SM4, 1 );
@@ -1840,6 +1892,13 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
         }
       }
       res = _RES;
+
+      // End whole iteration
+      cuda_safe_call( cudaEventRecord(stop_event, 0) );
+
+      // Sync whole iteration
+      cuda_safe_call( cudaEventSynchronize(stop_event) );
+
     }
   }
 
@@ -2150,6 +2209,11 @@ void trans_back_PRECISION( vector_double out, vector_PRECISION in, int *tt, leve
 void schwarz_PRECISION_def( schwarz_PRECISION_struct *s, operator_double_struct *op, level_struct *l ) {
 
   schwarz_PRECISION_alloc( s, l );
+#ifdef CUDA_OPT
+  if( l->depth==0 && g.odd_even ){
+    schwarz_PRECISION_alloc_CUDA( s, l );
+  }
+#endif
   schwarz_layout_PRECISION_define( s, l );
   schwarz_PRECISION_setup( s, op, l );
 }

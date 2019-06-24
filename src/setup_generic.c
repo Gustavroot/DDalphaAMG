@@ -44,11 +44,6 @@ void coarse_grid_correction_PRECISION_setup( level_struct *l, struct Thread *thr
     if ( !l->next_level->idle ) {
       if ( l->next_level->level > 0 ) {
         schwarz_PRECISION_alloc( &(l->next_level->s_PRECISION), l->next_level );
-#ifdef CUDA_OPT
-        if( l->depth==0 && g.odd_even ){
-          schwarz_PRECISION_alloc_CUDA( &(l->next_level->s_PRECISION), l->next_level );
-        }
-#endif
         schwarz_layout_PRECISION_define( &(l->next_level->s_PRECISION), l->next_level );
       } else {
         operator_PRECISION_alloc( &(l->next_level->s_PRECISION.op), _ORDINARY, l->next_level );
@@ -175,11 +170,6 @@ void coarse_grid_correction_PRECISION_free( level_struct *l ) {
     if ( !l->next_level->idle ) {
       if ( l->next_level->level > 0 ) {
         schwarz_PRECISION_free( &(l->next_level->s_PRECISION), l->next_level );
-#ifdef CUDA_OPT
-        if( l->depth==0 && g.odd_even ){
-          schwarz_PRECISION_free_CUDA( &(l->next_level->s_PRECISION), l->next_level );
-        }
-#endif
         if ( g.method >= 4 && g.odd_even ) {
           coarse_oddeven_free_PRECISION( l->next_level );
         }
