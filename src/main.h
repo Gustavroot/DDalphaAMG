@@ -354,7 +354,7 @@
     // local solver parameters
     double tol, relax_fac;
     int n_cy, post_smooth_iter, block_iter, setup_iter;
-    
+
     // next coarser level
     struct level_struct *next_level;
     
@@ -400,6 +400,11 @@
     
     complex_double **gamma, g5D_shift;
     var_table vt;
+
+#ifdef CUDA_OPT
+    // Variable to indicate if we're computing setup or not
+    int doing_setup;
+#endif
 
     struct dd_alpha_amg_parameters amg_params;
     struct dd_alpha_amg_setup_status mg_setup_status;

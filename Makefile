@@ -49,8 +49,8 @@ DEBUG_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA)
 NVCC_EXTRA_COMP_FLAGS = -I/home/ramirez/installs/openmpi/include/ -L/home/ramirez/installs/openmpi/lib64/
 NVCC_EXTRA_COMP_FLAGS += -lmpi
 NVCC_EXTRA_COMP_FLAGS += -arch=sm_50
-#NVCC_EXTRA_COMP_FLAGS += -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
-#NVCC_EXTRA_COMP_FLAGS += -lcudart -L/usr/local/cuda/lib64/
+NVCC_EXTRA_COMP_FLAGS += -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
+NVCC_EXTRA_COMP_FLAGS += -lcudart -L/usr/local/cuda/lib64/
 
 # --- FLAGS FOR HDF5 ---------------------------------
 # H5HEADERS=-DHAVE_HDF5 /usr/include
@@ -70,10 +70,10 @@ documentation: doc/user_doc.pdf
 .SECONDARY:
 
 dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
-	$(NVCC) --compiler-options='$(OPT_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJ) $(OBJ_CUDA) $(H5LIB) $(LIMELIB) -lm -lcudart -L/usr/local/cuda/lib64/
+	$(NVCC) --compiler-options='$(OPT_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJ) $(OBJ_CUDA) $(H5LIB) $(LIMELIB) -lm
 
 dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
-	$(NVCC) -g --compiler-options='$(DEBUG_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(OBJ_CUDADB) $(H5LIB) $(LIMELIB) -lm -lcudart -L/usr/local/cuda/lib64/
+	$(NVCC) -g --compiler-options='$(DEBUG_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(OBJ_CUDADB) $(H5LIB) $(LIMELIB) -lm
 
 lib/libdd_alpha_amg.a: $(OBJ)
 	ar rc $@ $(OBJ)

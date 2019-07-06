@@ -83,7 +83,9 @@
 #ifdef CUDA_OPT
   // CUDA structs
   typedef struct {
-    cuda_vector_PRECISION buf1, buf2, buf3;
+    cuda_vector_PRECISION buf1, buf2, buf3, buf4;
+    cudaStream_t *streams;
+    int nr_streams;
   } cuda_schwarz_PRECISION_struct;
 #endif
 
@@ -100,6 +102,8 @@
     block_struct *block;
 #ifdef CUDA_OPT
     cuda_schwarz_PRECISION_struct cu_s;
+    // There will be a copy of cu_s, which will be stored in the GPU
+    cuda_schwarz_PRECISION_struct *cu_s_in_gpu;
 #endif
   } schwarz_PRECISION_struct;
 

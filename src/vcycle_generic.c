@@ -35,12 +35,22 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
     additive_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
   } else if ( g.method == 2 ) {
 #ifdef CUDA_OPT
-    // Enabled for now on the finest grid only
-    if( l->depth==0 && g.odd_even ){
+    if( g.doing_setup==1 ){
+      //schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
       schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
     }
     else{
-      schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+      // Enabled for now on the finest grid only
+      if( l->depth==0 && g.odd_even ){
+        //if( g.my_rank==0 && l->depth==0 ){ printf( "Applying CUDA smoother for solving, at depth=%d\n", l->depth ); }
+        schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+        //schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+        //additive_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+      }
+      else{
+        schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+        //schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+      }
     }
 #else
     //red_black_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );

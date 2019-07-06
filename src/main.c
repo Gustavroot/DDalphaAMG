@@ -108,13 +108,21 @@ int main( int argc, char **argv ) {
     struct Thread threading;
     setup_threading(&threading, commonthreaddata, &l);
     setup_no_threading(no_threading, &l);
-    
+
+#ifdef CUDA_OPT
+    g.doing_setup=1;
+#endif
+
     // setup up initial MG hierarchy
     method_setup( NULL, &l, &threading );
-    
+
     // iterative phase
     method_update( l.setup_iter, &l, &threading );
-    
+
+#ifdef CUDA_OPT
+    g.doing_setup=0;
+#endif
+
     solve_driver( &l, &threading );
   }
   
