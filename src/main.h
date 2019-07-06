@@ -30,6 +30,7 @@
 #include <math.h>
 #include <time.h>
 #include <stdarg.h>
+#include <sys/time.h>
 
 #ifdef CUDA_OPT
   #include <cuComplex.h>

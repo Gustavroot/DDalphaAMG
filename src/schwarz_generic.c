@@ -1760,10 +1760,12 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   
   SYNC_CORES(threading)
 
-  // Creation of CUDA Events, for time measurement and sync
-  cudaEvent_t start_event, stop_event;
-  cuda_safe_call( cudaEventCreate(&start_event) );
-  cuda_safe_call( cudaEventCreate(&stop_event) );
+  // Creation of CUDA Events, for time measurement and GPU sync
+  cudaEvent_t start_event_copy, stop_event_copy, start_event_comp, stop_event_comp;
+  cuda_safe_call( cudaEventCreate(&start_event_copy) );
+  cuda_safe_call( cudaEventCreate(&stop_event_copy) );
+  cuda_safe_call( cudaEventCreate(&start_event_comp) );
+  cuda_safe_call( cudaEventCreate(&stop_event_comp) );
 
   // TODO: generalization to more than one streams pending
   cudaStream_t *streams_schwarz = (s->cu_s).streams;
@@ -1776,12 +1778,18 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   //  cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, 0, s->num_blocks*s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
   //}
 
+  // TODO: temporary variable, eliminate !
+  int do_block_solve_at_cpu;
+
+  // TODO: remove !
+  printf("\e[m\n");
+
   for ( k=0; k<cycles; k++ ) {
     
     for ( color=0; color<s->num_colors; color++ ) {
 
       // Start whole iteration
-      cuda_safe_call( cudaEventRecord(start_event, 0) );
+      //cuda_safe_call( cudaEventRecord(start_event, 0) );
 
       if ( res == _RES ) {
         START_LOCKED_MASTER(threading)
@@ -1822,12 +1830,78 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
           if( l->depth==0&&g.odd_even ){
             //cuda_block_solve_oddeven_PRECISION( x_dev, r_dev, latest_iter_dev, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
 
-            // Copy to the GPU information needed for block_solve
-            cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
-            cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
-            cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
+            if( g.my_rank==0 ){
 
-            cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x, (cuda_vector_PRECISION)r, (cuda_vector_PRECISION)latest_iter, s->block[i].start*l->num_lattice_site_var, 1, s, l, no_threading, 0, streams_schwarz );
+            struct timeval start, end;
+            long start_us, end_us;
+
+            gettimeofday(&start, NULL);
+            // Copy to the GPU information needed for block_solve
+            cuda_safe_call( cudaEventRecord(start_event_copy, streams_schwarz[0]) );
+            int y;
+            for(y=0; y<s->num_blocks; y++){
+              cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+              cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+              cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+            }
+            cuda_safe_call( cudaEventRecord(stop_event_copy, streams_schwarz[0]) );
+            cuda_safe_call( cudaEventSynchronize(stop_event_copy) );
+            gettimeofday(&end, NULL);
+
+            start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+            end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+            printf("\nTime (in us) for GPU copy (according to gettimeofday, contains CUDA Events records): %ld\n",
+                   (end_us-start_us));
+
+            float time_x_copy;
+            cuda_safe_call( cudaEventElapsedTime(&time_x_copy, start_event_copy, stop_event_copy) );
+            printf("Time (in us) for GPU copy (according to CUDA Events):  %f\n", 1000*time_x_copy);
+
+            cuda_safe_call( cudaDeviceSynchronize() );
+
+            gettimeofday(&start, NULL);
+            do_block_solve_at_cpu=0;
+            cuda_safe_call( cudaEventRecord(start_event_comp, streams_schwarz[0]) );
+            int w;
+            for(w=0; w<s->num_blocks; w++){
+              cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x, (cuda_vector_PRECISION)r, (cuda_vector_PRECISION)latest_iter,
+                                                  s->block[i].start*l->num_lattice_site_var, 1, s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu );
+            }
+            cuda_safe_call( cudaEventRecord(stop_event_comp, streams_schwarz[0]) );
+            cuda_safe_call( cudaEventSynchronize(stop_event_comp) );
+            gettimeofday(&end, NULL);
+
+            start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+            end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+            printf("Time (in us) for block solve @ GPU (according to gettimeofday, contains CUDA Events records): %ld\n",
+                   (end_us-start_us));
+
+            float time_x_comp;
+            cuda_safe_call( cudaEventElapsedTime(&time_x_comp, start_event_comp, stop_event_comp) );
+            printf("Time (in us) for block solve @ GPU (according to CUDA Events):  %f\n", 1000*time_x_comp);
+
+            gettimeofday(&start, NULL);
+            do_block_solve_at_cpu=1;
+            int z;
+            for(z=0; z<s->num_blocks; z++){
+              cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x, (cuda_vector_PRECISION)r, (cuda_vector_PRECISION)latest_iter,
+                                                  s->block[i].start*l->num_lattice_site_var, 1, s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu );
+            }
+            gettimeofday(&end, NULL);
+
+            start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+            end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+            printf("Time (in us) for block solve @ CPU (according to gettimeofday): %ld\n",
+                   (end_us-start_us));
+
+            }
+
+            //MPI_Barrier(MPI_COMM_WORLD);
+            //MPI_Abort(MPI_COMM_WORLD, 911);
+
+            MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Finalize();
+            exit(0);
 
             // Retrieve back from GPU to CPU
             // TODO: change this to, correspondigly as above, copy only the portions of x and r needed by the block_solve
@@ -1883,12 +1957,78 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
           if( l->depth==0&&g.odd_even ){
 
-            // Copy to the GPU information needed for block_solve
-            cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
-            cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
-            cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
+            if( g.my_rank==0 ){
 
-            cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x, (cuda_vector_PRECISION)r, (cuda_vector_PRECISION)latest_iter, s->block[i].start*l->num_lattice_site_var, 1, s, l, no_threading, 0, streams_schwarz );
+            struct timeval start, end;
+            long start_us, end_us;
+
+            gettimeofday(&start, NULL);
+            // Copy to the GPU information needed for block_solve
+            cuda_safe_call( cudaEventRecord(start_event_copy, streams_schwarz[0]) );
+            int y;
+            for(y=0; y<s->num_blocks; y++){
+              cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+              cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+              cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+            }
+            cuda_safe_call( cudaEventRecord(stop_event_copy, streams_schwarz[0]) );
+            cuda_safe_call( cudaEventSynchronize(stop_event_copy) );
+            gettimeofday(&end, NULL);
+
+            start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+            end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+            printf("\nTime (in us) for GPU copy (according to gettimeofday, contains CUDA Events records): %ld\n",
+                   (end_us-start_us));
+
+            float time_x_copy;
+            cuda_safe_call( cudaEventElapsedTime(&time_x_copy, start_event_copy, stop_event_copy) );
+            printf("Time (in us) for GPU copy (according to CUDA Events):  %f\n", 1000*time_x_copy);
+
+            cuda_safe_call( cudaDeviceSynchronize() );
+
+            gettimeofday(&start, NULL);
+            do_block_solve_at_cpu=0;
+            cuda_safe_call( cudaEventRecord(start_event_comp, streams_schwarz[0]) );
+            int w;
+            for(w=0; w<s->num_blocks; w++){
+              cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x, (cuda_vector_PRECISION)r, (cuda_vector_PRECISION)latest_iter,
+                                                  s->block[i].start*l->num_lattice_site_var, 1, s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu );
+            }
+            cuda_safe_call( cudaEventRecord(stop_event_comp, streams_schwarz[0]) );
+            cuda_safe_call( cudaEventSynchronize(stop_event_comp) );
+            gettimeofday(&end, NULL);
+
+            start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+            end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+            printf("Time (in us) for block solve @ GPU (according to gettimeofday, contains CUDA Events records): %ld\n",
+                   (end_us-start_us));
+
+            float time_x_comp;
+            cuda_safe_call( cudaEventElapsedTime(&time_x_comp, start_event_comp, stop_event_comp) );
+            printf("Time (in us) for block solve @ GPU (according to CUDA Events):  %f\n", 1000*time_x_comp);
+
+            gettimeofday(&start, NULL);
+            do_block_solve_at_cpu=1;
+            int z;
+            for(z=0; z<s->num_blocks; z++){
+              cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x, (cuda_vector_PRECISION)r, (cuda_vector_PRECISION)latest_iter,
+                                                  s->block[i].start*l->num_lattice_site_var, 1, s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu );
+            }
+            gettimeofday(&end, NULL);
+
+            start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+            end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+            printf("Time (in us) for block solve @ CPU (according to gettimeofday): %ld\n",
+                   (end_us-start_us));
+
+            }
+
+            //MPI_Barrier(MPI_COMM_WORLD);
+            //MPI_Abort(MPI_COMM_WORLD, 911);
+
+            MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Finalize();
+            exit(0);
 
             // Retrieve back from GPU to CPU
             // TODO: change this to, correspondigly as above, copy only the portions of x and r needed by the block_solve
@@ -1909,10 +2049,10 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
       res = _RES;
 
       // End whole iteration's tracking
-      cuda_safe_call( cudaEventRecord(stop_event, 0) );
+      //cuda_safe_call( cudaEventRecord(stop_event, 0) );
 
       // Sync whole SAP
-      cuda_safe_call( cudaEventSynchronize(stop_event) );
+      //cuda_safe_call( cudaEventSynchronize(stop_event) );
 
     }
   }

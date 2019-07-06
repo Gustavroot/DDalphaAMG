@@ -24,19 +24,20 @@ __global__ void cuda_block_solve_oddeven_PRECISION_dev( cuda_vector_PRECISION ph
 
 extern "C" void cuda_block_solve_oddeven_PRECISION( cuda_vector_PRECISION phi, cuda_vector_PRECISION r, cuda_vector_PRECISION latest_iter,
                                                     int start, int nr_DD_blocks_to_compute, schwarz_PRECISION_struct *s, level_struct *l,
-                                                    struct Thread *threading, int stream_id, cudaStream_t *streams ) {
+                                                    struct Thread *threading, int stream_id, cudaStream_t *streams, int solve_at_cpu ) {
 
-  block_solve_oddeven_PRECISION( (vector_PRECISION)phi, (vector_PRECISION)r, (vector_PRECISION)latest_iter,
-                                 start, s, l, threading );
+  if(solve_at_cpu){
+    block_solve_oddeven_PRECISION( (vector_PRECISION)phi, (vector_PRECISION)r, (vector_PRECISION)latest_iter,
+                                   start, s, l, threading );
+  } else {
+    // Num even block sites
+    // TODO: change for general values
+    int nr_DD_sites = 4*4*4*4;
 
-  // Num even block sites
-  // TODO: change for general values
-  //int nr_DD_sites = 4*4*4*4;
-
-  // Call to the CUDA kernel to compute solves on a sub-set of this process's DD blocks
-  //cuda_block_solve_oddeven_PRECISION_dev <<< nr_DD_blocks_to_compute, 32, nr_DD_blocks_to_compute*sizeof(int), streams[stream_id] >>> 
-  //                                       ( phi, r, latest_iter, &(s->cu_s), threading->core, g.csw, 30, nr_DD_sites/2, l->num_lattice_site_var, stream_id );
-
+    // Call to the CUDA kernel to compute solves on a sub-set of this process's DD blocks
+    cuda_block_solve_oddeven_PRECISION_dev <<< nr_DD_blocks_to_compute, 32, nr_DD_blocks_to_compute*sizeof(int), streams[stream_id] >>> 
+                                           ( phi, r, latest_iter, &(s->cu_s), threading->core, g.csw, 30, nr_DD_sites/2, l->num_lattice_site_var, stream_id );
+  }
 }
 
 

@@ -48,7 +48,7 @@ DEBUG_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA)
 # --- FLAGS FOR CUDA ---------------------------------
 NVCC_EXTRA_COMP_FLAGS = -I/home/ramirez/installs/openmpi/include/ -L/home/ramirez/installs/openmpi/lib64/
 NVCC_EXTRA_COMP_FLAGS += -lmpi
-NVCC_EXTRA_COMP_FLAGS += -arch=sm_50
+NVCC_EXTRA_COMP_FLAGS += -arch=sm_70
 NVCC_EXTRA_COMP_FLAGS += -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
 NVCC_EXTRA_COMP_FLAGS += -lcudart -L/usr/local/cuda/lib64/
 
