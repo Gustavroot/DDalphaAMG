@@ -67,6 +67,12 @@
     OPERATOR_TYPE_PRECISION *clover_vectorized;
     OPERATOR_TYPE_PRECISION *oe_clover_vectorized;
   } operator_PRECISION_struct;
+
+#ifdef CUDA_OPT
+typedef struct {
+  cu_config_PRECISION *oe_clover_vectorized;
+} operator_PRECISION_struct_on_gpu;
+#endif
   
   typedef struct {
     vector_PRECISION x, b, r, w, *V, *Z;
@@ -84,9 +90,15 @@
   // CUDA structs
   typedef struct {
     cuda_vector_PRECISION buf1, buf2, buf3, buf4;
-    cudaStream_t *streams;
-    int nr_streams;
+    int **DD_blocks_in_comms, **DD_blocks_notin_comms;
+    block_struct* block;
   } cuda_schwarz_PRECISION_struct;
+  typedef struct {
+    cu_cmplx_PRECISION* oe_buf[4];
+    cu_config_PRECISION *oe_clover_vectorized;
+    operator_PRECISION_struct_on_gpu op;
+    int num_block_even_sites, num_block_odd_sites;
+  } schwarz_PRECISION_struct_on_gpu;
 #endif
 
   typedef struct {
@@ -101,9 +113,15 @@
         **block_list, *block_list_length;
     block_struct *block;
 #ifdef CUDA_OPT
+    cudaStream_t *streams;
+    int nr_streams;
     cuda_schwarz_PRECISION_struct cu_s;
-    // There will be a copy of cu_s, which will be stored in the GPU
-    cuda_schwarz_PRECISION_struct *cu_s_in_gpu;
+
+    schwarz_PRECISION_struct_on_gpu s_on_gpu_cpubuff;
+    schwarz_PRECISION_struct_on_gpu *s_on_gpu;
+
+    int *nr_DD_blocks_in_comms, *nr_DD_blocks_notin_comms;
+    int **DD_blocks_in_comms, **DD_blocks_notin_comms;
 #endif
   } schwarz_PRECISION_struct;
 

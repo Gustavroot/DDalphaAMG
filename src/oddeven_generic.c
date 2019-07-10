@@ -1336,18 +1336,20 @@ void block_solve_oddeven_PRECISION( vector_PRECISION phi, vector_PRECISION r, ve
 
   vector_PRECISION *tmp = s->oe_buf;
   int end = start+s->block_vector_size;
-  
+
   // odd to even
   vector_PRECISION_copy( tmp[3], r, start, end, l );
   
   block_diag_oo_inv_PRECISION( tmp[2], tmp[3], start, s, l, no_threading );
-  block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _EVEN_SITES, s, l, no_threading );
-  
-  local_minres_PRECISION( NULL, tmp[3], tmp[2], start, s, l, no_threading );
+  //block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _EVEN_SITES, s, l, no_threading );
+
+  //printf("CPU: %f + i%f\n", creal_PRECISION(tmp[2][1462*12+0]), cimag_PRECISION(tmp[2][1462*12+0]));
+
+  //local_minres_PRECISION( NULL, tmp[3], tmp[2], start, s, l, no_threading );
   
   // even to odd
-  block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _ODD_SITES, s, l, no_threading );
-  block_diag_oo_inv_PRECISION( tmp[2], tmp[3], start, s, l, no_threading );
+  //block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _ODD_SITES, s, l, no_threading );
+  //block_diag_oo_inv_PRECISION( tmp[2], tmp[3], start, s, l, no_threading );
   
   // update phi, latest_iter
   vector_PRECISION_copy( latest_iter, tmp[2], start, end, l );
