@@ -1185,7 +1185,7 @@ void block_hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi,
 #ifndef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
 void block_n_hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi,
     int start, int amount, schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
-  
+
   START_UNTHREADED_FUNCTION(threading)
 
   int i, j, k, a1, a2, n1, n2, *length_even = s->dir_length_even, *length_odd = s->dir_length_odd,
@@ -1341,7 +1341,7 @@ void block_solve_oddeven_PRECISION( vector_PRECISION phi, vector_PRECISION r, ve
   vector_PRECISION_copy( tmp[3], r, start, end, l );
   
   block_diag_oo_inv_PRECISION( tmp[2], tmp[3], start, s, l, no_threading );
-  //block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _EVEN_SITES, s, l, no_threading );
+  block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _EVEN_SITES, s, l, no_threading );
 
   //printf("CPU: %f + i%f\n", creal_PRECISION(tmp[2][1462*12+0]), cimag_PRECISION(tmp[2][1462*12+0]));
 

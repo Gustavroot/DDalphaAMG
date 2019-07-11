@@ -71,6 +71,8 @@
 #ifdef CUDA_OPT
 typedef struct {
   cu_config_PRECISION *oe_clover_vectorized;
+  int *neighbor_table;
+  cu_config_PRECISION *D;
 } operator_PRECISION_struct_on_gpu;
 #endif
   
@@ -98,6 +100,10 @@ typedef struct {
     cu_config_PRECISION *oe_clover_vectorized;
     operator_PRECISION_struct_on_gpu op;
     int num_block_even_sites, num_block_odd_sites;
+    int *oe_index[4];
+    int dir_length_even[4], dir_length_odd[4];
+    cu_cmplx_PRECISION gamma_info_vals[16];
+    int gamma_info_coo[16];
   } schwarz_PRECISION_struct_on_gpu;
 #endif
 

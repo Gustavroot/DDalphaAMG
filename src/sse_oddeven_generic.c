@@ -289,8 +289,11 @@ void block_n_hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi,
     }
     block_oddeven_nplus_coupling_PRECISION( (PRECISION*)(eta+start), Dplus, (PRECISION*)(phi+start),
                                             mu, a1, n1, index[mu], neighbor );
-    block_oddeven_nminus_coupling_PRECISION( (PRECISION*)(eta+start), Dminus, (PRECISION*)(phi+start),
-                                             mu, a2, n2, index[mu], neighbor );
+    //block_oddeven_nminus_coupling_PRECISION( (PRECISION*)(eta+start), Dminus, (PRECISION*)(phi+start),
+    //                                         mu, a2, n2, index[mu], neighbor );
+
+    break;
+
   }
   
   END_UNTHREADED_FUNCTION(threading)

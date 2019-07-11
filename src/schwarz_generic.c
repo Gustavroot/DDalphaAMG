@@ -1490,6 +1490,79 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   out->op.oe_clover_vectorized = buf_D_oe_gpu;
   //-------------------------------------------------------------------------------------------------------------------------
 
+  int dir, nr_oe_elems_hopp;
+  for( dir=0; dir<4; dir++ ){
+    (s->s_on_gpu_cpubuff).dir_length_even[dir] = s->dir_length_even[dir];
+    (s->s_on_gpu_cpubuff).dir_length_odd[dir] = s->dir_length_odd[dir];
+  }
+  for( dir=0; dir<4; dir++ ){
+    nr_oe_elems_hopp = s->dir_length_even[dir] + s->dir_length_odd[dir];
+    cuda_safe_call( cudaMalloc( (void**)&( (s->s_on_gpu_cpubuff).oe_index[dir] ), nr_oe_elems_hopp*sizeof(int) ) );
+    cuda_safe_call( cudaMemcpy( (s->s_on_gpu_cpubuff).oe_index[dir], s->oe_index[dir], nr_oe_elems_hopp*sizeof(int), cudaMemcpyHostToDevice ) );
+  }
+
+  cuda_safe_call( cudaMalloc( (void**)&( (s->s_on_gpu_cpubuff).op.neighbor_table ), (l->depth==0?4:5)*l->num_inner_lattice_sites*sizeof(int) ) );
+  cuda_safe_call( cudaMemcpy( (s->s_on_gpu_cpubuff).op.neighbor_table, s->op.neighbor_table, (l->depth==0?4:5)*l->num_inner_lattice_sites*sizeof(int), cudaMemcpyHostToDevice ) );
+
+  int type=_SCHWARZ, nls, coupling_site_size, nr_elems_D;
+  if ( l->depth == 0 ) {
+    coupling_site_size = 4*9;
+  } else {
+    coupling_site_size = 4*l->num_lattice_site_var*l->num_lattice_site_var;
+  }  
+  nls = (type==_ORDINARY)?l->num_inner_lattice_sites:2*l->num_lattice_sites-l->num_inner_lattice_sites;
+  nr_elems_D = coupling_site_size*nls;
+  cuda_safe_call( cudaMalloc( (void**) &( (s->s_on_gpu_cpubuff).op.D ), nr_elems_D*sizeof(cu_config_PRECISION) ) );
+  cuda_safe_call( cudaMemcpy((s->s_on_gpu_cpubuff).op.D, (cu_config_PRECISION*)(s->op.D), nr_elems_D*sizeof(cu_config_PRECISION), cudaMemcpyHostToDevice) );
+
+  // TODO: remove the following lines for setting GAMMA-related data, and rather put constants within hopping CUDA kernels
+  cu_cmplx_PRECISION *gamma_info_vals_buff = (s->s_on_gpu_cpubuff).gamma_info_vals;
+  int *gamma_info_coo_buff = (s->s_on_gpu_cpubuff).gamma_info_coo;
+  /* even spins - T direction */
+  gamma_info_vals_buff[0] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_T_SPIN0_VAL), cimag_PRECISION(GAMMA_T_SPIN0_VAL));
+  gamma_info_vals_buff[1] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_T_SPIN2_VAL), cimag_PRECISION(GAMMA_T_SPIN2_VAL));
+  /* odd spins */
+  gamma_info_vals_buff[2] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_T_SPIN1_VAL), cimag_PRECISION(GAMMA_T_SPIN1_VAL));
+  gamma_info_vals_buff[3] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_T_SPIN3_VAL), cimag_PRECISION(GAMMA_T_SPIN3_VAL));
+  /* and for the other directions */
+  /* Z */
+  gamma_info_vals_buff[4] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_Z_SPIN0_VAL), cimag_PRECISION(GAMMA_Z_SPIN0_VAL));
+  gamma_info_vals_buff[5] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_Z_SPIN2_VAL), cimag_PRECISION(GAMMA_Z_SPIN2_VAL));
+  gamma_info_vals_buff[6] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_Z_SPIN1_VAL), cimag_PRECISION(GAMMA_Z_SPIN1_VAL));
+  gamma_info_vals_buff[7] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_Z_SPIN3_VAL), cimag_PRECISION(GAMMA_Z_SPIN3_VAL));
+  /* Y */
+  gamma_info_vals_buff[8] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_Y_SPIN0_VAL), cimag_PRECISION(GAMMA_Y_SPIN0_VAL));
+  gamma_info_vals_buff[9] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_Y_SPIN2_VAL), cimag_PRECISION(GAMMA_Y_SPIN2_VAL));
+  gamma_info_vals_buff[10] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_Y_SPIN1_VAL), cimag_PRECISION(GAMMA_Y_SPIN1_VAL));
+  gamma_info_vals_buff[11] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_Y_SPIN3_VAL), cimag_PRECISION(GAMMA_Y_SPIN3_VAL));
+  /* X */
+  gamma_info_vals_buff[12] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_X_SPIN0_VAL), cimag_PRECISION(GAMMA_X_SPIN0_VAL));
+  gamma_info_vals_buff[13] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_X_SPIN2_VAL), cimag_PRECISION(GAMMA_X_SPIN2_VAL));
+  gamma_info_vals_buff[14] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_X_SPIN1_VAL), cimag_PRECISION(GAMMA_X_SPIN1_VAL));
+  gamma_info_vals_buff[15] = make_cu_cmplx_PRECISION(creal_PRECISION(GAMMA_X_SPIN3_VAL), cimag_PRECISION(GAMMA_X_SPIN3_VAL));
+  /* even spins - T direction */
+  gamma_info_coo_buff[0] = GAMMA_T_SPIN0_CO;
+  gamma_info_coo_buff[1] = GAMMA_T_SPIN2_CO;
+  /* odd spins */
+  gamma_info_coo_buff[2] = GAMMA_T_SPIN1_CO;
+  gamma_info_coo_buff[3] = GAMMA_T_SPIN3_CO;
+  /* and for the other directions */
+  /* Z */
+  gamma_info_coo_buff[4] = GAMMA_Z_SPIN0_CO;
+  gamma_info_coo_buff[5] = GAMMA_Z_SPIN2_CO;
+  gamma_info_coo_buff[6] = GAMMA_Z_SPIN1_CO;
+  gamma_info_coo_buff[7] = GAMMA_Z_SPIN3_CO;
+  /* Y */
+  gamma_info_coo_buff[8] = GAMMA_Y_SPIN0_CO;
+  gamma_info_coo_buff[9] = GAMMA_Y_SPIN2_CO;
+  gamma_info_coo_buff[10] = GAMMA_Y_SPIN1_CO;
+  gamma_info_coo_buff[11] = GAMMA_Y_SPIN3_CO;
+  /* X */
+  gamma_info_coo_buff[12] = GAMMA_X_SPIN0_CO;
+  gamma_info_coo_buff[13] = GAMMA_X_SPIN2_CO;
+  gamma_info_coo_buff[14] = GAMMA_X_SPIN1_CO;
+  gamma_info_coo_buff[15] = GAMMA_X_SPIN3_CO;
+
   (s->s_on_gpu_cpubuff).num_block_even_sites = s->num_block_even_sites;
   (s->s_on_gpu_cpubuff).num_block_odd_sites = s->num_block_odd_sites;
 
