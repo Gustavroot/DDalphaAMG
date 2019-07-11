@@ -195,34 +195,15 @@ __forceinline__ __device__ void _cuda_block_diag_oo_inv_PRECISION(cu_cmplx_PRECI
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 __global__ void cuda_block_n_hopping_term_PRECISION_plus( cu_cmplx_PRECISION* phi, cu_cmplx_PRECISION* r, cu_cmplx_PRECISION* latest_iter, \
                                                           schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
                                                           int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                           int num_latt_site_var, block_struct* block, int ext_dir ){
 
-  int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, size_D_oeclov, start;
+  int idx, DD_block_id, block_id, start;
 
-  int nr_block_even_sites, nr_block_odd_sites;
+  int nr_block_even_sites;
   nr_block_even_sites = s->num_block_even_sites;
-  nr_block_odd_sites = s->num_block_odd_sites;
 
   idx = threadIdx.x + blockDim.x * blockIdx.x;
 
@@ -235,15 +216,6 @@ __global__ void cuda_block_n_hopping_term_PRECISION_plus( cu_cmplx_PRECISION* ph
   // this int will be the ACTUAL DD block ID, in the sense of accessing data from e.g. block_struct* block
   block_id = DD_blocks_to_compute[DD_block_id];
 
-  cublocks_per_DD_block = nr_threads_per_DD_block/blockDim.x;
-
-  // This serves as a substitute of blockIdx.x, to have a more
-  // local and DD-block treatment more independent of the other DD blocks
-  cu_block_ID = blockIdx.x%cublocks_per_DD_block;
-
-  // the size of the local matrix to apply
-  size_D_oeclov = (csw!=0) ? 72 : 12;
-
   // this is the DD-block start of the spinors (phi, r, latest_iter and temporary ones)
   start = block[block_id].start * num_latt_site_var;
 
@@ -251,136 +223,34 @@ __global__ void cuda_block_n_hopping_term_PRECISION_plus( cu_cmplx_PRECISION* ph
   cu_cmplx_PRECISION* tmp2 = tmp[2];
   cu_cmplx_PRECISION* tmp3 = tmp[3];
 
-  phi += start;
-  r += start;
-  latest_iter += start;
   tmp2 += start;
   tmp3 += start;
 
-  // this operator is stored in column form!
-  //cu_config_PRECISION *op_oe_vect = s->op.oe_clover_vectorized;
-  //op_oe_vect += (start/12)*size_D_oeclov;
-
   extern __shared__ cu_cmplx_PRECISION shared_data[];
-
-  // TODO: re-define the use of shared memory... many buffers are not needed anymore
-  //       ( but do this re-definition after finishing the whole block_solve implementation... some
-  //       buffers might be still needed)
 
   // a part of shared_memory is dedicated to even sites, the rest to odd sites
   cu_cmplx_PRECISION *shared_data_even = shared_data;
-  //cu_cmplx_PRECISION *shared_data_odd = shared_data + 4*(2*blockDim.x);
-  //shared_data_odd = (cu_cmplx_PRECISION*) ( (cu_config_PRECISION*)shared_data_odd + size_D_oeclov*(blockDim.x/6) );
-
-  //cu_cmplx_PRECISION *phi_b_e, *r_b_e, *tmp_2_e, *tmp_3_e;
   cu_cmplx_PRECISION *tmp_2_e;
-  //cu_cmplx_PRECISION *phi_b_o, *r_b_o, *tmp_2_o, *tmp_3_o;
-  //cu_config_PRECISION *clov_vect_b_e;
-  //cu_config_PRECISION *clov_vect_b_o;
 
   //the following are 'bare' values, i.e. with respect to the 0th element within a CUDA block
   // EVEN
   tmp_2_e = shared_data_even;
-  //r_b_e = shared_data_even + 1*(2*blockDim.x);
-  //tmp_2_e = shared_data_even + 2*(2*blockDim.x);
-  //tmp_3_e = shared_data_even + 3*(2*blockDim.x);
-  // ODD
-  //phi_b_o = shared_data_odd;
-  //r_b_o = shared_data_odd + 1*(2*blockDim.x);
-  //tmp_2_o = shared_data_odd + 2*(2*blockDim.x);
-  //tmp_3_o = shared_data_odd + 3*(2*blockDim.x);
-
-  //clov_vect_b_e = (cu_config_PRECISION*)shared_data_even + 4*(2*blockDim.x);
-  //clov_vect_b_o = (cu_config_PRECISION*)shared_data_odd + 4*(2*blockDim.x);
-
-  //partial summary so far:
-  // phi_b_e has a memory reservation of size 2*6*(blockDim.x/6)
-  // same for r_b_e, tmp_2_e, tmp_3_e
-  // clov_vect_b_e has a memory reservation of size size_D_oeclov*(blockDim.x/6)
-  // equivalently, we can say the same about the *_o variables
-
-  //copy phi, r and s->op.oe_clover_vectorized into shared_data memory
-  //if(idx < 6*nr_block_even_sites){
-  //  for(i=0; i<2; i++){
-  //    phi_b_e[blockDim.x*i + threadIdx.x] = ( phi + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
-  //    r_b_e[blockDim.x*i + threadIdx.x] = ( r + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
-  //    //latest_iter_b_e[blockDim.x*i + threadIdx.x] = ( latest_iter + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
-  //  }
-
-  //  //the factor of 12 comes from: 72*16=1152 ----> 1152/96=12. This implies 12 dumps of data into shared_memory
-  //  for(i=0; i<12; i++){
-  //    clov_vect_b_e[blockDim.x*i + threadIdx.x] = ( op_oe_vect + cu_block_ID*blockDim.x*12 + blockDim.x*i + threadIdx.x )[0];
-  //  }
-  //} //even
-  //if(idx < 6*nr_block_odd_sites){
-  //  for(i=0; i<2; i++){
-  //    phi_b_o[blockDim.x*i + threadIdx.x] = ( phi + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
-  //    r_b_o[blockDim.x*i + threadIdx.x] = ( r + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
-  //    //latest_iter_b_o[blockDim.x*i + threadIdx.x] = ( latest_iter + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
-  //  }
-
-  //  //the factor of 12 comes from: 72*16=1152 ----> 1152/96=12. This implies 12 dumps of data into shared_memory
-  //  for(i=0; i<12; i++){
-  //    clov_vect_b_o[blockDim.x*i + threadIdx.x] = ( op_oe_vect + 72*nr_block_even_sites + cu_block_ID*blockDim.x*12 + blockDim.x*i + threadIdx.x )[0];
-  //  }
-  //} //odd
-
-  //__syncthreads();
-
-  //r into tmp_3
-  //if(idx < 6*nr_block_odd_sites){
-  //  tmp_3_o[threadIdx.x] = r_b_o[threadIdx.x];
-  //  tmp_3_o[threadIdx.x + blockDim.x] = r_b_o[threadIdx.x + blockDim.x];
-  //} //odd
-  //if(idx < 6*nr_block_even_sites){
-  //  tmp_3_e[threadIdx.x] = r_b_e[threadIdx.x];
-  //  tmp_3_e[threadIdx.x + blockDim.x] = r_b_e[threadIdx.x + blockDim.x];
-  //} //even
-
-  //TODO: the following 0-init of tmp_2 is not necessary.. is for debugging purposes
-  //r into tmp_3
-  //if(idx < 6*nr_block_odd_sites){
-  //  tmp_2_o[threadIdx.x] = make_cu_cmplx_PRECISION(0.0,0.0);
-  //  tmp_2_o[threadIdx.x + blockDim.x] = make_cu_cmplx_PRECISION(0.0,0.0);
-  //} //odd
   if(idx < 6*nr_block_even_sites){
     tmp_2_e[threadIdx.x] = make_cu_cmplx_PRECISION(0.0,0.0);
     tmp_2_e[threadIdx.x + blockDim.x] = make_cu_cmplx_PRECISION(0.0,0.0);
-  } //even
-
-  /*
-  */
+  }
 
   _cuda_block_n_hopping_term_PRECISION_plus(tmp3, tmp2, start, _EVEN_SITES, s, idx, tmp_2_e, ext_dir);
 }
 
 
-
-
-
 __forceinline__ __device__ void _cuda_block_n_hopping_term_PRECISION_plus(cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start, int amount, schwarz_PRECISION_struct_on_gpu *s, int idx, cu_cmplx_PRECISION *buf, int ext_dir){
   //if amount==0 then even sites, if amount==1 then odd sites, else no oddeven split
 
-  int nr_block_even_sites, nr_block_odd_sites;
-  nr_block_even_sites = s->num_block_even_sites;
-  nr_block_odd_sites = s->num_block_odd_sites;
-
-  int dir; // dir '=' {0,1,2,3} = {T,Z,Y,X}
-  int a1, a2, n1, n2;
-  int k=0, j=0, i=0;
-  int** index = s->oe_index;
-  int* ind;
-
-  int* neighbor = s->op.neighbor_table;
-
-  int loc_ind=idx%6, spin;
-
-  int w;
-
+  //int dir; // dir '=' {0,1,2,3} = {T,Z,Y,X}
+  //int dir, a1, a2, n1, n2, k=0, j=0, i=0, **index = s->oe_index, *ind, *neighbor = s->op.neighbor_table, loc_ind=idx%6, spin, w, *gamma_coo, idx_in_cublock = idx%blockDim.x;
+  int dir, a1, n1, k=0, j=0, i=0, **index = s->oe_index, *ind, *neighbor = s->op.neighbor_table, loc_ind=idx%6, spin, w, *gamma_coo, idx_in_cublock = idx%blockDim.x;
   cu_cmplx_PRECISION *gamma_val;
-  int *gamma_coo;
-
-  int idx_in_cublock = idx%blockDim.x;
 
   cu_cmplx_PRECISION *buf1, *buf2;
   buf += (idx_in_cublock/6)*12;
@@ -394,23 +264,22 @@ __forceinline__ __device__ void _cuda_block_n_hopping_term_PRECISION_plus(cu_cmp
 
   cu_cmplx_PRECISION *leta, *lphi; //eta and phi are already shifted by 'start'
 
+  // TODO: is there a reason for this not to be integrated with extra_dir ?
   dir = ext_dir;
 
   if( amount==_EVEN_SITES ){
     a1=0; n1=s->dir_length_even[dir]; //for the + part
-    a2=n1; n2=a2+s->dir_length_odd[dir]; //for the - part
+    //a2=n1; n2=a2+s->dir_length_odd[dir]; //for the - part
   }
   else if( amount==_ODD_SITES ){
     a1=s->dir_length_even[dir]; n1=a1+s->dir_length_odd[dir];
-    a2=0; n2=a1;
+    //a2=0; n2=a1;
   }
   else{
     //TODO
   }
 
   ind = index[dir];
-
-  //printf("idx=%d, even length=%d, odd length=%d, ind=%d\n", idx, n1-a1, n2-a2, ind);
 
   //less threads in charge of this portion of execution, compute contribution due to even sites
   if( idx<6*(n1-a1) ){
@@ -421,8 +290,6 @@ __forceinline__ __device__ void _cuda_block_n_hopping_term_PRECISION_plus(cu_cmp
 
     lphi = phi + 12*j;
     leta = eta + 12*k;
-
-    //printf("i=%d, k=%d, j=%d, dir=%d\n", i, k, j, dir);
 
     spin = (loc_ind/3)*2;
     //with this setup, gamma_val[0] gives spins 0 and 1, and gamma_val[1] spins 2 and 3
@@ -454,21 +321,6 @@ __forceinline__ __device__ void _cuda_block_n_hopping_term_PRECISION_plus(cu_cmp
   // FIXME: is this sync necessary ?
   __syncthreads();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 __global__ void cuda_block_solve_update( cu_cmplx_PRECISION* phi, cu_cmplx_PRECISION* r, cu_cmplx_PRECISION* latest_iter, \
