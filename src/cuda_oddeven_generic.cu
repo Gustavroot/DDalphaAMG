@@ -24,7 +24,7 @@ __forceinline__ __device__ void _cuda_block_diag_oo_inv_PRECISION(cu_cmplx_PRECI
 
 __global__ void cuda_block_diag_oo_inv_PRECISION( cu_cmplx_PRECISION* phi, cu_cmplx_PRECISION* r, cu_cmplx_PRECISION* latest_iter, \
                                                   schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                  int csw, int kernel_id, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                  int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                   int num_latt_site_var, block_struct* block ){
 
   int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, size_D_oeclov, start;
@@ -79,11 +79,16 @@ __global__ void cuda_block_diag_oo_inv_PRECISION( cu_cmplx_PRECISION* phi, cu_cm
 
   // a part of shared_memory is dedicated to even sites, the rest to odd sites
   cu_cmplx_PRECISION *shared_data_even = shared_data;
-  cu_cmplx_PRECISION *shared_data_odd = shared_data + 4*(2*blockDim.x);
+  //cu_cmplx_PRECISION *shared_data_odd = shared_data + 4*(2*blockDim.x);
+  //cu_cmplx_PRECISION *shared_data_odd = shared_data + 3*(2*blockDim.x);
+  cu_cmplx_PRECISION *shared_data_odd = shared_data + 2*(2*blockDim.x);
   shared_data_odd = (cu_cmplx_PRECISION*) ( (cu_config_PRECISION*)shared_data_odd + size_D_oeclov*(blockDim.x/6) );
 
-  cu_cmplx_PRECISION *phi_b_e, *r_b_e, *tmp_2_e, *tmp_3_e;
-  cu_cmplx_PRECISION *phi_b_o, *r_b_o, *tmp_2_o, *tmp_3_o;
+  //cu_cmplx_PRECISION *phi_b_e, *r_b_e, *tmp_2_e, *tmp_3_e;
+  //cu_cmplx_PRECISION *phi_b_e, *r_b_e, *tmp_2_e;
+  cu_cmplx_PRECISION *phi_b_e, *r_b_e;
+  //cu_cmplx_PRECISION *phi_b_o, *r_b_o, *tmp_2_o, *tmp_3_o;
+  cu_cmplx_PRECISION *phi_b_o, *r_b_o, *tmp_2_o;
   cu_config_PRECISION *clov_vect_b_e;
   cu_config_PRECISION *clov_vect_b_o;
 
@@ -91,16 +96,20 @@ __global__ void cuda_block_diag_oo_inv_PRECISION( cu_cmplx_PRECISION* phi, cu_cm
   // EVEN
   phi_b_e = shared_data_even;
   r_b_e = shared_data_even + 1*(2*blockDim.x);
-  tmp_2_e = shared_data_even + 2*(2*blockDim.x);
-  tmp_3_e = shared_data_even + 3*(2*blockDim.x);
+  //tmp_2_e = shared_data_even + 2*(2*blockDim.x);
+  //tmp_3_e = shared_data_even + 3*(2*blockDim.x);
   // ODD
   phi_b_o = shared_data_odd;
   r_b_o = shared_data_odd + 1*(2*blockDim.x);
   tmp_2_o = shared_data_odd + 2*(2*blockDim.x);
-  tmp_3_o = shared_data_odd + 3*(2*blockDim.x);
+  //tmp_3_o = shared_data_odd + 3*(2*blockDim.x);
 
-  clov_vect_b_e = (cu_config_PRECISION*)shared_data_even + 4*(2*blockDim.x);
-  clov_vect_b_o = (cu_config_PRECISION*)shared_data_odd + 4*(2*blockDim.x);
+  //clov_vect_b_e = (cu_config_PRECISION*)shared_data_even + 4*(2*blockDim.x);
+  //clov_vect_b_o = (cu_config_PRECISION*)shared_data_odd + 4*(2*blockDim.x);
+
+  //clov_vect_b_e = (cu_config_PRECISION*)shared_data_even + 3*(2*blockDim.x);
+  clov_vect_b_e = (cu_config_PRECISION*)shared_data_even + 2*(2*blockDim.x);
+  clov_vect_b_o = (cu_config_PRECISION*)shared_data_odd + 3*(2*blockDim.x);
 
   // partial summary so far:
   //    ** phi_b_e has a memory reservation of size 2*6*(blockDim.x/6)
@@ -139,35 +148,38 @@ __global__ void cuda_block_diag_oo_inv_PRECISION( cu_cmplx_PRECISION* phi, cu_cm
 
   __syncthreads();
 
+  //return;
+
   // copy r into tmp_3
   // odd
-  if(idx < 6*nr_block_odd_sites){
-    tmp_3_o[threadIdx.x] = r_b_o[threadIdx.x];
-    tmp_3_o[threadIdx.x + blockDim.x] = r_b_o[threadIdx.x + blockDim.x];
-  }
+  //if(idx < 6*nr_block_odd_sites){
+    //tmp_3_o[threadIdx.x] = r_b_o[threadIdx.x];
+    //tmp_3_o[threadIdx.x + blockDim.x] = r_b_o[threadIdx.x + blockDim.x];
+  //}
   // even
-  if(idx < 6*nr_block_even_sites){
-    tmp_3_e[threadIdx.x] = r_b_e[threadIdx.x];
-    tmp_3_e[threadIdx.x + blockDim.x] = r_b_e[threadIdx.x + blockDim.x];
-  }
+  //if(idx < 6*nr_block_even_sites){
+    //tmp_3_e[threadIdx.x] = r_b_e[threadIdx.x];
+    //tmp_3_e[threadIdx.x + blockDim.x] = r_b_e[threadIdx.x + blockDim.x];
+  //}
 
   // TODO: the following 0-init of tmp_2 is not necessary.. is for debugging purposes. Remove, eventually
   // odd
-  if(idx < 6*nr_block_odd_sites){
-    tmp_2_o[threadIdx.x] = make_cu_cmplx_PRECISION(0.0,0.0);
-    tmp_2_o[threadIdx.x + blockDim.x] = make_cu_cmplx_PRECISION(0.0,0.0);
-  }
+  //if(idx < 6*nr_block_odd_sites){
+    //tmp_2_o[threadIdx.x] = make_cu_cmplx_PRECISION(0.0,0.0);
+    //tmp_2_o[threadIdx.x + blockDim.x] = make_cu_cmplx_PRECISION(0.0,0.0);
+  //}
   // even
-  if(idx < 6*nr_block_even_sites){
-    tmp_2_e[threadIdx.x] = make_cu_cmplx_PRECISION(0.0,0.0);
-    tmp_2_e[threadIdx.x + blockDim.x] = make_cu_cmplx_PRECISION(0.0,0.0);
-  }
+  //if(idx < 6*nr_block_even_sites){
+    //tmp_2_e[threadIdx.x] = make_cu_cmplx_PRECISION(0.0,0.0);
+    //tmp_2_e[threadIdx.x + blockDim.x] = make_cu_cmplx_PRECISION(0.0,0.0);
+  //}
 
-  __syncthreads();
+  //__syncthreads();
 
   // FUNCTION: chi = D_{oo}^{-1} * eta_{0}
   if(idx < 6*nr_block_odd_sites){
-    _cuda_block_diag_oo_inv_PRECISION(tmp_2_o, tmp_3_o, start, s, idx, clov_vect_b_o, csw);
+    //_cuda_block_diag_oo_inv_PRECISION(tmp_2_o, tmp_3_o, start, s, idx, clov_vect_b_o, csw);
+    _cuda_block_diag_oo_inv_PRECISION(tmp_2_o, r_b_o, start, s, idx, clov_vect_b_o, csw);
   }
 
   __syncthreads();
@@ -176,15 +188,18 @@ __global__ void cuda_block_diag_oo_inv_PRECISION( cu_cmplx_PRECISION* phi, cu_cm
   // even
   if(idx < 6*nr_block_even_sites){
     for(i=0; i<2; i++){
-      ( tmp2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = tmp_2_e[blockDim.x*i + threadIdx.x];
-      ( tmp3 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = tmp_3_e[blockDim.x*i + threadIdx.x];
+      //( tmp2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = tmp_2_e[blockDim.x*i + threadIdx.x];
+      ( tmp2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = make_cu_cmplx_PRECISION(0.0,0.0);
+      //( tmp3 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = tmp_3_e[blockDim.x*i + threadIdx.x];
+      ( tmp3 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = r_b_e[blockDim.x*i + threadIdx.x];
     }
   }
   // odd
   if(idx < 6*nr_block_odd_sites){
     for(i=0; i<2; i++){
       ( tmp2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = tmp_2_o[blockDim.x*i + threadIdx.x];
-      ( tmp3 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = tmp_3_o[blockDim.x*i + threadIdx.x];
+      //( tmp3 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = tmp_3_o[blockDim.x*i + threadIdx.x];
+      ( tmp3 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = r_b_o[blockDim.x*i + threadIdx.x];
     }
   }
 
@@ -339,13 +354,23 @@ extern "C" void cuda_block_solve_oddeven_PRECISION( cuda_vector_PRECISION phi, c
     //                                     each CUDA block computes a certain nr of lattice sites, say X, but we're using odd-even preconditioning,
     //                                     therefore that same CUDA block is in charge not only of computing those X (say, even) sites, but also of
     //                                     computing the associated X (then, odd) sites through odd-even preconditioning
-    tot_shared_mem = 2*4*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
+    //tot_shared_mem = 2*4*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
+    // UPDATE: the factor (2+3) means that we are asking for 2 even local buffers and 3 odd local buffers, all these within the kernel
+    tot_shared_mem = (2+3)*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
 
     nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
 
+    //int i;
+    //printf("\n");
+    //for( i=0; i<nr_DD_blocks_to_compute; i++ ){
+    //  printf("%d (%d), ", s->block[s->DD_blocks_notin_comms[0][i]].start*l->num_lattice_site_var/s->block_vector_size, s->DD_blocks_notin_comms[0][i]);
+    //}
+    //printf("\n");
+    //exit(1);
+
     // diag_oo inv
     cuda_block_diag_oo_inv_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
-                                    (phi, r, latest_iter, s->s_on_gpu, g.my_rank, g.csw, 0, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block);
+                                    (phi, r, latest_iter, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block);
 
     // hopping term, even sites
     // TODO: add call to code already implemented
@@ -366,7 +391,7 @@ extern "C" void cuda_block_solve_oddeven_PRECISION( cuda_vector_PRECISION phi, c
                            (phi, r, latest_iter, s->s_on_gpu, g.my_rank, g.csw, 0, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block);
 
     // TODO: eventually, remove this line
-    cuda_check_error( _HARD_CHECK );
+    //cuda_check_error( _HARD_CHECK );
 
   }
 }
