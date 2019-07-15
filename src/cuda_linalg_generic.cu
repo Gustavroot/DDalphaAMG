@@ -44,9 +44,19 @@ extern "C" void cuda_vector_PRECISION_copy( void* out, void* in, int start, int 
       break;
 
     case _D2D:
-      // TODO : add call to CUDA kernel here
-      printf("D2D cuda_vector_PRECISION_copy(...) not availble yet.\n");
-      MPI_Abort(MPI_COMM_WORLD, 51);
+
+      if( cuda_async_type==_CUDA_ASYNC ){
+        //cuda_safe_call( cudaMemcpyAsync((vector_PRECISION)(out) + start, (cuda_vector_PRECISION)(in) + start, size_of_copy*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost, streams[stream_id]) );
+        cuda_safe_call( cudaMemcpyAsync((cuda_vector_PRECISION)(out) + start, (cuda_vector_PRECISION)(in) + start, size_of_copy*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToDevice, streams[stream_id]) );
+      }
+      else if( cuda_async_type==_CUDA_SYNC ){
+        //cuda_safe_call( cudaMemcpy((vector_PRECISION)(out) + start, (cuda_vector_PRECISION)(in) + start, size_of_copy*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost) );
+        cuda_safe_call( cudaMemcpy((cuda_vector_PRECISION)(out) + start, (cuda_vector_PRECISION)(in) + start, size_of_copy*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToDevice) );
+      }
+      else{
+        if( g.my_rank==0 ){ printf("Wrong option for cuda_async_type in call to cuda_vector_PRECISION_copy(...).\n"); }
+        MPI_Abort(MPI_COMM_WORLD, 51);
+      }
       break;
 
     // In case the direction of copy is not one of {H2D, D2H, D2D}

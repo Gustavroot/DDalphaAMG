@@ -270,6 +270,19 @@ void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l 
 
   cuda_safe_call( cudaMalloc( (void**) (&( s->s_on_gpu )), 1*sizeof(schwarz_PRECISION_struct_on_gpu) ) );
 
+
+  // TODO: do this at all MG levels ?
+  if( l->depth==0 ){
+    // these buffers are introduced to make local_minres_PRECISION thread-safe
+    cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).local_minres_buffer[0] )), l->schwarz_vector_size*sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).local_minres_buffer[1] )), l->schwarz_vector_size*sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).local_minres_buffer[2] )), l->schwarz_vector_size*sizeof(cu_cmplx_PRECISION) ) );
+
+    //MALLOC( s->local_minres_buffer[0], complex_PRECISION, l->schwarz_vector_size );
+    //MALLOC( s->local_minres_buffer[1], complex_PRECISION, l->schwarz_vector_size );
+    //MALLOC( s->local_minres_buffer[2], complex_PRECISION, l->schwarz_vector_size );
+  }
+
 }
 #endif
 
@@ -2326,7 +2339,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
         //int nr_DD_blocks_to_compute = (nb_thread_end-nb_thread_start);
         cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_dev, (cuda_vector_PRECISION)r_dev, (cuda_vector_PRECISION)latest_iter_dev,
                                             0, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu, color,
-                                            (s->cu_s).DD_blocks_notin_comms[color] );
+                                            (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
       }
       else{
         // block_solve on GPU
@@ -2384,7 +2397,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
           if( l->depth==0&&g.odd_even ){
             cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_buff, (cuda_vector_PRECISION)r_buff, (cuda_vector_PRECISION)latest_iter_buff,
                                                 s->block[i].start*l->num_lattice_site_var, 1, s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu, color,
-                                                s->DD_blocks_notin_comms[color] );
+                                                s->DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
           } else {
             local_minres_PRECISION( x_buff, r_buff, latest_iter_buff, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
           }

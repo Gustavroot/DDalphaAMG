@@ -1,8 +1,15 @@
 # --- COMPILER ----------------------------------------
+
 CC = mpicc -std=gnu11 -Wall -pedantic
+MPI_INCLUDE = /home/ramirez/installs/openmpi/include/
+MPI_LIB = /home/ramirez/installs/openmpi/lib64/
+
 CPP = cpp
 MAKEDEP = $(CPP) -MM
+
 NVCC=/usr/local/cuda/bin/nvcc
+CUDA_INCLUDE = /usr/local/cuda/include/
+CUDA_LIB = /usr/local/cuda/lib64/
 
 # --- DO NOT CHANGE -----------------------------------
 SRCDIR = src
@@ -33,7 +40,7 @@ DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING -DCUDA_OPT 
 #COMMON_FLAGS = -DPROFILING
 
-OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -I/usr/local/cuda/include/
+OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -I$(CUDA_INCLUDE)
 CFLAGS = -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_FLAGS)
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
@@ -46,11 +53,11 @@ OPT_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA) -O3 # what about --ffast-math ?
 DEBUG_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA)
 
 # --- FLAGS FOR CUDA ---------------------------------
-NVCC_EXTRA_COMP_FLAGS = -I/home/ramirez/installs/openmpi/include/ -L/home/ramirez/installs/openmpi/lib64/
+NVCC_EXTRA_COMP_FLAGS = -I$(MPI_INCLUDE) -L$(MPI_LIB)
 NVCC_EXTRA_COMP_FLAGS += -lmpi
 NVCC_EXTRA_COMP_FLAGS += -arch=sm_70
 NVCC_EXTRA_COMP_FLAGS += -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
-NVCC_EXTRA_COMP_FLAGS += -lcudart -L/usr/local/cuda/lib64/
+NVCC_EXTRA_COMP_FLAGS += -lcudart -L$(CUDA_LIB)
 
 # --- FLAGS FOR HDF5 ---------------------------------
 # H5HEADERS=-DHAVE_HDF5 /usr/include
@@ -96,10 +103,10 @@ $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h
 	$(CC) -g $(CFLAGS) $(DEBUG_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -DDEBUG -c $< -o $@
 
 $(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
-	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -rdc=true -lcudadevrt -L/usr/local/cuda/lib64/ -c $< -o $@
+	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -rdc=true -lcudadevrt -L$(CUDA_LIB) -c $< -o $@
 
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
-	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -rdc=true -lcudadevrt -L/usr/local/cuda/lib64/ -DDEBUG -c $< -o $@
+	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -rdc=true -lcudadevrt -L$(CUDA_LIB) -DDEBUG -c $< -o $@
 
 $(GSRCDIR)/%.h: $(SRCDIR)/%.h $(firstword $(MAKEFILE_LIST))
 	cp $< $@

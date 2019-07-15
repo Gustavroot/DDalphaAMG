@@ -1343,7 +1343,7 @@ void block_solve_oddeven_PRECISION( vector_PRECISION phi, vector_PRECISION r, ve
   block_diag_oo_inv_PRECISION( tmp[2], tmp[3], start, s, l, no_threading );
   block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _EVEN_SITES, s, l, no_threading );
 
-  //local_minres_PRECISION( NULL, tmp[3], tmp[2], start, s, l, no_threading );
+  local_minres_PRECISION( NULL, tmp[3], tmp[2], start, s, l, no_threading );
 
   // even to odd
   block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _ODD_SITES, s, l, no_threading );

@@ -94,6 +94,7 @@ typedef struct {
     cuda_vector_PRECISION buf1, buf2, buf3, buf4;
     int **DD_blocks_in_comms, **DD_blocks_notin_comms;
     block_struct* block;
+    cuda_vector_PRECISION local_minres_buffer[3];
   } cuda_schwarz_PRECISION_struct;
   typedef struct {
     cu_cmplx_PRECISION* oe_buf[4];
