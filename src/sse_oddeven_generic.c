@@ -267,7 +267,7 @@ void block_hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi,
 #ifdef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
 void block_n_hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi, 
                                    int start, int amount, schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
-  
+
   START_UNTHREADED_FUNCTION(threading)
   
   int *length_even = s->dir_length_even, *length_odd = s->dir_length_odd,

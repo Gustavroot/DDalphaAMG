@@ -52,6 +52,77 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
         //schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
       }
     }
+
+    /*
+
+      struct timeval start, end;
+      long start_us, end_us;
+      long speedp, dt_gpu, dt_cpu;
+
+      gettimeofday(&start, NULL);
+
+      //red_black_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+      schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+
+      gettimeofday(&end, NULL);
+
+      start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+      end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+
+      dt_cpu = (end_us-start_us);
+
+      printf("\n(proc=%d)Time (in us) for computing one call (& level = %d) of schwarz_PRECISION(...) (according to gettimeofday): %ld\n",
+             g.my_rank, l->level, dt_cpu);
+
+      // Emulating the amount of time it would take to transfer spinors
+
+      vector_PRECISION r = (l->s_PRECISION).buf1;
+      vector_PRECISION x = (l->s_PRECISION).buf3;
+      vector_PRECISION latest_iter = (l->s_PRECISION).buf2;
+
+      cuda_vector_PRECISION r_dev = ((l->s_PRECISION).cu_s).buf1,
+                            x_dev = ((l->s_PRECISION).cu_s).buf3,
+                            latest_iter_dev = ((l->s_PRECISION).cu_s).buf2;
+
+      cudaStream_t *streams_schwarz = (l->s_PRECISION).streams;
+
+      if( g.my_rank==0 ){
+
+      gettimeofday(&start, NULL);
+
+      cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, 0, (l->s_PRECISION).num_blocks*(l->s_PRECISION).block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+      cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, 0, (l->s_PRECISION).num_blocks*(l->s_PRECISION).block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+      //cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, 0, s->num_blocks*s->block_vector_size, l, _H2D, _CUDA_ASYNC, 0, streams_schwarz );
+
+      //cuda_safe_call( cudaDeviceSynchronize() );
+
+      cuda_vector_PRECISION_copy((void*)x, (void*)x_dev, 0, (l->s_PRECISION).num_blocks*(l->s_PRECISION).block_vector_size, l, _D2H, _CUDA_SYNC, 0, streams_schwarz );
+      cuda_vector_PRECISION_copy((void*)r, (void*)r_dev, 0, (l->s_PRECISION).num_blocks*(l->s_PRECISION).block_vector_size, l, _D2H, _CUDA_SYNC, 0, streams_schwarz );
+      cuda_vector_PRECISION_copy((void*)latest_iter, (void*)latest_iter_dev, 0, (l->s_PRECISION).num_blocks*(l->s_PRECISION).block_vector_size, l, _D2H, _CUDA_SYNC, 0, streams_schwarz );
+
+      gettimeofday(&end, NULL);
+
+      start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+      end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+
+      dt_gpu = (end_us-start_us);
+
+      printf("\n(proc=%d)Time (in us) for transferring data (& level = %d) to GPU, associated to schwarz_PRECISION(...) (according to gettimeofday): %ld\n",
+             g.my_rank, l->level, dt_gpu);
+
+      speedp = dt_cpu/dt_gpu;
+
+      printf("\n(proc=%d)Attainable speedup for schwarz_PRECISION(...) (according to gettimeofday): %ld\n",
+             g.my_rank, speedp);
+
+      }
+
+      MPI_Barrier(MPI_COMM_WORLD);
+      MPI_Finalize();
+      exit(0);
+
+    */
+
 #else
     //red_black_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
     schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );

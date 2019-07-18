@@ -60,7 +60,7 @@ int main( int argc, char **argv ) {
   // TODO: make this in a general way, creating a new MPI setup that maps nodes to GPUs
   //cuda_safe_call( cudaSetDevice(g.my_rank/2) );
 #ifdef CUDA_OPT
-  cuda_safe_call( cudaSetDevice(0) );
+  cuda_safe_call( cudaSetDevice(1) );
 #endif
 
   method_init( &argc, &argv, &l );

@@ -20,6 +20,7 @@ extern "C"{
 
 // Pre-definitions of CUDA functions to be called from the CUDA kernels, force inlines
 __forceinline__ __device__ void _cuda_block_diag_oo_inv_PRECISION(cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start, schwarz_PRECISION_struct_on_gpu *s, int idx, cu_config_PRECISION *clov_vect, int csw);
+__forceinline__ __device__ void _cuda_block_diag_oo_inv_PRECISION_opt(cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start, schwarz_PRECISION_struct_on_gpu *s, int idx, cu_config_PRECISION *clov_vect, int csw);
 __forceinline__ __device__ void _cuda_block_n_hopping_term_PRECISION_plus(cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start, int amount, schwarz_PRECISION_struct_on_gpu *s, int idx, cu_cmplx_PRECISION *buf, int ext_dir);
 __forceinline__ __device__ void _cuda_block_n_hopping_term_PRECISION_minus(cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start, int amount, schwarz_PRECISION_struct_on_gpu *s, int idx, cu_cmplx_PRECISION *buf, int ext_dir);
 
@@ -247,12 +248,120 @@ __global__ void cuda_block_oe_vector_PRECISION_plus( cu_cmplx_PRECISION* out, cu
 
 
 
+__global__ void cuda_block_oe_vector_PRECISION_saxpy( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in1, cu_cmplx_PRECISION* in2, cu_cmplx_PRECISION alpha, \
+                                                      schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
+                                                      int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                      int num_latt_site_var, block_struct* block, int sites_to_add ){
+
+  int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;
+
+  idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  // not really a DD block id, but rather a linear counting of a grouping (per DD block) of CUDA threads
+  DD_block_id = idx/nr_threads_per_DD_block;
+
+  // offsetting idx to make it zero at the beginning of the threads living within a DD block
+  idx = idx%nr_threads_per_DD_block;
+
+  // this int will be the ACTUAL DD block ID, in the sense of accessing data from e.g. block_struct* block
+  block_id = DD_blocks_to_compute[DD_block_id];
+
+  cublocks_per_DD_block = nr_threads_per_DD_block/blockDim.x;
+
+  // This serves as a substitute of blockIdx.x, to have a more
+  // local and DD-block treatment more independent of the other DD blocks
+  cu_block_ID = blockIdx.x%cublocks_per_DD_block;
+
+  // this is the DD-block start of the spinors (phi, r, latest_iter and temporary ones)
+  start = block[block_id].start * num_latt_site_var;
+
+  out += start;
+  in1 += start;
+  in2 += start;
+
+  int nr_block_even_sites, nr_block_odd_sites;
+  nr_block_even_sites = s->num_block_even_sites;
+  nr_block_odd_sites = s->num_block_odd_sites;
+
+  PRECISION buf_real, buf_imag;
+
+  if( sites_to_add==_EVEN_SITES ){
+    // even
+    if(idx < 6*nr_block_even_sites){
+      for(i=0; i<2; i++){
+
+        buf_real = cu_creal_PRECISION(( in1 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_creal_PRECISION(alpha) * cu_creal_PRECISION(( in2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) - \
+                   cu_cimag_PRECISION(alpha) * cu_cimag_PRECISION(( in2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]);
+        buf_imag = cu_cimag_PRECISION(( in1 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_creal_PRECISION(alpha) * cu_cimag_PRECISION(( in2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_cimag_PRECISION(alpha) * cu_creal_PRECISION(( in2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]);
+
+        ( out + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = make_cu_cmplx_PRECISION( buf_real, buf_imag );
+
+      }
+    }
+  }
+  else if( sites_to_add==_ODD_SITES ){
+    // odd
+    if(idx < 6*nr_block_odd_sites){
+      for(i=0; i<2; i++){
+
+        buf_real = cu_creal_PRECISION(( in1 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_creal_PRECISION(alpha) * cu_creal_PRECISION(( in2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) - \
+                   cu_cimag_PRECISION(alpha) * cu_cimag_PRECISION(( in2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]);
+        buf_imag = cu_cimag_PRECISION(( in1 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_creal_PRECISION(alpha) * cu_cimag_PRECISION(( in2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_cimag_PRECISION(alpha) * cu_creal_PRECISION(( in2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]);
+
+        ( out + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = make_cu_cmplx_PRECISION( buf_real, buf_imag );
+
+      }
+    }
+  }
+  else if( sites_to_add==_FULL_SYSTEM ){
+    // even
+    if(idx < 6*nr_block_even_sites){
+      for(i=0; i<2; i++){
+
+        buf_real = cu_creal_PRECISION(( in1 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_creal_PRECISION(alpha) * cu_creal_PRECISION(( in2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) - \
+                   cu_cimag_PRECISION(alpha) * cu_cimag_PRECISION(( in2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]);
+        buf_imag = cu_cimag_PRECISION(( in1 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_creal_PRECISION(alpha) * cu_cimag_PRECISION(( in2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_cimag_PRECISION(alpha) * cu_creal_PRECISION(( in2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]);
+
+        ( out + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = make_cu_cmplx_PRECISION( buf_real, buf_imag );
+
+      }
+    }
+    // odd
+    if(idx < 6*nr_block_odd_sites){
+      for(i=0; i<2; i++){
+
+        buf_real = cu_creal_PRECISION(( in1 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_creal_PRECISION(alpha) * cu_creal_PRECISION(( in2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) - \
+                   cu_cimag_PRECISION(alpha) * cu_cimag_PRECISION(( in2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]);
+        buf_imag = cu_cimag_PRECISION(( in1 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_creal_PRECISION(alpha) * cu_cimag_PRECISION(( in2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                   cu_cimag_PRECISION(alpha) * cu_creal_PRECISION(( in2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]);
+
+        ( out + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = make_cu_cmplx_PRECISION( buf_real, buf_imag );
+
+      }
+    }
+  }
+
+}
+
+
+
 __global__ void cuda_block_diag_oo_inv_PRECISION( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
                                                   schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
                                                   int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                   int num_latt_site_var, block_struct* block ){
 
-  int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, size_D_oeclov, start;
+  int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, size_D_oeclov, start, nr_D_dumps;
 
   int nr_block_even_sites, nr_block_odd_sites;
   nr_block_even_sites = s->num_block_even_sites;
@@ -276,7 +385,8 @@ __global__ void cuda_block_diag_oo_inv_PRECISION( cu_cmplx_PRECISION* out, cu_cm
   cu_block_ID = blockIdx.x%cublocks_per_DD_block;
 
   // the size of the local matrix to apply
-  size_D_oeclov = (csw!=0) ? 72 : 12;
+  //size_D_oeclov = (csw!=0) ? 72 : 12;
+  size_D_oeclov = (csw!=0) ? 42 : 12;
 
   // this is the DD-block start of the spinors (phi, r, latest_iter and temporary ones)
   start = block[block_id].start * num_latt_site_var;
@@ -285,7 +395,8 @@ __global__ void cuda_block_diag_oo_inv_PRECISION( cu_cmplx_PRECISION* out, cu_cm
   in += start;
 
   // this operator is stored in column form!
-  cu_config_PRECISION *op_oe_vect = s->op.oe_clover_vectorized;
+  //cu_config_PRECISION *op_oe_vect = s->op.oe_clover_vectorized;
+  cu_config_PRECISION *op_oe_vect = s->op.oe_clover_gpustorg;
   // FIXME: instead of 12, use num_latt_site_var
   op_oe_vect += (start/12)*size_D_oeclov;
 
@@ -315,9 +426,11 @@ __global__ void cuda_block_diag_oo_inv_PRECISION( cu_cmplx_PRECISION* out, cu_cm
       in_o[blockDim.x*i + threadIdx.x] = ( in + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
     }
 
-    //the factor of 12 comes from: 72*16=1152 ----> 1152/96=12. This implies 12 dumps of data into shared_memory
-    for(i=0; i<12; i++){
-      clov_vect_b_o[blockDim.x*i + threadIdx.x] = ( op_oe_vect + 72*nr_block_even_sites + cu_block_ID*blockDim.x*12 + blockDim.x*i + threadIdx.x )[0];
+    // the factor of 12 comes from (the factor of 16 comes from the nr of lattice sites per CUDA block: 96/6 = 16): 72*16=1152 ----> 1152/96=12. This implies 12 dumps of data into shared_memory
+    nr_D_dumps = (blockDim.x/6)*size_D_oeclov/blockDim.x; // = 7 always
+    //nr_D_dumps /= nr_D_dumps;
+    for(i=0; i<nr_D_dumps; i++){
+      clov_vect_b_o[blockDim.x*i + threadIdx.x] = ( op_oe_vect + 42*nr_block_even_sites + cu_block_ID*blockDim.x*nr_D_dumps + blockDim.x*i + threadIdx.x )[0];
     }
   }
 
@@ -353,10 +466,12 @@ __forceinline__ __device__ void _cuda_block_diag_oo_inv_PRECISION(cu_cmplx_PRECI
 
   cu_cmplx_PRECISION* eta_site = eta + site_offset;
   cu_cmplx_PRECISION* phi_site = phi + site_offset;
-  cu_config_PRECISION* op_clov_vect_site = op_clov_vect + (site_offset/12)*72;
+  cu_config_PRECISION* op_clov_vect_site = op_clov_vect + (site_offset/12)*42;
 
   eta_site[ local_idx ] = make_cu_cmplx_PRECISION(0.0,0.0);
   eta_site[ 6 + local_idx ] = make_cu_cmplx_PRECISION(0.0,0.0);
+
+  int matrx_indx;
 
   if( csw!=0 ){
     // Run over all the sites within this block, and perform: eta = op_clov_vect * phi
@@ -366,7 +481,42 @@ __forceinline__ __device__ void _cuda_block_diag_oo_inv_PRECISION(cu_cmplx_PRECI
     for( int i=0; i<2; i++ ){
       // outter loop for matrix*vector double loop unrolled
       for( int j=0; j<6; j++ ){
-        eta_site[ 6*i + local_idx ] = cu_cadd_PRECISION( eta_site[ 6*i + local_idx ], cu_cmul_PRECISION( (op_clov_vect_site + i*36)[local_idx + 6*j], phi_site[j + 6*i] ) );
+
+        // The following index is a mapping from the usual full matrix to the reduced form (i.e. the compressed due to being Hermitian)
+        // Usually, in the full form: i*21 + j*6 + local_idx
+        if( local_idx>j ){
+          matrx_indx = 21 - (5-j+1)*((5-j+1)+1)/2 + (local_idx-j);
+        }
+        else if( local_idx==j ){
+          matrx_indx = 21 - (5-j+1)*((5-j+1)+1)/2;
+        }
+        else{
+          matrx_indx = 21 - (5-local_idx+1)*((5-local_idx+1)+1)/2 + (j-local_idx);
+        }
+
+        //if( (threadIdx.x + blockDim.x * blockIdx.x)==0 ){
+        //  printf("local_idx=%d, j=%d\n", local_idx, j);
+        //}
+
+        if( local_idx>j || local_idx==j ){
+
+          eta_site[ 6*i + local_idx ] = cu_cadd_PRECISION( eta_site[ 6*i + local_idx ], cu_cmul_PRECISION( (op_clov_vect_site + i*21)[matrx_indx], phi_site[j + 6*i] ) );
+
+          //printf("%f+i%f\n", cu_creal_PRECISION((op_clov_vect_site + i*21)[matrx_indx]), cu_cimag_PRECISION((op_clov_vect_site + i*21)[matrx_indx]));
+
+          //matrx_indx = 21 - (5-j+1)*((5-j+1)+1)/2 + (local_idx-j);
+        }
+        else{
+
+          eta_site[ 6*i + local_idx ] = cu_cadd_PRECISION( eta_site[ 6*i + local_idx ], cu_cmul_PRECISION( cu_conj_PRECISION((op_clov_vect_site + i*21)[matrx_indx]), phi_site[j + 6*i] ) );
+
+          //printf("%f+i%f\n", cu_creal_PRECISION(cu_conj_PRECISION((op_clov_vect_site + i*21)[matrx_indx])), cu_cimag_PRECISION(cu_conj_PRECISION((op_clov_vect_site + i*21)[matrx_indx])));
+
+          //matrx_indx = 21 - (5-local_idx+1)*((5-local_idx+1)+1)/2 + (j-local_idx);
+        }
+
+
+
       }
     }
 
@@ -379,12 +529,13 @@ __global__ void cuda_block_n_hopping_term_PRECISION_plus( cu_cmplx_PRECISION* ou
                                                           int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                           int num_latt_site_var, block_struct* block, int ext_dir, int amount ){
 
-  int idx, DD_block_id, block_id, start;
+  int idx;
+  idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  int DD_block_id, block_id, start;
 
   int nr_block_even_sites;
   nr_block_even_sites = s->num_block_even_sites;
-
-  idx = threadIdx.x + blockDim.x * blockIdx.x;
 
   // not really a DD block id, but rather a linear counting of a grouping (per DD block) of CUDA threads
   DD_block_id = idx/nr_threads_per_DD_block;
@@ -504,12 +655,13 @@ __global__ void cuda_block_n_hopping_term_PRECISION_minus( cu_cmplx_PRECISION* o
                                                           int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                           int num_latt_site_var, block_struct* block, int ext_dir, int amount ){
 
-  int idx, DD_block_id, block_id, start;
+  int idx;
+  idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  int DD_block_id, block_id, start;
 
   int nr_block_even_sites;
   nr_block_even_sites = s->num_block_even_sites;
-
-  idx = threadIdx.x + blockDim.x * blockIdx.x;
 
   // not really a DD block id, but rather a linear counting of a grouping (per DD block) of CUDA threads
   DD_block_id = idx/nr_threads_per_DD_block;
@@ -669,29 +821,161 @@ __global__ void cuda_block_solve_update( cu_cmplx_PRECISION* phi, cu_cmplx_PRECI
   nr_block_odd_sites = s->num_block_odd_sites;
 
   // update phi, latest_iter, r
+
   // even
   if(idx < 6*nr_block_even_sites){
     for(i=0; i<2; i++){
       ( latest_iter + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = ( tmp2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
-      ( phi + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = make_cu_cmplx_PRECISION( cu_creal_PRECISION(( phi + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) +\
-                                                                                                   cu_creal_PRECISION(( tmp2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]),
-                                                                                                   cu_cimag_PRECISION(( phi + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
-                                                                                                   cu_cimag_PRECISION(( tmp2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) );
-      ( r + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = ( tmp3 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
     }
   }
   // odd
   if(idx < 6*nr_block_odd_sites){
     for(i=0; i<2; i++){
       ( latest_iter + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = ( tmp2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
+    }
+  }
+  // even
+  if(idx < 6*nr_block_even_sites){
+    for(i=0; i<2; i++){
+      ( phi + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = make_cu_cmplx_PRECISION( cu_creal_PRECISION(( phi + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) +\
+                                                                                                   cu_creal_PRECISION(( tmp2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]),
+                                                                                                   cu_cimag_PRECISION(( phi + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
+                                                                                                   cu_cimag_PRECISION(( tmp2 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) );
+    }
+  }
+  // odd
+  if(idx < 6*nr_block_odd_sites){
+    for(i=0; i<2; i++){
       ( phi + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = make_cu_cmplx_PRECISION( 
                                                                      cu_creal_PRECISION(( phi + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
                                                                      cu_creal_PRECISION(( tmp2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]),
                                                                      cu_cimag_PRECISION(( phi + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) + \
                                                                      cu_cimag_PRECISION(( tmp2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0]) );
+    }
+  }
+  // even
+  if(idx < 6*nr_block_even_sites){
+    for(i=0; i<2; i++){
+      ( r + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = ( tmp3 + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0];
+    }
+  }
+  // odd
+  if(idx < 6*nr_block_odd_sites){
+    for(i=0; i<2; i++){
       ( r + 12*nr_block_even_sites + cu_block_ID*blockDim.x*2 + blockDim.x*i + threadIdx.x )[0] = make_cu_cmplx_PRECISION(0.0,0.0);
     }
   }
+
+}
+
+
+
+// WARNING: the use of this function may lead to performance reduction
+__global__ void cuda_block_n_hopping_term_PRECISION( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
+                                                     schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
+                                                     int csw, int nr_DD_blocks_to_compute, int* DD_blocks_to_compute, \
+                                                     int num_latt_site_var, block_struct* block, int sites_to_compute ){
+
+  int dir;
+
+  int threads_per_cublock, nr_threads, nr_threads_per_DD_block;
+  size_t tot_shared_mem;
+
+  // we choose here a multiple of 96 due to being the smallest nr divisible by 32, but also divisible by 6
+  threads_per_cublock = 96;
+
+  nr_threads = (s->num_block_odd_sites > s->num_block_even_sites) ? s->num_block_odd_sites : s->num_block_even_sites;
+  nr_threads = nr_threads*(12/2);
+  nr_threads = nr_threads*nr_DD_blocks_to_compute;
+
+  nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
+
+  if( threadIdx.x==0 ){
+
+    // hopping term, even sites
+    //tot_shared_mem = 2*4*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
+    tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
+    for( dir=0; dir<4; dir++ ){
+      cuda_block_n_hopping_term_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem >>> \
+                                              (out, in, s, thread_id, csw, nr_threads_per_DD_block, DD_blocks_to_compute, num_latt_site_var, block, dir, sites_to_compute);
+      cuda_block_n_hopping_term_PRECISION_minus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem >>> \
+                                               (out, in, s, thread_id, csw, nr_threads_per_DD_block, DD_blocks_to_compute, num_latt_site_var, block, dir, sites_to_compute);
+    }
+  }
+
+}
+
+
+
+extern "C" void cuda_apply_block_schur_complement_PRECISION( cuda_vector_PRECISION out, cuda_vector_PRECISION in,
+                                                             schwarz_PRECISION_struct *s, level_struct *l, int nr_DD_blocks_to_compute,
+                                                             int* DD_blocks_to_compute, cudaStream_t *streams, int stream_id, int sites_to_solve ){
+
+  int dir, size_D_oeclov;
+
+  cu_cmplx_PRECISION **tmp, *tmp0, *tmp1;
+  tmp = (s->s_on_gpu_cpubuff).oe_buf;
+  tmp0 = tmp[0];
+  tmp1 = tmp[1];
+
+  int threads_per_cublock, nr_threads, nr_threads_per_DD_block;
+  size_t tot_shared_mem;
+
+  // this is the size of the local matrix, i.e. per lattice site. 12^2=144, but ... (??)
+  //size_D_oeclov = (g.csw!=0) ? 72 : 12;
+  size_D_oeclov = (g.csw!=0) ? 72 : 12;
+
+  // we choose here a multiple of 96 due to being the smallest nr divisible by 32, but also divisible by 6
+  threads_per_cublock = 96;
+
+  nr_threads = (s->num_block_odd_sites > s->num_block_even_sites) ? s->num_block_odd_sites : s->num_block_even_sites;
+  nr_threads = nr_threads*(12/2);
+  nr_threads = nr_threads*nr_DD_blocks_to_compute;
+
+  nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
+
+  //block_diag_ee_PRECISION( out, in, start, s, l, threading );
+  // TODO
+
+  cuda_block_oe_vector_PRECISION_copy<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
+                                     (out, in, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
+
+  //vector_PRECISION_define( tmp[0], 0, start + 12*s->num_block_even_sites, start + s->block_vector_size, l );
+  cuda_block_oe_vector_PRECISION_define<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
+                                       (tmp0, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, \
+                                       l->num_lattice_site_var, (s->cu_s).block, _ODD_SITES, make_cu_cmplx_PRECISION(0.0,0.0));
+
+  //block_hopping_term_PRECISION( tmp[0], in, start, _ODD_SITES, s, l, threading );
+  // TODO
+
+  //block_n_hopping_term_PRECISION( out, tmp[1], start, _EVEN_SITES, s, l, threading );
+  // hopping term, even sites
+  //tot_shared_mem = 2*4*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
+  //tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
+  //for( dir=0; dir<4; dir++ ){
+  //  cuda_block_n_hopping_term_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+  //                                          (tmp0, in, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, dir, _ODD_SITES);
+  //  cuda_block_n_hopping_term_PRECISION_minus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+  //                                           (tmp0, in, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, dir, _ODD_SITES);
+  //}
+
+  //block_diag_oo_inv_PRECISION( tmp[1], tmp[0], start, s, l, threading );
+  // diag_oo inv
+  threads_per_cublock = 96;
+  tot_shared_mem = 2*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 1*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
+  cuda_block_diag_oo_inv_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+                                    (tmp1, tmp0, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block);
+
+  //block_n_hopping_term_PRECISION( out, tmp[1], start, _EVEN_SITES, s, l, threading );
+  // hopping term, even sites
+  //tot_shared_mem = 2*4*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
+  //tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
+  //for( dir=0; dir<4; dir++ ){
+  //  cuda_block_n_hopping_term_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+  //                                          (out, tmp1, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, dir, _EVEN_SITES);
+  //  cuda_block_n_hopping_term_PRECISION_minus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+  //                                           (out, tmp1, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, dir, _EVEN_SITES);
+  //}
 
 }
 
@@ -707,7 +991,7 @@ extern "C" void cuda_local_minres_PRECISION( cuda_vector_PRECISION phi, cuda_vec
   // TODO: remove the following commented lines !
   int i, n = l->block_iter;
   //int i, end = (g.odd_even&&l->depth==0)?start+12*s->num_block_even_sites:start+s->block_vector_size, n = l->block_iter;
-  //vector_PRECISION Dr = s->local_minres_buffer[0];
+  cuda_vector_PRECISION Dr = (s->cu_s).local_minres_buffer[0];
   cuda_vector_PRECISION r = (s->cu_s).local_minres_buffer[1];
   cuda_vector_PRECISION lphi = (s->cu_s).local_minres_buffer[2];
   //complex_PRECISION alpha;
@@ -737,7 +1021,7 @@ extern "C" void cuda_local_minres_PRECISION( cuda_vector_PRECISION phi, cuda_vec
   // the use of _EVEN_SITES comes from the CPU code: end = (g.odd_even&&l->depth==0)?start+12*s->num_block_even_sites:start+s->block_vector_size
   //vector_PRECISION_copy( r, eta, start, end, l );
   cuda_block_oe_vector_PRECISION_copy<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
-                           (r, eta, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
+                                     (r, eta, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
 
   //vector_PRECISION_define( lphi, 0, start, end, l );
   cuda_block_oe_vector_PRECISION_define<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
@@ -745,26 +1029,35 @@ extern "C" void cuda_local_minres_PRECISION( cuda_vector_PRECISION phi, cuda_vec
                                        l->num_lattice_site_var, (s->cu_s).block, sites_to_solve, make_cu_cmplx_PRECISION(0.0,0.0));
 
   for ( i=0; i<n; i++ ) {
-  //  // Dr = blockD*r
-  //  block_op( Dr, r, start, s, l, no_threading );
+    // Dr = blockD*r
+    //block_op( Dr, r, start, s, l, no_threading );
+    cuda_apply_block_schur_complement_PRECISION( Dr, r, s, l, nr_DD_blocks_to_compute, DD_blocks_to_compute, streams, stream_id, _EVEN_SITES );
+
   //  // alpha = <Dr,r>/<Dr,Dr>
   //  alpha = local_xy_over_xx_PRECISION( Dr, r, start, end, l );
   //  // phi += alpha * r
   //  vector_PRECISION_saxpy( lphi, lphi, r, alpha, start, end, l );
   //  // r -= alpha * Dr
-  //  vector_PRECISION_saxpy( r, r, Dr, -alpha, start, end, l );
+
+    //  vector_PRECISION_saxpy( r, r, Dr, -alpha, start, end, l );
+    //cuda_block_oe_vector_PRECISION_saxpy<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
+    //                                    (r, r, Dr, make_cu_cmplx_PRECISION(1.0,3.0), s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
+
+    cuda_block_oe_vector_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
+                                       (r, r, Dr, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
+
   }
 
   //vector_PRECISION_copy( latest_iter, lphi, start, end, l );
   if ( latest_iter != NULL ){
-    cuda_block_oe_vector_PRECISION_copy<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
-                                       (latest_iter, lphi, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
+    //cuda_block_oe_vector_PRECISION_copy<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
+    //                                   (latest_iter, lphi, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
   }
 
   //vector_PRECISION_plus( phi, phi, lphi, start, end, l );
   if ( phi != NULL ){
-    cuda_block_oe_vector_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
-                                       (phi, phi, lphi, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
+    //cuda_block_oe_vector_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
+    //                                   (phi, phi, lphi, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
   }
 
   //vector_PRECISION_copy( eta, r, start, end, l );
@@ -775,14 +1068,42 @@ extern "C" void cuda_local_minres_PRECISION( cuda_vector_PRECISION phi, cuda_vec
 
 
 
-extern "C" void cuda_blocks_vector_copy_noncontig_PRECISION( cuda_vector_PRECISION out, cuda_vector_PRECISION in, int nr_DD_blocks_to_compute,
-                                                             schwarz_PRECISION_struct* s, level_struct *l, int* DD_blocks_to_compute, cudaStream_t *streams){
+extern "C" void cuda_blocks_vector_copy_noncontig_PRECISION_naive( cuda_vector_PRECISION out, cuda_vector_PRECISION in, int nr_DD_blocks_to_compute,
+                                                                   schwarz_PRECISION_struct* s, level_struct *l, int* DD_blocks_to_compute, cudaStream_t *streams){
 
   int i, b_start;
   for( i=0; i<nr_DD_blocks_to_compute; i++ ){
     b_start = s->block[DD_blocks_to_compute[i]].start * l->num_lattice_site_var;
     cuda_vector_PRECISION_copy((void*)out, (void*)in, b_start, s->block_vector_size, l, _D2D, _CUDA_ASYNC, 0, streams );
   }
+}
+
+
+// Use of dynamic parallelism to make _D2D copies
+__global__ void cuda_blocks_vector_copy_noncontig_PRECISION_dyn_dev( cuda_vector_PRECISION out, cuda_vector_PRECISION in, int* DD_blocks_to_compute, \
+                                         block_struct* block, int num_latt_site_var, schwarz_PRECISION_struct_on_gpu *s){
+                                         
+  int block_id, start;
+
+  block_id = DD_blocks_to_compute[blockIdx.x];
+  start = block[block_id].start * num_latt_site_var;
+
+  if( threadIdx.x==0 ){
+    cudaMemcpyAsync(out + start, in + start, (s->block_vector_size)*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToDevice);
+  }
+
+}
+
+
+
+// Use of dynamic parallelism
+extern "C" void cuda_blocks_vector_copy_noncontig_PRECISION_dyn( cuda_vector_PRECISION out, cuda_vector_PRECISION in, int nr_DD_blocks_to_compute,
+                                                                 schwarz_PRECISION_struct* s, level_struct *l, int* DD_blocks_to_compute, cudaStream_t *streams,
+                                                                 int stream_id){
+
+  cuda_blocks_vector_copy_noncontig_PRECISION_dyn_dev<<< nr_DD_blocks_to_compute, 32, 0, streams[stream_id] >>>
+                                                     (out, in, DD_blocks_to_compute, (s->cu_s).block, l->num_lattice_site_var, s->s_on_gpu);
+
 }
 
 
@@ -812,8 +1133,10 @@ extern "C" void cuda_block_solve_oddeven_PRECISION( cuda_vector_PRECISION phi, c
     nr_threads = (s->num_block_odd_sites > s->num_block_even_sites) ? s->num_block_odd_sites : s->num_block_even_sites;
     nr_threads = nr_threads*(12/2);
     nr_threads = nr_threads*nr_DD_blocks_to_compute;
+    nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
 
     // this is the size of the local matrix, i.e. per lattice site. 12^2=144, but ... (??)
+    //size_D_oeclov = (g.csw!=0) ? 72 : 12;
     size_D_oeclov = (g.csw!=0) ? 72 : 12;
 
     // ingredients composing shared memory:
@@ -835,45 +1158,73 @@ extern "C" void cuda_block_solve_oddeven_PRECISION( cuda_vector_PRECISION phi, c
     // UPDATE: the factor (2+3) means that we are asking for 2 even local buffers and 3 odd local buffers, all these within the kernel
     //tot_shared_mem = (2+3)*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
 
-    nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
-
     cu_cmplx_PRECISION **tmp, *tmp2, *tmp3;
     tmp = (s->s_on_gpu_cpubuff).oe_buf;
     tmp2 = tmp[2];
     tmp3 = tmp[3];
 
     cuda_block_oe_vector_PRECISION_copy<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
-                             (tmp3, r, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, _FULL_SYSTEM);
-    //cuda_blocks_vector_copy_noncontig_PRECISION(tmp3, r, nr_DD_blocks_to_compute, s, l, DD_blocks_to_compute_cpu, streams);
+                                       (tmp3, r, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, _FULL_SYSTEM);
+    //cuda_blocks_vector_copy_noncontig_PRECISION_naive(tmp3, r, nr_DD_blocks_to_compute, s, l, DD_blocks_to_compute_cpu, streams);
+    //cuda_blocks_vector_copy_noncontig_PRECISION_dyn(tmp3, r, nr_DD_blocks_to_compute, s, l, DD_blocks_to_compute_gpu, streams, 0);
 
     // diag_oo inv
+    threads_per_cublock = 96;
     tot_shared_mem = 2*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 1*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
     cuda_block_diag_oo_inv_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
                                     (tmp2, tmp3, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block);
 
     // hopping term, even sites
     //tot_shared_mem = 2*4*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
-    tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
-    for( dir=0; dir<4; dir++ ){
-      cuda_block_n_hopping_term_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
-                                              (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _EVEN_SITES);
-      cuda_block_n_hopping_term_PRECISION_minus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
-                                               (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _EVEN_SITES);
-    }
+    //tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
+    //for( dir=0; dir<4; dir++ ){
+    //  cuda_block_n_hopping_term_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+    //                                          (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _EVEN_SITES);
+    //  cuda_block_n_hopping_term_PRECISION_minus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+    //                                           (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _EVEN_SITES);
+    //}
+    //cuda_block_n_hopping_term_PRECISION<<< 1, 32, 0, streams[stream_id] >>> \
+    //                                   (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_DD_blocks_to_compute, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, _EVEN_SITES);
 
     cuda_local_minres_PRECISION( NULL, tmp3, tmp2, s, l, nr_DD_blocks_to_compute, DD_blocks_to_compute_gpu, streams, stream_id, _EVEN_SITES );
 
+    // TODO: remove the following call to diag_oo inv
+    // diag_oo inv
+    threads_per_cublock = 96;
+    tot_shared_mem = 2*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 1*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
+    cuda_block_diag_oo_inv_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+                                    (tmp2, tmp3, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block);
+
     // hopping term, odd sites
     //tot_shared_mem = 2*4*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
-    tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
-    for( dir=0; dir<4; dir++ ){
-      cuda_block_n_hopping_term_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
-                                              (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _ODD_SITES);
-      cuda_block_n_hopping_term_PRECISION_minus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
-                                               (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _ODD_SITES);
-    }
+    //tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
+    //for( dir=0; dir<4; dir++ ){
+    //  cuda_block_n_hopping_term_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+    //                                          (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _ODD_SITES);
+    //  cuda_block_n_hopping_term_PRECISION_minus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+    //                                           (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _ODD_SITES);
+    //}
+    //cuda_block_n_hopping_term_PRECISION<<< 1, 32, 0, streams[stream_id] >>> \
+    //                                   (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_DD_blocks_to_compute, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, _ODD_SITES);
 
     // diag_oo inv
+    threads_per_cublock = 96;
+    tot_shared_mem = 2*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 1*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
+    cuda_block_diag_oo_inv_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+                                    (tmp2, tmp3, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block);
+
+    // hopping term, odd sites
+    //tot_shared_mem = 2*4*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 2*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
+    //tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
+    //for( dir=0; dir<4; dir++ ){
+    //  cuda_block_n_hopping_term_PRECISION_plus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+    //                                          (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _ODD_SITES);
+    //  cuda_block_n_hopping_term_PRECISION_minus<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+    //                                           (tmp3, tmp2, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, dir, _ODD_SITES);
+    //}
+
+    // diag_oo inv
+    threads_per_cublock = 96;
     tot_shared_mem = 2*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 1*size_D_oeclov*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
     cuda_block_diag_oo_inv_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
                                     (tmp2, tmp3, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block);
@@ -882,8 +1233,12 @@ extern "C" void cuda_block_solve_oddeven_PRECISION( cuda_vector_PRECISION phi, c
     cuda_block_solve_update<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>>
                            (phi, r, latest_iter, s->s_on_gpu, g.my_rank, g.csw, 0, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block);
 
+    cuda_block_oe_vector_PRECISION_saxpy<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>> \
+                                        (r, r, tmp3, make_cu_cmplx_PRECISION(1.0,3.0), s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block, _FULL_SYSTEM);
+
     // TODO: eventually, remove this line
     //cuda_check_error( _HARD_CHECK );
+    //exit(1);
 
   }
 }

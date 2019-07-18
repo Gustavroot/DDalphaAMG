@@ -201,8 +201,12 @@ void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
     s->block[i].bt = NULL;
     MALLOC( s->block[i].bt, int, n );
   }
-  
+
+#ifdef CUDA_OPT
   MALLOC( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
+#else
+  cuda_safe_call( cudaMallocHost( (void**)&(s->buf1), (vs+3*l->schwarz_vector_size)*sizeof(complex_PRECISION) ) );
+#endif
   s->buf2 = s->buf1 + vs;
   s->buf3 = s->buf2 + l->schwarz_vector_size;
   s->buf4 = s->buf3 + l->schwarz_vector_size;
@@ -344,8 +348,12 @@ void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l ) {
 #endif
   s->bbuf2 = NULL; s->bbuf3 = NULL; s->oe_bbuf[0] = NULL; s->oe_bbuf[1] = NULL;
   s->oe_bbuf[2] = NULL; s->oe_bbuf[3] = NULL; s->oe_bbuf[4] = NULL; s->oe_bbuf[5] = NULL;
-  
+
+#ifdef CUDA_OPT  
   FREE( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
+#else
+  cuda_safe_call( cudaFreeHost(s->buf1) );
+#endif
   s->buf2 = NULL; s->buf3 = NULL;
   s->buf4 = NULL;
   
@@ -1476,6 +1484,36 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
           }
         }
 
+        /*
+        if( b==100 && h==100 ){
+        for( i=0; i<N; i++ ){
+          for( j=0; j<N; j++ ){
+            if( g.my_rank ==0 ) printf(" %f+i%f |", cu_creal_PRECISION(buf_D_oe_cpu[i+j*N]), cu_cimag_PRECISION(buf_D_oe_cpu[i+j*N]));
+          }
+          if( g.my_rank==0 ) printf("\n");
+        }
+
+        printf("\n");
+        printf("\n");
+
+        if( b==100 && h==100 ){
+        for( i=0; i<N; i++ ){
+          for( j=0; j<N; j++ ){
+            if( g.my_rank ==0 ) printf(" %f+i%f |", cu_creal_PRECISION((buf_D_oe_cpu+36)[i+j*N]), cu_cimag_PRECISION((buf_D_oe_cpu+36)[i+j*N]));
+          }
+          if( g.my_rank==0 ) printf("\n");
+        }
+        }
+
+        printf("\n");
+        printf("\n");
+        printf("\n");
+        //MPI_Barrier(MPI_COMM_WORLD);
+        //MPI_Finalize();
+        //exit(0);
+        }
+        */
+
         buf_D_oe_cpu += 72;
         op_oe_vect_bare += 144;
         op_oe_vect = op_oe_vect_bare;
@@ -1485,6 +1523,90 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
       //TODO !!
     }
 
+  }
+
+
+  // making use of Doo^-1 (i.e. buf_D_oe_cpu_bare) being Hermitian to store in reduced form
+  // IMPORTANT: this matrix is stored in column-form
+
+  cu_cmplx_PRECISION *buf_D_oe_cpu_gpustorg, *buf_D_oe_gpu_gpustorg, *buf_D_oe_cpu_gpustorg_bare;
+
+  if(g.csw != 0){
+    buf_D_oe_cpu_gpustorg = (cu_cmplx_PRECISION*) malloc( 42 * nr_DD_sites*in->num_blocks * sizeof(cu_cmplx_PRECISION) );
+    cuda_safe_call( cudaMalloc( (void**) &(buf_D_oe_gpu_gpustorg), 42 * sizeof(cu_cmplx_PRECISION) * nr_DD_sites*in->num_blocks ) );
+  }
+  else{
+    // TODO !
+    //buf_D_oe_cpu = (cu_cmplx_PRECISION*) malloc( 12 * nr_DD_sites*in->num_blocks * sizeof(cu_cmplx_PRECISION) );
+    //cuda_safe_call( cudaMalloc( (void**) &(buf_D_oe_gpu), 12 * sizeof(cu_config_PRECISION) * nr_DD_sites*in->num_blocks ) );
+  }
+
+  buf_D_oe_cpu = buf_D_oe_cpu_bare;
+  buf_D_oe_cpu_gpustorg_bare = buf_D_oe_cpu_gpustorg;
+
+  for(b=0; b < in->num_blocks; b++){
+    for(h=0; h<nr_DD_sites; h++){
+      int N=6, k=0;
+      for ( j=0; j<N; j++ ) {
+        for ( i=j; i<N; i++ ) {
+
+          (buf_D_oe_cpu_gpustorg +    0)[k] = (buf_D_oe_cpu +    0)[i+j*N];
+          (buf_D_oe_cpu_gpustorg + 42/2)[k] = (buf_D_oe_cpu + 72/2)[i+j*N];
+          k++;
+
+        }
+      }
+
+
+        /*
+        int matrx_indx, local_idx;
+        if( b==100 && h==100 ){
+        for( i=0; i<2; i++ ){
+          for( local_idx=0; local_idx<N; local_idx++ ){
+            for( j=0; j<N; j++ ){
+
+              if( local_idx>j ){
+                matrx_indx = 21 - (5-j+1)*((5-j+1)+1)/2 + (local_idx-j);
+              }
+              else if( local_idx==j ){
+                matrx_indx = 21 - (5-j+1)*((5-j+1)+1)/2;
+              }
+              else{
+                matrx_indx = 21 - (5-local_idx+1)*((5-local_idx+1)+1)/2 + (j-local_idx);
+              }
+
+              //if( (threadIdx.x + blockDim.x * blockIdx.x)==0 ){
+              //  printf("local_idx=%d, j=%d\n", local_idx, j);
+              //}
+
+              if( local_idx>j || local_idx==j ){
+                //eta_site[ 6*i + local_idx ] = cu_cadd_PRECISION( eta_site[ 6*i + local_idx ], cu_cmul_PRECISION( (op_clov_vect_site + i*21)[matrx_indx], phi_site[j + 6*i] ) );
+                if( g.my_rank ==0 ) printf(" %f+i%f |", cu_creal_PRECISION((buf_D_oe_cpu_gpustorg+i*21)[matrx_indx]), cu_cimag_PRECISION((buf_D_oe_cpu_gpustorg+i*21)[matrx_indx]));
+              }
+              else{
+                //eta_site[ 6*i + local_idx ] = cu_cadd_PRECISION( eta_site[ 6*i + local_idx ], cu_cmul_PRECISION( cu_conj_PRECISION((op_clov_vect_site + i*21)[matrx_indx]), phi_site[j + 6*i] ) );
+                if( g.my_rank ==0 ) printf(" %f+i%f |", cu_creal_PRECISION(cu_conj_PRECISION((buf_D_oe_cpu_gpustorg+i*21)[matrx_indx])), cu_cimag_PRECISION(cu_conj_PRECISION((buf_D_oe_cpu_gpustorg+i*21)[matrx_indx])));
+              }
+
+              //if( g.my_rank ==0 ) printf(" %f+i%f |", cu_creal_PRECISION(buf_D_oe_cpu[i*N+j]), cu_cimag_PRECISION(buf_D_oe_cpu[i*N+j]));
+
+            }
+            if( g.my_rank==0 ) printf("\n");
+          }
+          if( g.my_rank==0 ) printf("\n\n");
+        }
+        }
+
+        //printf("\n");
+        //MPI_Barrier(MPI_COMM_WORLD);
+        //MPI_Finalize();
+        //exit(0);
+        */
+
+
+      buf_D_oe_cpu += 72;
+      buf_D_oe_cpu_gpustorg += 42;
+    }
   }
 
   //MPI_Barrier(MPI_COMM_WORLD);
@@ -1497,10 +1619,20 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     cuda_safe_call( cudaMemcpy(buf_D_oe_gpu, buf_D_oe_cpu_bare, 12*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
   }
 
+  if(g.csw != 0){
+    cuda_safe_call( cudaMemcpy(buf_D_oe_gpu_gpustorg, buf_D_oe_cpu_gpustorg_bare, 42*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
+  }
+  else{
+    // TODO !
+    //cuda_safe_call( cudaMemcpy(buf_D_oe_gpu, buf_D_oe_cpu_bare, 12*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
+  }
+
   free(buf_D_oe_cpu_bare);
+  free(buf_D_oe_cpu_gpustorg_bare);
 
   //cudaMemcpy(&(out->op.oe_clover_vectorized), &buf_D_oe_gpu, sizeof(cu_config_PRECISION*), cudaMemcpyHostToDevice);
   out->op.oe_clover_vectorized = buf_D_oe_gpu;
+  out->op.oe_clover_gpustorg = buf_D_oe_gpu_gpustorg;
   //-------------------------------------------------------------------------------------------------------------------------
 
   int dir, nr_oe_elems_hopp;
@@ -1578,6 +1710,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
 
   (s->s_on_gpu_cpubuff).num_block_even_sites = s->num_block_even_sites;
   (s->s_on_gpu_cpubuff).num_block_odd_sites = s->num_block_odd_sites;
+  (s->s_on_gpu_cpubuff).block_vector_size = s->block_vector_size;
 
   // After all the allocations and definitions associated to s->s_on_gpu_cpubuff, it's time to move to the GPU
   cuda_safe_call( cudaMemcpy(s->s_on_gpu, &(s->s_on_gpu_cpubuff), 1*sizeof(schwarz_PRECISION_struct_on_gpu), cudaMemcpyHostToDevice) );
@@ -2413,7 +2546,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
 
       int comp_bool1, comp_bool2;
-      float comp_tol = 1.0e-6;
+      float comp_tol = 1.0e-4;
 
       //printf("\n\n");
       for ( i=nb_thread_start; i<nb_thread_end; i++ ) {

@@ -73,6 +73,7 @@ typedef struct {
   cu_config_PRECISION *oe_clover_vectorized;
   int *neighbor_table;
   cu_config_PRECISION *D;
+  cu_cmplx_PRECISION *oe_clover_gpustorg;
 } operator_PRECISION_struct_on_gpu;
 #endif
   
@@ -101,6 +102,7 @@ typedef struct {
     cu_config_PRECISION *oe_clover_vectorized;
     operator_PRECISION_struct_on_gpu op;
     int num_block_even_sites, num_block_odd_sites;
+    int block_vector_size;
     int *oe_index[4];
     int dir_length_even[4], dir_length_odd[4];
     cu_cmplx_PRECISION gamma_info_vals[16];

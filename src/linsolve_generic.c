@@ -1000,29 +1000,37 @@ void local_minres_PRECISION( vector_PRECISION phi, vector_PRECISION eta, vector_
 
   int i, end = (g.odd_even&&l->depth==0)?start+12*s->num_block_even_sites:start+s->block_vector_size,
       n = l->block_iter;
-  //vector_PRECISION Dr = s->local_minres_buffer[0];
+  vector_PRECISION Dr = s->local_minres_buffer[0];
   vector_PRECISION r = s->local_minres_buffer[1];
   vector_PRECISION lphi = s->local_minres_buffer[2];
   //complex_PRECISION alpha;
-  //void (*block_op)() = (l->depth==0)?(g.odd_even?apply_block_schur_complement_PRECISION:block_d_plus_clover_PRECISION)
-  //                                  :coarse_block_operator_PRECISION;
+  void (*block_op)() = (l->depth==0)?(g.odd_even?apply_block_schur_complement_PRECISION:block_d_plus_clover_PRECISION)
+                                    :coarse_block_operator_PRECISION;
 
   vector_PRECISION_copy( r, eta, start, end, l );
   vector_PRECISION_define( lphi, 0, start, end, l );
 
   for ( i=0; i<n; i++ ) {
-  //  // Dr = blockD*r
-  //  block_op( Dr, r, start, s, l, no_threading );
-  //  // alpha = <Dr,r>/<Dr,Dr>
-  //  alpha = local_xy_over_xx_PRECISION( Dr, r, start, end, l );
+
+    // Dr = blockD*r
+    block_op( Dr, r, start, s, l, no_threading );
+    // alpha = <Dr,r>/<Dr,Dr>
+    //alpha = local_xy_over_xx_PRECISION( Dr, r, start, end, l );
+    //int block_id = start/s->num_blocks/l->num_lattice_site_var;
+    //if( block_id==182 ) printf("(block_id=%d)alpha = %f+i%f\n", block_id, creal_PRECISION(alpha), cimag_PRECISION(alpha));
   //  // phi += alpha * r
   //  vector_PRECISION_saxpy( lphi, lphi, r, alpha, start, end, l );
-  //  // r -= alpha * Dr
-  //  vector_PRECISION_saxpy( r, r, Dr, -alpha, start, end, l );
+    // r -= alpha * Dr
+    //vector_PRECISION_saxpy( r, r, Dr, -alpha, start, end, l );
+
+    //vector_PRECISION_saxpy( r, r, Dr, 1.0 + 3.0*I, start, end, l );
+
+    vector_PRECISION_plus( r, r, Dr, start, end, l );
+
   }
-  
-  if ( latest_iter != NULL ) vector_PRECISION_copy( latest_iter, lphi, start, end, l );
-  if ( phi != NULL ) vector_PRECISION_plus( phi, phi, lphi, start, end, l );
+
+  //if ( latest_iter != NULL ) vector_PRECISION_copy( latest_iter, lphi, start, end, l );
+  //if ( phi != NULL ) vector_PRECISION_plus( phi, phi, lphi, start, end, l );
   vector_PRECISION_copy( eta, r, start, end, l );
 
   END_UNTHREADED_FUNCTION(threading)
