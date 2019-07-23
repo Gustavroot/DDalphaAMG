@@ -2470,9 +2470,18 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
         i=0;
         do_block_solve_at_cpu=0;
         //int nr_DD_blocks_to_compute = (nb_thread_end-nb_thread_start);
+        //int DD_chunk = s->nr_DD_blocks_notin_comms[color], DD_tot_round = (s->nr_DD_blocks_notin_comms[color] - s->nr_DD_blocks_notin_comms[color]%DD_chunk), DD_chunk_rest = s->nr_DD_blocks_notin_comms[color]%DD_chunk;
+        //for( i=0; i<s->nr_DD_blocks_notin_comms[color]; i+=DD_chunk ){
+          //printf("DD_chunk=%d, DD_tot_round=%d, DD_chunk_rest=%d, s->nr_DD_blocks_notin_comms[color]=%d, actual_nr=%d, i=%d\n", DD_chunk, DD_tot_round, DD_chunk_rest, s->nr_DD_blocks_notin_comms[color], (i==DD_tot_round)?DD_chunk_rest:DD_chunk, i);
+        //  cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_dev, (cuda_vector_PRECISION)r_dev, (cuda_vector_PRECISION)latest_iter_dev,
+        //                                      0, (i==DD_tot_round)?DD_chunk_rest:DD_chunk, s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu, color,
+        //                                      (s->cu_s).DD_blocks_notin_comms[color]+i, s->DD_blocks_notin_comms[color]+i );
+        //}
+
         cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_dev, (cuda_vector_PRECISION)r_dev, (cuda_vector_PRECISION)latest_iter_dev,
                                             0, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu, color,
                                             (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+
       }
       else{
         // block_solve on GPU
@@ -2483,6 +2492,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
           }
         }
       }
+      //exit(1);
       cuda_safe_call( cudaEventRecord(stop_event_comp, streams_schwarz[0]) );
       cuda_safe_call( cudaEventSynchronize(stop_event_comp) );
       gettimeofday(&end, NULL);
@@ -2544,9 +2554,12 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
       printf("Time (in us) for block solve @ CPU (according to gettimeofday): %ld\n",
              (end_us-start_us));
 
+      printf("\n");
 
       int comp_bool1, comp_bool2;
-      float comp_tol = 1.0e-4;
+      float comp_tol = 1.0e-2;
+
+      printf("Diff of output spinors (GPU vs CPU, down to %.1e): \n\n", comp_tol);
 
       //printf("\n\n");
       for ( i=nb_thread_start; i<nb_thread_end; i++ ) {
