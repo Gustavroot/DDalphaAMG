@@ -2833,6 +2833,325 @@ extern "C" void cuda_block_PRECISION_boundary_op( cuda_vector_PRECISION eta, cud
 //************************************************************************************************************
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//************************************************************************************************************
+
+__forceinline__ __device__ void _cuda_n_block_PRECISION_boundary_op_plus_naive(cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int block_id, schwarz_PRECISION_struct_on_gpu *s, int idx, cu_cmplx_PRECISION *buf, int ext_dir, block_struct* block){
+
+  int dir, i, loc_ind=idx%6, spin, w, *gamma_coo, idx_in_cublock = idx%blockDim.x, index, neighbor_index, *bbl = s->block_boundary_length;
+  cu_cmplx_PRECISION *gamma_val;
+
+  cu_cmplx_PRECISION *buf1, *buf2;
+  buf += (idx_in_cublock/6)*12;
+  buf1 = buf;
+  buf2 = buf + 6;
+
+  //TODO: implement a dynamic way of loading s->op.D into __shared__
+
+  //cu_config_PRECISION* D = s->op.D + (start/12)*36;
+  cu_config_PRECISION* D = s->op.D;
+  cu_config_PRECISION* D_pt;
+
+  cu_cmplx_PRECISION *eta_pt, *phi_pt; //eta and phi are already shifted by 'start'
+
+  // TODO: is there a reason for this not to be integrated with extra_dir ?
+  dir = ext_dir;
+
+  i = idx/6;
+  i *= 2;
+  i += bbl[ 2*ext_dir ];
+
+  index = block[block_id].bt_on_gpu[i];
+  neighbor_index = block[block_id].bt_on_gpu[i+1];
+
+  if( block_id==619 && loc_ind==0 ){
+    //printf("(block_id=%d) index=%d, neighbor_index=%d, idx=%d, i=%d, ext_dir=%d, bbl[ 2*ext_dir ]=%d\n", block_id, index, neighbor_index, idx, i, ext_dir, bbl[ 2*ext_dir ]);
+  }
+
+  D_pt = D + 36*index + 9*ext_dir;
+
+  phi_pt = phi + 12*neighbor_index;
+  eta_pt = eta + 12*index;
+
+  spin = (loc_ind/3)*2;
+  //with this setup, gamma_val[0] gives spins 0 and 1, and gamma_val[1] spins 2 and 3
+  gamma_val = s->gamma_info_vals + dir*4 + spin;
+  gamma_coo = s->gamma_info_coo  + dir*4 + spin;
+
+  // prp_T_PRECISION(...)
+  buf1[ loc_ind ] = cu_csub_PRECISION( phi_pt[ loc_ind ], cu_cmul_PRECISION( gamma_val[0], phi_pt[ 3*gamma_coo[0] + loc_ind%3 ] ) );
+
+  __syncthreads();
+
+  // nmvm_PRECISION(...), twice
+  buf2[ loc_ind ] = make_cu_cmplx_PRECISION(0.0,0.0);
+  for( w=0; w<3; w++ ){
+    //buf2[ loc_ind ] = cu_cadd_PRECISION( buf2[ loc_ind ], cu_cmul_PRECISION( D_pt[ (loc_ind*3)%9 + w ], buf1[ (loc_ind/3)*3 + w ] ) );
+    buf2[ loc_ind ] = cu_csub_PRECISION( buf2[ loc_ind ], cu_cmul_PRECISION( D_pt[ (loc_ind*3)%9 + w ], buf1[ (loc_ind/3)*3 + w ] ) );
+  }
+
+  __syncthreads();
+
+  //pbp_su3_T_PRECISION( buf2, eta_pt );
+  eta_pt[ loc_ind ] = cu_csub_PRECISION( eta_pt[ loc_ind ], buf2[ loc_ind ] );
+  eta_pt[ 6 + loc_ind ] = cu_cadd_PRECISION( eta_pt[ 6 + loc_ind ], cu_cmul_PRECISION( gamma_val[1], buf2[ 3*gamma_coo[1] + loc_ind%3 ] ) );
+}
+
+
+
+
+
+
+
+__global__ void cuda_n_block_PRECISION_boundary_op_plus_naive( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
+                                                               schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
+                                                               int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                               int num_latt_site_var, block_struct* block, int ext_dir ){
+
+  int idx;
+  idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  //int DD_block_id, block_id, start;
+  int DD_block_id, block_id;
+
+  // not really a DD block id, but rather a linear counting of a grouping (per DD block) of CUDA threads
+  DD_block_id = idx/nr_threads_per_DD_block;
+
+  // offsetting idx to make it zero at the beginning of the threads living within a DD block
+  idx = idx%nr_threads_per_DD_block;
+
+  // this int will be the ACTUAL DD block ID, in the sense of accessing data from e.g. block_struct* block
+  block_id = DD_blocks_to_compute[DD_block_id];
+
+  extern __shared__ cu_cmplx_PRECISION shared_data[];
+
+  // a part of shared_memory is dedicated to even sites, the rest to odd sites
+  cu_cmplx_PRECISION *shared_data_loc = shared_data;
+  cu_cmplx_PRECISION *tmp_loc;
+
+  //the following are 'bare' values, i.e. with respect to the 0th element within a CUDA block
+  // EVEN
+  tmp_loc = shared_data_loc;
+
+  _cuda_n_block_PRECISION_boundary_op_plus_naive(out, in, block_id, s, idx, tmp_loc, ext_dir, block);
+
+}
+
+
+
+__forceinline__ __device__ void _cuda_n_block_PRECISION_boundary_op_minus_naive(cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int block_id, schwarz_PRECISION_struct_on_gpu *s, int idx, cu_cmplx_PRECISION *buf, int ext_dir, block_struct* block){
+
+  int dir, i, loc_ind=idx%6, spin, w, *gamma_coo, idx_in_cublock = idx%blockDim.x, index, neighbor_index, *bbl = s->block_boundary_length;
+  cu_cmplx_PRECISION *gamma_val;
+
+  cu_cmplx_PRECISION *buf1, *buf2;
+  buf += (idx_in_cublock/6)*12;
+  buf1 = buf;
+  buf2 = buf + 6;
+
+  //TODO: implement a dynamic way of loading s->op.D into __shared__
+
+  //cu_config_PRECISION* D = s->op.D + (start/12)*36;
+  cu_config_PRECISION* D = s->op.D;
+  cu_config_PRECISION* D_pt;
+
+  cu_cmplx_PRECISION *eta_pt, *phi_pt; //eta and phi are already shifted by 'start'
+
+  // TODO: is there a reason for this not to be integrated with extra_dir ?
+  dir = ext_dir;
+
+  i = idx/6;
+  i *= 2;
+  i += bbl[ 2*ext_dir + 1 ];
+
+  index = block[block_id].bt_on_gpu[i];
+  neighbor_index = block[block_id].bt_on_gpu[i+1];
+
+  if( block_id==619 && loc_ind==0 ){
+    //printf("(block_id=%d) index=%d, neighbor_index=%d, idx=%d, i=%d, ext_dir=%d, bbl[ 2*ext_dir ]=%d\n", block_id, index, neighbor_index, idx, i, ext_dir, bbl[ 2*ext_dir ]);
+  }
+
+  D_pt = D + 36*neighbor_index + 9*ext_dir;
+
+  phi_pt = phi + 12*neighbor_index;
+  eta_pt = eta + 12*index;
+
+  spin = (loc_ind/3)*2;
+  //with this setup, gamma_val[0] gives spins 0 and 1, and gamma_val[1] spins 2 and 3
+  gamma_val = s->gamma_info_vals + dir*4 + spin;
+  gamma_coo = s->gamma_info_coo  + dir*4 + spin;
+
+  // prn_T_PRECISION(...)
+  buf1[ loc_ind ] = cu_cadd_PRECISION( phi_pt[ loc_ind ], cu_cmul_PRECISION( gamma_val[0], phi_pt[ 3*gamma_coo[0] + loc_ind%3 ] ) );
+
+  __syncthreads();
+
+  // nmvmh_PRECISION(...), twice
+  buf2[ loc_ind ] = make_cu_cmplx_PRECISION(0.0,0.0);
+  for( w=0; w<3; w++ ){
+    //buf2[ loc_ind ] = cu_cadd_PRECISION( buf2[ loc_ind ], cu_cmul_PRECISION( cu_conj_PRECISION(D_pt[ loc_ind%3 + w*3 ]), buf1[ (loc_ind/3)*3 + w ] ) );
+    buf2[ loc_ind ] = cu_csub_PRECISION( buf2[ loc_ind ], cu_cmul_PRECISION( cu_conj_PRECISION(D_pt[ loc_ind%3 + w*3 ]), buf1[ (loc_ind/3)*3 + w ] ) );
+  }
+
+  __syncthreads();
+
+  //pbn_su3_T_PRECISION( buf2, eta_pt );
+  eta_pt[ loc_ind ] = cu_csub_PRECISION( eta_pt[ loc_ind ], buf2[ loc_ind ] );
+  eta_pt[ 6 + loc_ind ] = cu_csub_PRECISION( eta_pt[ 6 + loc_ind ], cu_cmul_PRECISION( gamma_val[1], buf2[ 3*gamma_coo[1] + loc_ind%3 ] ) );
+}
+
+
+
+__global__ void cuda_n_block_PRECISION_boundary_op_minus_naive( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
+                                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
+                                                                int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                int num_latt_site_var, block_struct* block, int ext_dir ){
+
+  int idx;
+  idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  //int DD_block_id, block_id, start;
+  int DD_block_id, block_id;
+
+  // not really a DD block id, but rather a linear counting of a grouping (per DD block) of CUDA threads
+  DD_block_id = idx/nr_threads_per_DD_block;
+
+  // offsetting idx to make it zero at the beginning of the threads living within a DD block
+  idx = idx%nr_threads_per_DD_block;
+
+  // this int will be the ACTUAL DD block ID, in the sense of accessing data from e.g. block_struct* block
+  block_id = DD_blocks_to_compute[DD_block_id];
+
+  extern __shared__ cu_cmplx_PRECISION shared_data[];
+
+  // a part of shared_memory is dedicated to even sites, the rest to odd sites
+  cu_cmplx_PRECISION *shared_data_loc = shared_data;
+  cu_cmplx_PRECISION *tmp_loc;
+
+  //the following are 'bare' values, i.e. with respect to the 0th element within a CUDA block
+  // EVEN
+  tmp_loc = shared_data_loc;
+
+  _cuda_n_block_PRECISION_boundary_op_minus_naive(out, in, block_id, s, idx, tmp_loc, ext_dir, block);
+
+}
+
+
+
+
+extern "C" void cuda_n_block_PRECISION_boundary_op( cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
+                                                    int nr_DD_blocks_to_compute, schwarz_PRECISION_struct *s, level_struct *l,
+                                                    struct Thread *threading, int stream_id, cudaStream_t *streams, int color,
+                                                    int* DD_blocks_to_compute_gpu, int* DD_blocks_to_compute_cpu ) {
+
+  int dir, nr_threads, nr_threads_per_DD_block, threads_per_cublock, tot_shared_mem;
+
+  threads_per_cublock = 96;
+  tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) + 16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
+
+  for( dir=0; dir<4; dir++ ){
+
+    //printf("s->num_boundary_sites[%d] = %d\n", dir, s->num_boundary_sites[dir*2]);
+
+    //printf("index[619][516]=%d, neighbor_index[619][516]=%d\n", s->block[619].bt[516], s->block[619].bt[517]);
+
+    // both directions (+ and -) are independent of each other... <<NOT AS IN THE HOPPING TERM>>
+    //nr_threads = s->num_boundary_sites[dir*2] + s->num_boundary_sites[dir*2+1];
+    nr_threads = s->num_boundary_sites[dir*2];
+    nr_threads = nr_threads*(12/2);
+    nr_threads = nr_threads*nr_DD_blocks_to_compute;
+    nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
+
+    cuda_n_block_PRECISION_boundary_op_plus_naive<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+                                                 (eta, phi, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, \
+                                                 l->num_lattice_site_var, (s->cu_s).block, dir);
+
+    cuda_n_block_PRECISION_boundary_op_minus_naive<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>> \
+                                                  (eta, phi, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute_gpu, \
+                                                  l->num_lattice_site_var, (s->cu_s).block, dir);
+
+    //cuda_safe_call( cudaDeviceSynchronize() );
+  }
+
+  //printf("s->dir_length_odd[0] = %d\n", s->dir_length_odd[0]);
+
+}
+
+
+
+//************************************************************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 extern "C" void cuda_vector_PRECISION_minus( cuda_vector_PRECISION out, cuda_vector_PRECISION in1, cuda_vector_PRECISION in2,
                                              int nr_DD_blocks_to_compute, schwarz_PRECISION_struct *s, level_struct *l,
                                              struct Thread *threading, int stream_id, cudaStream_t *streams, int color,

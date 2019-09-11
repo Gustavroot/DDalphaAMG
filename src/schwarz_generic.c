@@ -2589,11 +2589,14 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
                                           0, streams_schwarz, color,
                                           (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
 
-
         cuda_vector_PRECISION_minus( x_dev, eta_dev, Dphi_dev, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 
                                      0, streams_schwarz, color,
                                      (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
 
+        //n_boundary_op( x_buff, eta, i, s, l );
+        cuda_n_block_PRECISION_boundary_op( x_dev, eta_dev, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 
+                                            0, streams_schwarz, color,
+                                            (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
 
         cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_dev, (cuda_vector_PRECISION)r_dev, (cuda_vector_PRECISION)latest_iter_dev,
                                             0, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu, color,
@@ -2669,7 +2672,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
                                         s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );
 
               //} else {
-                //n_boundary_op( x_buff, r_buff, i, s, l );
+                n_boundary_op( x_buff, eta, i, s, l );
               //}
             //}
 
