@@ -222,6 +222,9 @@
 
   typedef struct block_struct {
     int start, color, no_comm, *bt;
+#ifdef CUDA_OPT
+    int *bt_on_gpu;
+#endif
   } block_struct;
 
   // CUDA typedefs
@@ -249,6 +252,10 @@
           cuCmulf(c_nr1, c_nr2)
   #define cu_cmul_double(c_nr1, c_nr2) \
           cuCmul(c_nr1, c_nr2)
+  #define cu_cdiv_float(c_nr1, c_nr2) \
+          cuCdivf(c_nr1, c_nr2)
+  #define cu_cdiv_double(c_nr1, c_nr2) \
+          cuCdiv(c_nr1, c_nr2)
   #define cu_csub_float(c_nr1, c_nr2) \
           cuCsubf(c_nr1, c_nr2)
   #define cu_csub_double(c_nr1, c_nr2) \

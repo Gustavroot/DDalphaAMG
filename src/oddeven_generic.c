@@ -1324,10 +1324,7 @@ void apply_block_schur_complement_PRECISION( vector_PRECISION out, vector_PRECIS
   vector_PRECISION_define( tmp[0], 0, start + 12*s->num_block_even_sites, start + s->block_vector_size, l );
   END_LOCKED_MASTER(threading)
 
-  // TODO: remove the following hopping computation
-  block_n_hopping_term_PRECISION( tmp[0], in, start, _ODD_SITES, s, l, threading );
-
-  //block_hopping_term_PRECISION( tmp[0], in, start, _ODD_SITES, s, l, threading );
+  block_hopping_term_PRECISION( tmp[0], in, start, _ODD_SITES, s, l, threading );
   block_diag_oo_inv_PRECISION( tmp[1], tmp[0], start, s, l, threading );
   block_n_hopping_term_PRECISION( out, tmp[1], start, _EVEN_SITES, s, l, threading );
 }
@@ -1345,12 +1342,12 @@ void block_solve_oddeven_PRECISION( vector_PRECISION phi, vector_PRECISION r, ve
   vector_PRECISION_copy( tmp[3], r, start, end, l );
   
   block_diag_oo_inv_PRECISION( tmp[2], tmp[3], start, s, l, no_threading );
-  //block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _EVEN_SITES, s, l, no_threading );
+  block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _EVEN_SITES, s, l, no_threading );
   
   local_minres_PRECISION( NULL, tmp[3], tmp[2], start, s, l, no_threading );
   
   // even to odd
-  //block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _ODD_SITES, s, l, no_threading );
+  block_n_hopping_term_PRECISION( tmp[3], tmp[2], start, _ODD_SITES, s, l, no_threading );
   block_diag_oo_inv_PRECISION( tmp[2], tmp[3], start, s, l, no_threading );
   
   // update phi, latest_iter

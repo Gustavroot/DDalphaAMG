@@ -105,6 +105,7 @@ typedef struct {
     int block_vector_size;
     int *oe_index[4];
     int dir_length_even[4], dir_length_odd[4];
+    int block_boundary_length[9];
     cu_cmplx_PRECISION gamma_info_vals[16];
     int gamma_info_coo[16];
   } schwarz_PRECISION_struct_on_gpu;
@@ -128,6 +129,9 @@ typedef struct {
 
     schwarz_PRECISION_struct_on_gpu s_on_gpu_cpubuff;
     schwarz_PRECISION_struct_on_gpu *s_on_gpu;
+
+    int tot_num_boundary_work;
+    int num_boundary_sites[8];
 
     int *nr_DD_blocks_in_comms, *nr_DD_blocks_notin_comms;
     int **DD_blocks_in_comms, **DD_blocks_notin_comms;

@@ -56,7 +56,7 @@ void block_d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, 
 #endif
     }
   }
-  
+
 #ifdef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
   for ( int mu=0; mu<4; mu++ ) {
     block_oddeven_plus_coupling_PRECISION( (PRECISION*)leta, Dplus, (PRECISION*)lphi, mu, 0, length[mu], index[mu], neighbor );

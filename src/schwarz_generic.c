@@ -203,9 +203,10 @@ void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
   }
 
 #ifdef CUDA_OPT
-  MALLOC( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
-#else
+  // using pinned memory
   cuda_safe_call( cudaMallocHost( (void**)&(s->buf1), (vs+3*l->schwarz_vector_size)*sizeof(complex_PRECISION) ) );
+#else
+  MALLOC( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
 #endif
   s->buf2 = s->buf1 + vs;
   s->buf3 = s->buf2 + l->schwarz_vector_size;
@@ -1365,7 +1366,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   s->DD_blocks_in_comms = (int**) malloc( s->num_colors*sizeof(int*) );
   s->DD_blocks_notin_comms = (int**) malloc( s->num_colors*sizeof(int*) );
 
-  printf("s->num_colors = %d\n", s->num_colors);
+  //printf("s->num_colors = %d\n", s->num_colors);
 
   for(color=0; color<s->num_colors; color++){
     s->nr_DD_blocks_notin_comms[color] = 0;
@@ -1415,8 +1416,45 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     cuda_safe_call( cudaMemcpy((s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color], s->nr_DD_blocks_notin_comms[color]*sizeof(int), cudaMemcpyHostToDevice) );
   }
 
+
+
+
+
+
+
+
+  //s->block_boundary_length[8] = n;
+
+  int *block_arr_buff;
+
+  cuda_safe_call( cudaMalloc( (void**) (&( block_arr_buff )), s->block_boundary_length[8] * s->num_blocks * sizeof(int) ) );
+
+  for ( i=0; i<s->num_blocks; i++ ) {
+    s->block[i].bt_on_gpu = block_arr_buff + i * s->block_boundary_length[8];
+  }
+
+  //printf("s->block_boundary_length[8]=%d\n", s->block_boundary_length[8]);
+
+  //MALLOC( s->block[i].bt_on_gpu, int, s->block_boundary_length[8] * s->num_blocks );
+
   cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).block )), s->num_blocks*sizeof(block_struct) ) );
   cuda_safe_call( cudaMemcpy((s->cu_s).block, s->block, s->num_blocks*sizeof(block_struct), cudaMemcpyHostToDevice) );
+
+  for ( i=0; i<s->num_blocks; i++ ) {
+    //s->block[i].bt_on_gpu = block_arr_buff + i * s->block_boundary_length[8];
+    cuda_safe_call( cudaMemcpy( s->block[i].bt_on_gpu, s->block[i].bt, s->block_boundary_length[8] * sizeof(int), cudaMemcpyHostToDevice ) );
+  }
+
+
+  for( i=0; i<9; i++ ){
+    (s->s_on_gpu_cpubuff).block_boundary_length[i] = s->block_boundary_length[i];
+    //(s->s_on_gpu_cpubuff).dir_length_odd[i] = s->dir_length_odd[i];
+  }
+
+
+
+
+
 
   // CRITICAL DATA MOVEMENT: copying op.oe_clover_vectorized to the GPU
   //-------------------------------------------------------------------------------------------------------------------------
@@ -1529,7 +1567,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   // making use of Doo^-1 (i.e. buf_D_oe_cpu_bare) being Hermitian to store in reduced form
   // IMPORTANT: this matrix is stored in column-form
 
-  cu_cmplx_PRECISION *buf_D_oe_cpu_gpustorg, *buf_D_oe_gpu_gpustorg, *buf_D_oe_cpu_gpustorg_bare;
+  cu_cmplx_PRECISION *buf_D_oe_cpu_gpustorg=0, *buf_D_oe_gpu_gpustorg=0, *buf_D_oe_cpu_gpustorg_bare=0;
 
   if(g.csw != 0){
     buf_D_oe_cpu_gpustorg = (cu_cmplx_PRECISION*) malloc( 42 * nr_DD_sites*in->num_blocks * sizeof(cu_cmplx_PRECISION) );
@@ -1625,6 +1663,8 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   else{
     // TODO !
     //cuda_safe_call( cudaMemcpy(buf_D_oe_gpu, buf_D_oe_cpu_bare, 12*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
+    buf_D_oe_gpu_gpustorg = NULL;
+    buf_D_oe_cpu_gpustorg_bare = NULL;
   }
 
   free(buf_D_oe_cpu_bare);
@@ -1654,9 +1694,11 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     coupling_site_size = 4*9;
   } else {
     coupling_site_size = 4*l->num_lattice_site_var*l->num_lattice_site_var;
-  }  
+  }
+
   nls = (type==_ORDINARY)?l->num_inner_lattice_sites:2*l->num_lattice_sites-l->num_inner_lattice_sites;
   nr_elems_D = coupling_site_size*nls;
+
   cuda_safe_call( cudaMalloc( (void**) &( (s->s_on_gpu_cpubuff).op.D ), nr_elems_D*sizeof(cu_config_PRECISION) ) );
   cuda_safe_call( cudaMemcpy((s->s_on_gpu_cpubuff).op.D, (cu_config_PRECISION*)(s->op.D), nr_elems_D*sizeof(cu_config_PRECISION), cudaMemcpyHostToDevice) );
 
@@ -1711,6 +1753,47 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   (s->s_on_gpu_cpubuff).num_block_even_sites = s->num_block_even_sites;
   (s->s_on_gpu_cpubuff).num_block_odd_sites = s->num_block_odd_sites;
   (s->s_on_gpu_cpubuff).block_vector_size = s->block_vector_size;
+
+  // The following variable is an indirect indication of the necessary work
+  // over boundaries
+  int *bbl = s->block_boundary_length;
+  s->tot_num_boundary_work = 0;
+  for( dir=0; dir<4; dir++ ){
+
+    // +
+
+    s->num_boundary_sites[dir*2] = (bbl[2*dir+1] - bbl[2*dir])/2;
+    s->tot_num_boundary_work += s->num_boundary_sites[dir*2];
+
+    // -
+
+    s->num_boundary_sites[dir*2+1] = (bbl[2*dir+2] - bbl[2*dir+1])/2;
+    s->tot_num_boundary_work += s->num_boundary_sites[dir*2+1];
+
+  }
+
+  /*
+
+  // computing the nr of boundary sites, in general (for D=4)
+  s->tot_num_boundary_sites = 0;
+
+  // 1. corners: (D-4)-dimensional objects, amount: 2^D = 2^4, neighbors: D
+  s->tot_num_boundary_sites += 16;
+  nr_bound_neighbors[0] = 4;
+
+  // 2. edges: (D-3)-dimensional objects of length 2^1, amount: 32, neighbors: (D-1)
+  s->tot_num_boundary_sites += 32*2;
+  nr_bound_neighbors[0] = 3;
+
+  // 3. faces: (D-2)-dimensional objects of length 2^2, amount: 24, neighbors: (D-2)
+  s->tot_num_boundary_sites += 24*4;
+  nr_bound_neighbors[0] = 2;
+
+  // 4. sides: (D-1)-dimensional objects of length 2^3, amount: 8, neighbors: (D-2)
+  s->tot_num_boundary_sites += 8*8;
+  nr_bound_neighbors[0] = 1;
+
+  */
 
   // After all the allocations and definitions associated to s->s_on_gpu_cpubuff, it's time to move to the GPU
   cuda_safe_call( cudaMemcpy(s->s_on_gpu, &(s->s_on_gpu_cpubuff), 1*sizeof(schwarz_PRECISION_struct_on_gpu), cudaMemcpyHostToDevice) );
@@ -2295,7 +2378,7 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
 
 
 // TODO: the following function does the same as schwarz_PRECISION(...), so we can merge them (can we?). For now,
-//       work on it as a separate function, and later on unify them
+//       work on it as a separate function, and later on unifying them
 
 #ifdef CUDA_OPT
 void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res,
@@ -2314,7 +2397,8 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
   cuda_vector_PRECISION r_dev = (s->cu_s).buf1,
                         x_dev = (s->cu_s).buf3,
-                        latest_iter_dev = (s->cu_s).buf2;
+                        latest_iter_dev = (s->cu_s).buf2,
+                        Dphi_dev = (s->cu_s).buf4;
 
   SYNC_CORES(threading)
 
@@ -2358,12 +2442,15 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   // TODO: temporary variable, eliminate !
   int do_block_solve_at_cpu;
 
+  vector_PRECISION r_buff=NULL, x_buff=NULL, latest_iter_buff=NULL, Dphi_buff=NULL;
+
   // TODO: remove these allocations... they are just for comparing GPU vs CPU results !
   int vs = (l->depth==0)?l->inner_vector_size:l->vector_size;
-  vector_PRECISION r_buff=NULL, x_buff=NULL, latest_iter_buff=NULL;
-  MALLOC( r_buff, complex_PRECISION, vs+2*l->schwarz_vector_size );
+  MALLOC( r_buff, complex_PRECISION, vs+3*l->schwarz_vector_size );
   latest_iter_buff = r_buff + vs;
   x_buff = latest_iter_buff + l->schwarz_vector_size;
+  Dphi_buff = x_buff + l->schwarz_vector_size;
+
   if ( res == _NO_RES ) {
     vector_PRECISION_copy( r_buff, eta, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l );
     vector_PRECISION_define( x_buff, 0, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l );
@@ -2377,6 +2464,19 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   END_MASTER(threading)
   SYNC_CORES(threading)
 
+  // TODO: remove the following code assigning a constant to x and latest_iter
+  START_MASTER(threading)
+  vector_PRECISION_define( x_buff, 1.7, l->inner_vector_size, l->schwarz_vector_size, l );
+  vector_PRECISION_define( eta, 2.4, l->inner_vector_size, l->schwarz_vector_size, l );
+  END_MASTER(threading)
+  SYNC_CORES(threading)
+
+  // TODO: the following allocation and copying of eta_dev has to be moved further outside,
+  //       even to the point of being done right before calling the whole schwarz_PRECISION_CUDA(...)
+  cuda_vector_PRECISION eta_dev;
+  cuda_safe_call( cudaMallocHost( (void**)&(eta_dev), (nb_thread_end*s->block_vector_size - nb_thread_start*s->block_vector_size) * sizeof(complex_PRECISION) ) );
+  cuda_vector_PRECISION_copy((void*)eta_dev, (void*)eta, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+
   // TODO: remove !
   printf("\x1B[0m\n");
 
@@ -2384,7 +2484,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
     for ( color=0; color<s->num_colors; color++ ) {
 
-      // Start whole iteration
+      // Start whole iteration --> TODO: remove?
       //cuda_safe_call( cudaEventRecord(start_event, 0) );
 
       if ( res == _RES ) {
@@ -2447,6 +2547,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
           cuda_vector_PRECISION_copy((void*)x_dev, (void*)x, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
           cuda_vector_PRECISION_copy((void*)r_dev, (void*)r, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
           cuda_vector_PRECISION_copy((void*)latest_iter_dev, (void*)latest_iter, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+          cuda_vector_PRECISION_copy((void*)Dphi_dev, (void*)Dphi, s->block[i].start*l->num_lattice_site_var, s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
         }
       }
       cuda_safe_call( cudaEventRecord(stop_event_copy, streams_schwarz[0]) );
@@ -2461,6 +2562,8 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
       // TODO: remove eventually...
       cuda_safe_call( cudaDeviceSynchronize() );
+
+      printf("GPU ---> nr of DD blocks: %d\n", s->nr_DD_blocks_notin_comms[color]);
 
       gettimeofday(&start, NULL);
       cuda_safe_call( cudaEventRecord(start_event_comp, streams_schwarz[0]) );
@@ -2477,6 +2580,20 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
         //                                      0, (i==DD_tot_round)?DD_chunk_rest:DD_chunk, s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu, color,
         //                                      (s->cu_s).DD_blocks_notin_comms[color]+i, s->DD_blocks_notin_comms[color]+i );
         //}
+
+        cuda_vector_PRECISION_minus( Dphi_dev, x_dev, x_dev, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 
+                                     0, streams_schwarz, color,
+                                     (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+
+        cuda_block_PRECISION_boundary_op( Dphi_dev, eta_dev, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 
+                                          0, streams_schwarz, color,
+                                          (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+
+
+        cuda_vector_PRECISION_minus( x_dev, eta_dev, Dphi_dev, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 
+                                     0, streams_schwarz, color,
+                                     (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+
 
         cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_dev, (cuda_vector_PRECISION)r_dev, (cuda_vector_PRECISION)latest_iter_dev,
                                             0, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu, color,
@@ -2498,6 +2615,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
       gettimeofday(&end, NULL);
       start_us = start.tv_sec * (int)1e6 + start.tv_usec;
       end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+
       printf("\nTime (in us) for block solve @ GPU (according to gettimeofday, contains CUDA Events records): %ld\n",
              (end_us-start_us));
       cuda_safe_call( cudaEventElapsedTime(&time_x_comp, start_event_comp, stop_event_comp) );
@@ -2533,14 +2651,34 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
       gettimeofday(&start, NULL);
       // block_solve on CPU
+      int h=0;
       for ( i=nb_thread_start; i<nb_thread_end; i++ ) {
         // for all blocks of current color NOT involved in communication
         if ( color == s->block[i].color && s->block[i].no_comm ) {
           do_block_solve_at_cpu=1;
           if( l->depth==0&&g.odd_even ){
+
+            //if ( res == _RES ) {
+              //if ( k==0 && init_res == _RES ) {
+                //block_op( Dphi_buff, x_buff, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
+
+                vector_PRECISION_minus( Dphi_buff, x_buff, x_buff, s->block[i].start*l->num_lattice_site_var,
+                                        s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );
+                boundary_op( Dphi_buff, eta, i, s, l, no_threading );
+                vector_PRECISION_minus( x_buff, eta, Dphi_buff, s->block[i].start*l->num_lattice_site_var,
+                                        s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );
+
+              //} else {
+                //n_boundary_op( x_buff, r_buff, i, s, l );
+              //}
+            //}
+
+            //printf("tot_num_boundary_work = %d \n", s->tot_num_boundary_work);
+
             cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_buff, (cuda_vector_PRECISION)r_buff, (cuda_vector_PRECISION)latest_iter_buff,
                                                 s->block[i].start*l->num_lattice_site_var, 1, s, l, no_threading, 0, streams_schwarz, do_block_solve_at_cpu, color,
                                                 s->DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+            h++;
           } else {
             local_minres_PRECISION( x_buff, r_buff, latest_iter_buff, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
           }
@@ -2550,6 +2688,9 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
       gettimeofday(&end, NULL);
       start_us = start.tv_sec * (int)1e6 + start.tv_usec;
       end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+
+      printf("CPU ---> nr of DD blocks: %d\n", h);
+
       printf("\nIMPORTANT TO NOTE: the time displayed here for block_solve might be lower than usual, due to pre-cached data...\n");
       printf("Time (in us) for block solve @ CPU (according to gettimeofday): %ld\n",
              (end_us-start_us));
