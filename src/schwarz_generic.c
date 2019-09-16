@@ -1675,6 +1675,26 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   out->op.oe_clover_gpustorg = buf_D_oe_gpu_gpustorg;
   //-------------------------------------------------------------------------------------------------------------------------
 
+
+
+
+
+  //-------------------------------------------------------------------------------------------------------------------------
+
+  int n=l->num_inner_lattice_sites;
+
+  // TODO: consider here csw !
+
+  cuda_safe_call( cudaMalloc( (void**) &(out->op.clover_gpustorg), 42 * sizeof(cu_cmplx_PRECISION) * n ) );
+  cuda_safe_call( cudaMemcpy( out->op.clover_gpustorg, s->op.clover, 42 * sizeof(cu_cmplx_PRECISION) * n, cudaMemcpyHostToDevice ) );
+
+  //-------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
   int dir, nr_oe_elems_hopp;
   for( dir=0; dir<4; dir++ ){
     (s->s_on_gpu_cpubuff).dir_length_even[dir] = s->dir_length_even[dir];
@@ -1684,6 +1704,17 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     nr_oe_elems_hopp = s->dir_length_even[dir] + s->dir_length_odd[dir];
     cuda_safe_call( cudaMalloc( (void**)&( (s->s_on_gpu_cpubuff).oe_index[dir] ), nr_oe_elems_hopp*sizeof(int) ) );
     cuda_safe_call( cudaMemcpy( (s->s_on_gpu_cpubuff).oe_index[dir], s->oe_index[dir], nr_oe_elems_hopp*sizeof(int), cudaMemcpyHostToDevice ) );
+  }
+
+  int nr_elems_block_d_plus;
+  for( dir=0; dir<4; dir++ ){
+    (s->s_on_gpu_cpubuff).dir_length[dir] = s->dir_length[dir];
+    (s->s_on_gpu_cpubuff).dir_length[dir] = s->dir_length[dir];
+  }
+  for( dir=0; dir<4; dir++ ){
+    nr_elems_block_d_plus = s->dir_length[dir];
+    cuda_safe_call( cudaMalloc( (void**)&( (s->s_on_gpu_cpubuff).index[dir] ), nr_elems_block_d_plus*sizeof(int) ) );
+    cuda_safe_call( cudaMemcpy( (s->s_on_gpu_cpubuff).index[dir], s->index[dir], nr_elems_block_d_plus*sizeof(int), cudaMemcpyHostToDevice ) );
   }
 
   cuda_safe_call( cudaMalloc( (void**)&( (s->s_on_gpu_cpubuff).op.neighbor_table ), (l->depth==0?4:5)*l->num_inner_lattice_sites*sizeof(int) ) );
@@ -2386,6 +2417,8 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
   START_NO_HYPERTHREADS(threading)
 
+  //int cnt;
+
   int color, k, mu, i,  nb = s->num_blocks, init_res = res, j;
   vector_PRECISION r = s->buf1;
   vector_PRECISION Dphi = s->buf4;
@@ -2405,6 +2438,19 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   int nb_thread_start;
   int nb_thread_end;
   compute_core_start_end_custom(0, nb, &nb_thread_start, &nb_thread_end, l, threading, 1);
+
+
+
+  // TODO: remove the following code assigning a constant to x and latest_iter
+  START_MASTER(threading)
+  //vector_PRECISION_define( x_buff, 1.7, l->inner_vector_size, l->schwarz_vector_size, l );
+  //vector_PRECISION_define( eta, 2.4, l->inner_vector_size, l->schwarz_vector_size, l );
+  //vector_PRECISION_define( x_buff, 1.7, 0, l->schwarz_vector_size, l );
+  vector_PRECISION_define( eta, 2.4, 0, l->inner_vector_size, l );
+  END_MASTER(threading)
+  SYNC_CORES(threading)
+
+
 
   if ( res == _NO_RES ) {
     vector_PRECISION_copy( r, eta, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l );
@@ -2430,6 +2476,12 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
   // TODO: generalization to more than one streams pending
   cudaStream_t *streams_schwarz = s->streams;
+
+  // TODO: the following allocation and copying of eta_dev has to be moved further outside,
+  //       even to the point of being done right before calling the whole schwarz_PRECISION_CUDA(...)
+  cuda_vector_PRECISION eta_dev;
+  cuda_safe_call( cudaMallocHost( (void**)&(eta_dev), (nb_thread_end*s->block_vector_size - nb_thread_start*s->block_vector_size) * sizeof(complex_PRECISION) ) );
+  cuda_vector_PRECISION_copy((void*)eta_dev, (void*)eta, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
 
   // TODO: this will be the RIGHT way of moving data from CPU to GPU. No back-and-forth data movements for block_solve
   //       will be needed. Besides this type of transfers, ghost_update_PRECISION(...) will contain more exchanges
@@ -2464,18 +2516,15 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   END_MASTER(threading)
   SYNC_CORES(threading)
 
-  // TODO: remove the following code assigning a constant to x and latest_iter
-  START_MASTER(threading)
-  vector_PRECISION_define( x_buff, 1.7, l->inner_vector_size, l->schwarz_vector_size, l );
-  vector_PRECISION_define( eta, 2.4, l->inner_vector_size, l->schwarz_vector_size, l );
-  END_MASTER(threading)
-  SYNC_CORES(threading)
+  /*
+  printf("l->inner_vector_size = %d\n", l->inner_vector_size);
+  printf("l->schwarz_vector_size = %d\n", l->schwarz_vector_size);
+  printf("l->vector_size = %d\n", l->vector_size);
+  printf("l->num_lattice_sites = %d\n", l->num_lattice_sites);
 
-  // TODO: the following allocation and copying of eta_dev has to be moved further outside,
-  //       even to the point of being done right before calling the whole schwarz_PRECISION_CUDA(...)
-  cuda_vector_PRECISION eta_dev;
-  cuda_safe_call( cudaMallocHost( (void**)&(eta_dev), (nb_thread_end*s->block_vector_size - nb_thread_start*s->block_vector_size) * sizeof(complex_PRECISION) ) );
-  cuda_vector_PRECISION_copy((void*)eta_dev, (void*)eta, nb_thread_start*s->block_vector_size, nb_thread_end*s->block_vector_size, l, _H2D, _CUDA_SYNC, 0, streams_schwarz );
+  MPI_Barrier( MPI_COMM_WORLD );
+  MPI_Abort( MPI_COMM_WORLD, 911 );
+  */
 
   // TODO: remove !
   printf("\x1B[0m\n");
@@ -2581,9 +2630,13 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
         //                                      (s->cu_s).DD_blocks_notin_comms[color]+i, s->DD_blocks_notin_comms[color]+i );
         //}
 
-        cuda_vector_PRECISION_minus( Dphi_dev, x_dev, x_dev, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 
+        cuda_vector_PRECISION_minus( Dphi_dev, x_dev, eta_dev, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 
                                      0, streams_schwarz, color,
                                      (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+
+        cuda_block_d_plus_clover_PRECISION( Dphi_dev, eta_dev, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 
+                                            0, streams_schwarz, color,
+                                            (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
 
         cuda_block_PRECISION_boundary_op( Dphi_dev, eta_dev, s->nr_DD_blocks_notin_comms[color], s, l, no_threading, 
                                           0, streams_schwarz, color,
@@ -2663,11 +2716,38 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
             //if ( res == _RES ) {
               //if ( k==0 && init_res == _RES ) {
-                //block_op( Dphi_buff, x_buff, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
 
-                vector_PRECISION_minus( Dphi_buff, x_buff, x_buff, s->block[i].start*l->num_lattice_site_var,
+                vector_PRECISION_minus( Dphi_buff, x_buff, eta, s->block[i].start*l->num_lattice_site_var,
                                         s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );
+
+                //if( i==621 ){
+                //  for( cnt=0; cnt<12; cnt++ ){
+                //    printf("(block=%d)(site=77) clov[%d] = %f+i%f\n", i, cnt,
+                //                                                      creal_PRECISION( (s->op.clover+(s->block[i].start*l->num_lattice_site_var/12)*42 + 42*77)[cnt] ),
+                //                                                      cimag_PRECISION( (s->op.clover+(s->block[i].start*l->num_lattice_site_var/12)*42 + 42*77)[cnt] ) );
+                //    printf("(block=%d)(site=77) eta[%d] = %f+i%f\n", i, cnt,
+                //                                                     creal_PRECISION( (eta+(s->block[i].start*l->num_lattice_site_var) + 12*77)[cnt] ),
+                //                                                     cimag_PRECISION( (eta+(s->block[i].start*l->num_lattice_site_var) + 12*77)[cnt] ) );
+                //    printf("(block=%d)(site=77) (bef)Dphi_buff[%d] = %f+i%f\n", i, cnt,
+                //                                                     creal_PRECISION( (Dphi_buff+(s->block[i].start*l->num_lattice_site_var) + 12*77)[cnt] ),
+                //                                                     cimag_PRECISION( (Dphi_buff+(s->block[i].start*l->num_lattice_site_var) + 12*77)[cnt] ) );
+                //  }
+                //}
+
+                block_op( Dphi_buff, eta, s->block[i].start*l->num_lattice_site_var, s, l, no_threading );
                 boundary_op( Dphi_buff, eta, i, s, l, no_threading );
+
+
+                //if( i==621 ){
+                //  for( cnt=0; cnt<12; cnt++ ){
+                //    //printf("(block=%d)(site=77) clov[%d] = %f+i%f\n", i, cnt,
+                //    //                                                  creal_PRECISION( (s->op.clover+(s->block[i].start*l->num_lattice_site_var/12)*42 + 42*77)[cnt] ),
+                //    //                                                  cimag_PRECISION( (s->op.clover+(s->block[i].start*l->num_lattice_site_var/12)*42 + 42*77)[cnt] ) );
+                //    printf("(block=%d)(site=77) (aft)Dphi_buff[%d] = %f+i%f\n", i, cnt,
+                //                                                     creal_PRECISION( (Dphi_buff+(s->block[i].start*l->num_lattice_site_var) + 12*77)[cnt] ),
+                //                                                     cimag_PRECISION( (Dphi_buff+(s->block[i].start*l->num_lattice_site_var) + 12*77)[cnt] ) );
+                //  }
+                //}
                 vector_PRECISION_minus( x_buff, eta, Dphi_buff, s->block[i].start*l->num_lattice_site_var,
                                         s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );
 
@@ -2701,7 +2781,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
       printf("\n");
 
       int comp_bool1, comp_bool2;
-      float comp_tol = 1.0e-2;
+      float comp_tol = 1.0e-1;
 
       printf("Diff of output spinors (GPU vs CPU, down to %.1e): \n\n", comp_tol);
 
