@@ -36,15 +36,104 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
   } else if ( g.method == 2 ) {
 #ifdef CUDA_OPT
     if( g.doing_setup==1 ){
+      printf("(proc=%d) smoother, from setup ... (depth=%d, res=%d, _RES=%d) \n", g.my_rank, l->depth, res, _RES);
       //schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-      schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+      if( l->depth==0 ){
+
+        vector_PRECISION phi_buff = (vector_PRECISION) malloc( l->schwarz_vector_size * sizeof(complex_PRECISION) );
+        vector_PRECISION Dphi_buff = (vector_PRECISION) malloc( l->schwarz_vector_size * sizeof(complex_PRECISION) );
+
+        vector_PRECISION Dphi;
+        cuda_safe_call( cudaMallocHost( (void**)&(Dphi),  l->schwarz_vector_size*sizeof(complex_PRECISION) ) );
+        //vector_PRECISION Dphi = (vector_PRECISION) malloc( l->schwarz_vector_size * sizeof(complex_PRECISION) );
+
+        // make both Dphi's equal
+        memcpy( Dphi, Dphi_buff, l->schwarz_vector_size * sizeof(complex_PRECISION) );
+
+        struct timeval start, end;
+        long start_us, end_us;
+
+        gettimeofday(&start, NULL);
+
+        schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+
+        gettimeofday(&end, NULL);
+
+        start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+        end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+        printf("\n(proc=%d) Time (in us) for GPU computation: %ld\n", g.my_rank, \
+              (end_us-start_us));
+
+
+        gettimeofday(&start, NULL);
+
+        schwarz_PRECISION( phi_buff, Dphi_buff, eta, n, res, &(l->s_PRECISION), l, threading );
+
+        gettimeofday(&end, NULL);
+
+        start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+        end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+        printf("\n(proc=%d) Time (in us) for CPU computation: %ld\n", g.my_rank, \
+              (end_us-start_us));
+
+        printf("\nreached the end ... comparing now: \n\n");
+
+        MPI_Barrier( MPI_COMM_WORLD );
+
+        //MPI_Barrier(MPI_COMM_WORLD);
+        //MPI_Finalize();
+        //exit(0);
+
+        if( g.my_rank==0 ){
+
+          int i;
+          PRECISION diff_real, diff_imag;
+          for( i=0; i<l->schwarz_vector_size; i++ ){
+
+            break;
+
+            diff_real = creal_PRECISION(phi[i]) - creal_PRECISION(phi_buff[i]);
+            diff_imag = cimag_PRECISION(phi[i]) - cimag_PRECISION(phi_buff[i]);
+
+            printf("DIFF for phi:\n");
+
+            printf("i=%d, cpu_real=%f, gpu_real=%f, diff_real=%f\n", i, creal_PRECISION(phi[i]), creal_PRECISION(phi_buff[i]), diff_real);
+            printf("i=%d, cpu_imag=%f, gpu_imag=%f, diff_imag=%f\n", i, cimag_PRECISION(phi[i]), cimag_PRECISION(phi_buff[i]), diff_imag);
+            printf("\n");
+
+            diff_real = creal_PRECISION(Dphi[i]) - creal_PRECISION(Dphi_buff[i]);
+            diff_imag = cimag_PRECISION(Dphi[i]) - cimag_PRECISION(Dphi_buff[i]);
+
+            printf("DIFF for Dphi:\n");
+
+            printf("i=%d, cpu_real=%f, gpu_real=%f, diff_real=%f\n", i, creal_PRECISION(Dphi[i]), creal_PRECISION(Dphi_buff[i]), diff_real);
+            printf("i=%d, cpu_imag=%f, gpu_imag=%f, diff_imag=%f\n", i, cimag_PRECISION(Dphi[i]), cimag_PRECISION(Dphi_buff[i]), diff_imag);
+            printf("\n");
+          }
+
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Finalize();
+        exit(0);
+
+      }
+      else{
+        schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+      }
     }
     else{
       // Enabled for now on the finest grid only
       if( l->depth==0 && g.odd_even ){
         //if( g.my_rank==0 && l->depth==0 ){ printf( "Applying CUDA smoother for solving, at depth=%d\n", l->depth ); }
-        schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-        //schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+        //schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+        printf("(proc=%d) smoother, from solve ... (depth=%d, res=%d, _RES=%d) \n", g.my_rank, l->depth, res, _RES);
+        if( l->depth==0 ){
+          schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+        }
+        else{
+          schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+        }
         //additive_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
       }
       else{

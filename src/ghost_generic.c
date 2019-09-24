@@ -344,6 +344,53 @@ void ghost_wait_PRECISION( vector_PRECISION phi, const int mu, const int dir,
 }
 
 
+
+
+#ifdef CUDA_OPT
+void cuda_ghost_update_PRECISION( cuda_vector_PRECISION phi, const int mu, const int dir, comm_PRECISION_struct *c, level_struct *l ) {
+  
+  if( l->global_splitting[mu] > 1 ) {
+    int mu_dir = 2*mu-MIN(dir,0), nu, inv_mu_dir = 2*mu+1+MIN(dir,0), length,
+        comm_start, num_boundary_sites;
+    cuda_vector_PRECISION buffer, recv_pt;
+    
+    length = c->num_boundary_sites[mu_dir]*l->num_lattice_site_var;
+    num_boundary_sites = c->num_boundary_sites[mu_dir];
+    buffer = (cuda_vector_PRECISION)c->buffer_gpu[mu_dir];
+
+    if ( dir == -1 )
+      comm_start = l->vector_size;
+    else
+      comm_start = l->inner_vector_size;
+    for ( nu=0; nu<mu; nu++ ) {
+      comm_start += c->num_boundary_sites[2*nu]*l->num_lattice_site_var;
+    }
+    
+    ASSERT( c->in_use[mu_dir] == 0 );
+    c->in_use[mu_dir] = 1;
+    
+    recv_pt = phi + comm_start;
+    if ( length > 0 ) {
+      PROF_PRECISION_START( _OP_COMM );
+      MPI_Irecv( recv_pt, length, MPI_COMPLEX_PRECISION,
+                 l->neighbor_rank[mu_dir], mu_dir, g.comm_cart, &(c->rreqs[mu_dir]) );
+      PROF_PRECISION_STOP( _OP_COMM, 1 );
+    }
+
+    cuda_boundary_comms_copy_PRECISION( buffer, phi, c->boundary_table_gpu[inv_mu_dir], num_boundary_sites, l );
+    //buffer = (cuda_vector_PRECISION)c->buffer[mu_dir];
+
+    if ( length > 0 ) {
+      PROF_PRECISION_START( _OP_COMM );
+      MPI_Isend( buffer, length, MPI_COMPLEX_PRECISION,
+                 l->neighbor_rank[inv_mu_dir], mu_dir, g.comm_cart, &(c->sreqs[mu_dir]) );
+      PROF_PRECISION_STOP( _OP_COMM, 0 );
+    }
+  }
+}
+#endif
+
+
 void ghost_update_PRECISION( vector_PRECISION phi, const int mu, const int dir, comm_PRECISION_struct *c, level_struct *l ) {
   
   if( l->global_splitting[mu] > 1 ) {
@@ -394,6 +441,26 @@ void ghost_update_PRECISION( vector_PRECISION phi, const int mu, const int dir, 
     }
   }
 }
+
+
+#ifdef CUDA_OPT
+void cuda_ghost_update_wait_PRECISION( cuda_vector_PRECISION phi, const int mu, const int dir, comm_PRECISION_struct *c, level_struct *l ) {
+  
+  if( l->global_splitting[mu] > 1 ) {
+    int mu_dir = 2*mu-MIN(dir,0), length = c->num_boundary_sites[mu_dir]*l->num_lattice_site_var;
+    
+    ASSERT( c->in_use[mu_dir] == 1 );
+      
+    if ( length > 0 ) {
+      PROF_PRECISION_START( _OP_IDLE );
+      MPI_Wait( &(c->sreqs[mu_dir]), MPI_STATUS_IGNORE );
+      MPI_Wait( &(c->rreqs[mu_dir]), MPI_STATUS_IGNORE );
+      PROF_PRECISION_STOP( _OP_IDLE, 1 );
+    }
+    c->in_use[mu_dir] = 0;
+  }
+}
+#endif
 
 
 void ghost_update_wait_PRECISION( vector_PRECISION phi, const int mu, const int dir, comm_PRECISION_struct *c, level_struct *l ) {

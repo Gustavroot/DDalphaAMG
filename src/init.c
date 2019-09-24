@@ -405,6 +405,23 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
   g_init( l );
   lg_in( inputfile, l );
   cart_define( l );
+
+#ifdef CUDA_OPT
+  // based on:
+  //		https://cvw.cac.cornell.edu/MPIAdvTopics/splitting
+  //		https://stackoverflow.com/questions/27908813/requirements-for-use-of-cuda-aware-mpi (MPI needs to be CUDA-aware)
+  //		6-Wrap-Up.pdf ----> GPU notes from 1st STIMULATE workshop
+  int local_rank=-1, num_devices;
+  MPI_Comm loc_comm;
+
+  MPI_Comm_split_type( g.comm_cart, MPI_COMM_TYPE_SHARED, g.my_rank, MPI_INFO_NULL, &loc_comm );
+  MPI_Comm_rank( loc_comm, &local_rank );
+  MPI_Comm_free( &loc_comm );
+  cuda_safe_call( cudaGetDeviceCount( &num_devices ) );
+  printf("(proc=%d) SETTING GPU: %d\n", g.my_rank, local_rank % num_devices);
+  cuda_safe_call( cudaSetDevice( local_rank % num_devices ) );
+#endif
+
   data_layout_init( l );
   operator_double_alloc( &(g.op_double), _ORDINARY, l ); 
   operator_double_define( &(g.op_double), l );

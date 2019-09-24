@@ -40,7 +40,13 @@
         comm_start[8], in_use[8], offset, comm,
         num_even_boundary_sites[8], num_odd_boundary_sites[8],
         num_boundary_sites[8];
+#ifdef CUDA_OPT
+    int *boundary_table_gpu[8];
+#endif
     vector_PRECISION buffer[8];
+#ifdef CUDA_OPT
+    cuda_vector_PRECISION buffer_gpu[8];
+#endif
     MPI_Request sreqs[8], rreqs[8];
   } comm_PRECISION_struct;
   
@@ -93,8 +99,8 @@ typedef struct {
 #ifdef CUDA_OPT
   // CUDA structs
   typedef struct {
-    cuda_vector_PRECISION buf1, buf2, buf3, buf4;
-    int **DD_blocks_in_comms, **DD_blocks_notin_comms;
+    cuda_vector_PRECISION buf1, buf2, buf3, buf4, buf5, buf6;
+    int **DD_blocks_in_comms, **DD_blocks_notin_comms, **DD_blocks;
     block_struct* block;
     cuda_vector_PRECISION local_minres_buffer[3];
   } cuda_schwarz_PRECISION_struct;
@@ -138,6 +144,9 @@ typedef struct {
 
     int *nr_DD_blocks_in_comms, *nr_DD_blocks_notin_comms;
     int **DD_blocks_in_comms, **DD_blocks_notin_comms;
+
+    int *nr_DD_blocks;
+    int **DD_blocks;
 #endif
   } schwarz_PRECISION_struct;
 
