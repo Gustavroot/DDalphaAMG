@@ -79,6 +79,8 @@ typedef struct {
   cu_config_PRECISION *oe_clover_vectorized;
   int *neighbor_table;
   cu_config_PRECISION *D;
+  cu_cmplx_PRECISION *Dgpu[16];
+  int nr_elems_Dgpu[16];
   cu_cmplx_PRECISION *clover_gpustorg;
   cu_cmplx_PRECISION *oe_clover_gpustorg;
 } operator_PRECISION_struct_on_gpu;

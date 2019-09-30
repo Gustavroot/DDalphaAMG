@@ -1761,6 +1761,243 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   cuda_safe_call( cudaMalloc( (void**) &( (s->s_on_gpu_cpubuff).op.D ), nr_elems_D*sizeof(cu_config_PRECISION) ) );
   cuda_safe_call( cudaMemcpy((s->s_on_gpu_cpubuff).op.D, (cu_config_PRECISION*)(s->op.D), nr_elems_D*sizeof(cu_config_PRECISION), cudaMemcpyHostToDevice) );
 
+
+  //----------------------------------------------------------------
+
+  // transforming s->op.D to optimal form for accesses from the GPU
+
+  // 0, 1, 2, 3 ----> plus-even, plus-odd, minus-even, minus-odd
+  cu_cmplx_PRECISION *Dgpu[16];
+  int nr_elems_Dgpu[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+  cu_cmplx_PRECISION *Dgpu_buff;
+  //int amount;
+  int a1, n1, a2, n2;
+  int DD_start;
+
+  int *ind;
+  int **index = s->oe_index;
+
+  //int num_latt_site_var = ;
+
+  config_PRECISION Dbuff;
+  config_PRECISION D_pt;
+
+  // do PLUS first
+
+  // ... for plus, do EVEN
+
+  //amount = _EVEN_SITES;
+
+  for( dir=0; dir<4; dir++ ){
+
+    a1 = 0; n1 = s->dir_length_even[dir];
+
+    nr_elems_Dgpu[0*8 + 0*4 + dir] =  (n1-a1);
+    nr_elems_Dgpu[0*8 + 0*4 + dir] *= s->num_blocks;
+
+    // 0*8 + 0*4 + dir ---> PLUS(0), EVEN(0), dir
+    Dgpu[0*8 + 0*4 + dir] = (cu_cmplx_PRECISION*) malloc( nr_elems_Dgpu[0*8 + 0*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) );
+
+    Dgpu_buff = Dgpu[0*8 + 0*4 + dir];
+
+    for( j=0; j<s->num_blocks; j++ ){
+
+      DD_start = s->block[j].start*l->num_lattice_site_var;
+
+      Dbuff = s->op.D + (DD_start/12)*36;
+
+      ind = index[dir];
+      for ( i=a1; i<n1; i++ ) {
+
+        k = ind[i];
+        //j = neighbor[4*k+T];
+        D_pt = Dbuff + 36*k + 9*dir;
+
+        // copy 9 complex entries: Dgpu_buff <----- D_pt
+        for( h=0; h<9; h++ ){
+          Dgpu_buff[h] = make_cu_cmplx_PRECISION( creal_PRECISION(D_pt[h]), cimag_PRECISION(D_pt[h]) );
+        }
+
+        Dgpu_buff += 9;
+
+      }
+
+    }
+
+    // copy recently created information to the GPU
+    cuda_safe_call( cudaMalloc( (void**) &( (s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir] ), nr_elems_Dgpu[0*8 + 0*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMemcpy((s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir], Dgpu[0*8 + 0*4 + dir], nr_elems_Dgpu[0*8 + 0*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice) );
+
+  }
+
+  // ... for plus, do ODD
+
+  //amount = _ODD_SITES;
+
+  for( dir=0; dir<4; dir++ ){
+
+    a1 = s->dir_length_even[dir]; n1 = a1 + s->dir_length_odd[dir];
+
+    nr_elems_Dgpu[0*8 + 1*4 + dir] =  (n1-a1);
+    nr_elems_Dgpu[0*8 + 1*4 + dir] *= s->num_blocks;
+
+    // 0*8 + 1*4 + dir ---> PLUS(0), ODD(1), dir
+    Dgpu[0*8 + 1*4 + dir] = (cu_cmplx_PRECISION*) malloc( nr_elems_Dgpu[0*8 + 1*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) );
+
+    Dgpu_buff = Dgpu[0*8 + 1*4 + dir];
+
+    for( j=0; j<s->num_blocks; j++ ){
+
+      DD_start = s->block[j].start*l->num_lattice_site_var;
+
+      Dbuff = s->op.D + (DD_start/12)*36;
+
+      ind = index[dir];
+      for ( i=a1; i<n1; i++ ) {
+
+        k = ind[i];
+        //j = neighbor[4*k+T];
+        D_pt = Dbuff + 36*k + 9*dir;
+
+        // copy 9 complex entries: Dgpu_buff <----- D_pt
+        for( h=0; h<9; h++ ){
+          Dgpu_buff[h] = make_cu_cmplx_PRECISION( creal_PRECISION(D_pt[h]), cimag_PRECISION(D_pt[h]) );
+        }
+
+        Dgpu_buff += 9;
+
+      }
+
+    }
+
+    // copy recently created information to the GPU
+    cuda_safe_call( cudaMalloc( (void**) &( (s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir] ), nr_elems_Dgpu[0*8 + 1*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMemcpy((s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir], Dgpu[0*8 + 1*4 + dir], nr_elems_Dgpu[0*8 + 1*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice) );
+
+  }
+
+  // then do MINUS
+
+  // ... for minus, do EVEN
+
+  //amount = _EVEN_SITES;
+
+  for( dir=0; dir<4; dir++ ){
+
+    a1 = 0; n1 = s->dir_length_even[dir];
+    a2 = n1; n2 = a2 + s->dir_length_odd[dir];
+
+    nr_elems_Dgpu[1*8 + 0*4 + dir] =  (n2-a2);
+    nr_elems_Dgpu[1*8 + 0*4 + dir] *= s->num_blocks;
+
+    // 1*8 + 0*4 + dir ---> MINUS(1), EVEN(0), dir
+    Dgpu[1*8 + 0*4 + dir] = (cu_cmplx_PRECISION*) malloc( nr_elems_Dgpu[1*8 + 0*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) );
+
+    Dgpu_buff = Dgpu[1*8 + 0*4 + dir];
+
+    for( j=0; j<s->num_blocks; j++ ){
+
+      DD_start = s->block[j].start*l->num_lattice_site_var;
+
+      Dbuff = s->op.D + (DD_start/12)*36;
+
+      ind = index[dir];
+      for ( i=a2; i<n2; i++ ) {
+
+        k = ind[i];
+        //j = neighbor[4*k+T];
+        D_pt = Dbuff + 36*k + 9*dir;
+
+        // copy 9 complex entries: Dgpu_buff <----- D_pt
+        for( h=0; h<9; h++ ){
+          Dgpu_buff[h] = make_cu_cmplx_PRECISION( creal_PRECISION(D_pt[h]), cimag_PRECISION(D_pt[h]) );
+        }
+
+        Dgpu_buff += 9;
+
+      }
+
+    }
+
+
+
+    // TODO: remove
+    /*
+    Dgpu_buff = Dgpu[1*8 + 0*4 + dir];
+    j=11;
+    Dgpu_buff += (n2-a2)*9*11;
+    DD_start = s->block[j].start*l->num_lattice_site_var;
+    Dbuff = s->op.D + (DD_start/12)*36;
+    i = a2;
+    k = s->oe_index[dir][i];
+    D_pt = Dbuff + 36*k + 9*dir;
+    if( dir==1 ){
+      printf( "(DD_start=%d,k=%d,dir=%d) D_pt[0] = %f + i%f, Dgpu_buff[0] = %f + i%f\n", DD_start, k, dir, creal_PRECISION(D_pt[ 0 ]), cimag_PRECISION(D_pt[ 0 ]), \
+                                                                      cu_creal_PRECISION(Dgpu_buff[ 0 ]), cu_cimag_PRECISION(Dgpu_buff[ 0 ]) );
+    }
+    */
+
+
+
+    // copy recently created information to the GPU
+    cuda_safe_call( cudaMalloc( (void**) &( (s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir] ), nr_elems_Dgpu[1*8 + 0*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMemcpy((s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir], Dgpu[1*8 + 0*4 + dir], nr_elems_Dgpu[1*8 + 0*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice) );
+
+  }
+
+  // ... for minus, do ODD
+
+  //amount = _ODD_SITES;
+
+  for( dir=0; dir<4; dir++ ){
+
+    a1 = s->dir_length_even[dir]; n1 = a1 + s->dir_length_odd[dir];
+    a2 = 0; n2 = a1;
+
+    nr_elems_Dgpu[1*8 + 1*4 + dir] =  (n2-a2);
+    nr_elems_Dgpu[1*8 + 1*4 + dir] *= s->num_blocks;
+
+    // 1*8 + 1*4 + dir ---> MINUS(1), ODD(1), dir
+    Dgpu[1*8 + 1*4 + dir] = (cu_cmplx_PRECISION*) malloc( nr_elems_Dgpu[1*8 + 1*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) );
+
+    Dgpu_buff = Dgpu[1*8 + 1*4 + dir];
+
+    for( j=0; j<s->num_blocks; j++ ){
+
+      DD_start = s->block[j].start*l->num_lattice_site_var;
+
+      Dbuff = s->op.D + (DD_start/12)*36;
+
+      ind = index[dir];
+      for ( i=a2; i<n2; i++ ) {
+
+        k = ind[i];
+        //j = neighbor[4*k+T];
+        D_pt = Dbuff + 36*k + 9*dir;
+
+        // copy 9 complex entries: Dgpu_buff <----- D_pt
+        for( h=0; h<9; h++ ){
+          Dgpu_buff[h] = make_cu_cmplx_PRECISION( creal_PRECISION(D_pt[h]), cimag_PRECISION(D_pt[h]) );
+        }
+
+        Dgpu_buff += 9;
+
+      }
+
+    }
+
+    // copy recently created information to the GPU
+    cuda_safe_call( cudaMalloc( (void**) &( (s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir] ), nr_elems_Dgpu[1*8 + 1*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMemcpy((s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir], Dgpu[1*8 + 1*4 + dir], nr_elems_Dgpu[1*8 + 1*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice) );
+
+  }
+
+  // copying nr_elems_Dgpu to the GPU
+  memcpy( (s->s_on_gpu_cpubuff).op.nr_elems_Dgpu, nr_elems_Dgpu, 16*sizeof(int) );
+  //cuda_safe_call( cudaMemcpy( (s->s_on_gpu_cpubuff).op.nr_elems_Dgpu, nr_elems_Dgpu, 16*sizeof(int), cudaMemcpyHostToDevice ) );
+
+  //----------------------------------------------------------------
+
   // TODO: remove the following lines for setting GAMMA-related data, and rather put constants within hopping CUDA kernels
   cu_cmplx_PRECISION *gamma_info_vals_buff = (s->s_on_gpu_cpubuff).gamma_info_vals;
   int *gamma_info_coo_buff = (s->s_on_gpu_cpubuff).gamma_info_coo;
