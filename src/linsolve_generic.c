@@ -1015,25 +1015,8 @@ void local_minres_PRECISION( vector_PRECISION phi, vector_PRECISION eta, vector_
     // Dr = blockD*r
     block_op( Dr, r, start, s, l, no_threading );
 
-    //printf("i=%d (within for loop of cuda_local_min_res)\n", i);
-
     // alpha = <Dr,r>/<Dr,Dr>
     alpha = local_xy_over_xx_PRECISION( Dr, r, start, end, l );
-
-    //printf("block_id=%d, alpha = %f+%f\n", start/12, creal_PRECISION(alpha), cimag_PRECISION(alpha));
-
-    //printf("first element of Dr = %f+%f\n", creal_PRECISION(Dr[0]), cimag_PRECISION(Dr[0]));
-    //printf("first element of r = %f+%f\n", creal_PRECISION(r[0]), cimag_PRECISION(r[0]));
-
-    //printf("CPU: %d, %f+%f\n", start/12/(s->num_block_sites), creal_PRECISION(alpha), cimag_PRECISION(alpha));
-
-    if( g.my_rank==0 && (start/12/(s->num_block_sites)) == 75 ){
-    //if( g.my_rank==0 ){
-      //printf("CPU (%d): %f+%f\n", start/12/(s->num_block_sites), creal_PRECISION(alpha), cimag_PRECISION(alpha));
-    }
-
-    // TODO: remove the following line
-    //alpha = 1.0 + 3.0*I;
 
     // phi += alpha * r
     vector_PRECISION_saxpy( lphi, lphi, r, alpha, start, end, l );
