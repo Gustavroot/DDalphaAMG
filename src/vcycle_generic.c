@@ -30,55 +30,82 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
   START_MASTER(threading);
   PROF_PRECISION_START( _SM );
   END_MASTER(threading);
-  
+
   if ( g.method == 1 ) {
     additive_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
   } else if ( g.method == 2 ) {
+
 #ifdef CUDA_OPT
-    if( g.doing_setup==1 ){
-      printf("(proc=%d) smoother, from setup ... (depth=%d, res=%d, _RES=%d) \n", g.my_rank, l->depth, res, _RES);
+    if(l->depth==0){
+      schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    }
+    else{
+      schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    }
+#else
+    schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+#endif
+
+    /*
+#ifdef CUDA_OPT
+    //if( g.doing_setup==1 ){
+      //printf("(proc=%d) smoother, from setup ... (depth=%d, res=%d, _RES=%d) \n", g.my_rank, l->depth, res, _RES);
       //schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
       if( l->depth==0 ){
 
-        vector_PRECISION phi_buff = (vector_PRECISION) malloc( l->schwarz_vector_size * sizeof(complex_PRECISION) );
-        vector_PRECISION Dphi_buff = (vector_PRECISION) malloc( l->schwarz_vector_size * sizeof(complex_PRECISION) );
+        if(g.my_rank==0)
+          if(Dphi != NULL){ printf("GPU-SAP with Dphi=NULL\n"); }
 
-        vector_PRECISION Dphi;
-        cuda_safe_call( cudaMallocHost( (void**)&(Dphi),  l->schwarz_vector_size*sizeof(complex_PRECISION) ) );
+        vector_PRECISION phi_buff = (vector_PRECISION) malloc( l->schwarz_vector_size * sizeof(complex_PRECISION) );
+        memcpy(phi_buff, phi, l->schwarz_vector_size * sizeof(complex_PRECISION));
+        vector_PRECISION Dphi_buff = NULL;
+        if(Dphi != NULL){
+          Dphi_buff = (vector_PRECISION) malloc( l->schwarz_vector_size * sizeof(complex_PRECISION) );
+        }
+
+        //vector_PRECISION Dphi;
+        //cuda_safe_call( cudaMallocHost( (void**)&(Dphi),  l->schwarz_vector_size*sizeof(complex_PRECISION) ) );
         //vector_PRECISION Dphi = (vector_PRECISION) malloc( l->schwarz_vector_size * sizeof(complex_PRECISION) );
 
         // make both Dphi's equal
-        memcpy( Dphi, Dphi_buff, l->schwarz_vector_size * sizeof(complex_PRECISION) );
+        //memcpy( Dphi, Dphi_buff, l->schwarz_vector_size * sizeof(complex_PRECISION) );
+        if(Dphi != NULL){
+          memcpy( Dphi_buff, Dphi, l->schwarz_vector_size * sizeof(complex_PRECISION) );
+        }
 
-        struct timeval start, end;
-        long start_us, end_us;
+        //struct timeval start, end;
+        //long start_us, end_us;
 
-        gettimeofday(&start, NULL);
+        //gettimeofday(&start, NULL);
 
+        if(g.my_rank==0)
+          printf("GPU-SAP ---> RES=%d (_RES=%d)\n", res, _RES);
         schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
 
-        gettimeofday(&end, NULL);
+        //gettimeofday(&end, NULL);
 
-        start_us = start.tv_sec * (int)1e6 + start.tv_usec;
-        end_us = end.tv_sec * (int)1e6 + end.tv_usec;
-        printf("\n(proc=%d) Time (in us) for GPU computation: %ld\n", g.my_rank, \
-              (end_us-start_us));
+        //start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+        //end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+        //printf("\n(proc=%d) Time (in us) for GPU computation: %ld\n", g.my_rank,
+        //      (end_us-start_us));
 
 
-        gettimeofday(&start, NULL);
+        //gettimeofday(&start, NULL);
 
+        if(g.my_rank==0)
+          printf("CPU-SAP ---> RES=%d (_RES=%d)\n", res, _RES);
         schwarz_PRECISION( phi_buff, Dphi_buff, eta, n, res, &(l->s_PRECISION), l, threading );
 
-        gettimeofday(&end, NULL);
+        //gettimeofday(&end, NULL);
 
-        start_us = start.tv_sec * (int)1e6 + start.tv_usec;
-        end_us = end.tv_sec * (int)1e6 + end.tv_usec;
-        printf("\n(proc=%d) Time (in us) for CPU computation: %ld\n", g.my_rank, \
-              (end_us-start_us));
+        //start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+        //end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+        //printf("\n(proc=%d) Time (in us) for CPU computation: %ld\n", g.my_rank,
+        //      (end_us-start_us));
 
-        printf("\nreached the end ... comparing now: \n\n");
+        //printf("\nreached the end ... comparing now: \n\n");
 
-        MPI_Barrier( MPI_COMM_WORLD );
+        //MPI_Barrier( MPI_COMM_WORLD );
 
         //MPI_Barrier(MPI_COMM_WORLD);
         //MPI_Finalize();
@@ -88,59 +115,105 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
 
           int i;
           PRECISION diff_real, diff_imag;
-          for( i=0; i<l->schwarz_vector_size; i++ ){
+          double rel_diff_real, rel_diff_imag;
+          for( i=0; i<l->inner_vector_size; i++ ){
 
-            break;
+            //break;
 
             diff_real = creal_PRECISION(phi[i]) - creal_PRECISION(phi_buff[i]);
             diff_imag = cimag_PRECISION(phi[i]) - cimag_PRECISION(phi_buff[i]);
 
-            printf("DIFF for phi:\n");
+            rel_diff_real = ((double)(creal_PRECISION(phi[i]) - creal_PRECISION(phi_buff[i]))) / ((double)creal_PRECISION(phi[i]));
+            rel_diff_imag = ((double)(cimag_PRECISION(phi[i]) - cimag_PRECISION(phi_buff[i]))) / ((double)cimag_PRECISION(phi[i]));
 
-            printf("i=%d, cpu_real=%f, gpu_real=%f, diff_real=%f\n", i, creal_PRECISION(phi[i]), creal_PRECISION(phi_buff[i]), diff_real);
-            printf("i=%d, cpu_imag=%f, gpu_imag=%f, diff_imag=%f\n", i, cimag_PRECISION(phi[i]), cimag_PRECISION(phi_buff[i]), diff_imag);
-            printf("\n");
+            if( diff_real>1e-5 || diff_imag>1e-5 ){
+              printf("ERROR !!\n");
 
-            diff_real = creal_PRECISION(Dphi[i]) - creal_PRECISION(Dphi_buff[i]);
-            diff_imag = cimag_PRECISION(Dphi[i]) - cimag_PRECISION(Dphi_buff[i]);
+              printf("DIFF for phi:\n");
 
-            printf("DIFF for Dphi:\n");
+              //printf("i=%d, cpu_real=%f, gpu_real=%f, diff_real=%f\n", i, creal_PRECISION(phi[i]), creal_PRECISION(phi_buff[i]), diff_real);
+              //printf("i=%d, cpu_imag=%f, gpu_imag=%f, diff_imag=%f\n", i, cimag_PRECISION(phi[i]), cimag_PRECISION(phi_buff[i]), diff_imag);
 
-            printf("i=%d, cpu_real=%f, gpu_real=%f, diff_real=%f\n", i, creal_PRECISION(Dphi[i]), creal_PRECISION(Dphi_buff[i]), diff_real);
-            printf("i=%d, cpu_imag=%f, gpu_imag=%f, diff_imag=%f\n", i, cimag_PRECISION(Dphi[i]), cimag_PRECISION(Dphi_buff[i]), diff_imag);
-            printf("\n");
+              printf("i=%d, cpu_real=%f, gpu_real=%f, diff_real=%f\n", i, creal_PRECISION(phi[i]), creal_PRECISION(phi_buff[i]), rel_diff_real);
+              printf("i=%d, cpu_imag=%f, gpu_imag=%f, diff_imag=%f\n", i, cimag_PRECISION(phi[i]), cimag_PRECISION(phi_buff[i]), rel_diff_imag);
+
+              printf("\n");
+            }
+
+            //continue;
+
+            if(Dphi != NULL){
+
+              diff_real = creal_PRECISION(Dphi[i]) - creal_PRECISION(Dphi_buff[i]);
+              diff_imag = cimag_PRECISION(Dphi[i]) - cimag_PRECISION(Dphi_buff[i]);
+
+              rel_diff_real = (float)(creal_PRECISION(Dphi[i]) - creal_PRECISION(Dphi_buff[i])) / (float)creal_PRECISION(Dphi[i]);
+              rel_diff_imag = (float)(cimag_PRECISION(Dphi[i]) - cimag_PRECISION(Dphi_buff[i])) / (float)cimag_PRECISION(Dphi[i]);
+
+              //if( rel_diff_real>1e-3 || rel_diff_imag>1e-3 ){
+              if( diff_real>1e-5 || diff_imag>1e-5 ){
+                printf("ERROR !!\n");
+
+                printf("DIFF for Dphi:\n");
+
+                //printf("i=%d, cpu_real=%f, gpu_real=%f, diff_real=%f\n", i, creal_PRECISION(Dphi[i]), creal_PRECISION(Dphi_buff[i]), diff_real);
+                //printf("i=%d, cpu_imag=%f, gpu_imag=%f, diff_imag=%f\n", i, cimag_PRECISION(Dphi[i]), cimag_PRECISION(Dphi_buff[i]), diff_imag);
+
+                printf("i=%d, cpu_real=%f, gpu_real=%f, diff_real=%f\n", i, creal_PRECISION(Dphi[i]), creal_PRECISION(Dphi_buff[i]), rel_diff_real);
+                printf("i=%d, cpu_imag=%f, gpu_imag=%f, diff_imag=%f\n", i, cimag_PRECISION(Dphi[i]), cimag_PRECISION(Dphi_buff[i]), rel_diff_imag);
+
+                printf("\n");
+              }
+            
+            }
+
+            //break;
+
           }
 
         }
 
-        MPI_Barrier(MPI_COMM_WORLD);
-        MPI_Finalize();
-        exit(0);
+        free(phi_buff);
+        if(Dphi != NULL){
+          free(Dphi_buff);
+        }
+
+        //MPI_Barrier(MPI_COMM_WORLD);
+
+        //printf("nr diff blocks (no_comm=0) = %d\n", ctr_bff);
+
+        //printf("exiting ... \n");
+
+        //exit(1);
+
+        //MPI_Finalize();
+        //exit(0);
 
       }
       else{
         schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
       }
-    }
-    else{
-      // Enabled for now on the finest grid only
-      if( l->depth==0 && g.odd_even ){
-        //if( g.my_rank==0 && l->depth==0 ){ printf( "Applying CUDA smoother for solving, at depth=%d\n", l->depth ); }
-        //schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-        printf("(proc=%d) smoother, from solve ... (depth=%d, res=%d, _RES=%d) \n", g.my_rank, l->depth, res, _RES);
-        if( l->depth==0 ){
-          schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-        }
-        else{
-          schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-        }
-        //additive_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-      }
-      else{
-        schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-        //schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-      }
-    }
+    //}
+    //else{
+    //  // Enabled for now on the finest grid only
+    //  if( l->depth==0 && g.odd_even ){
+    //    //if( g.my_rank==0 && l->depth==0 ){ printf( "Applying CUDA smoother for solving, at depth=%d\n", l->depth ); }
+    //    //schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    //    printf("(proc=%d) smoother, from solve ... (depth=%d, res=%d, _RES=%d) \n", g.my_rank, l->depth, res, _RES);
+    //    if( l->depth==0 ){
+    //      schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    //    }
+    //    else{
+    //      schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    //    }
+    //    //additive_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    //  }
+    //  else{
+    //    schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    //    //schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+    //  }
+    //}
+    */
 
     /*
 
@@ -212,10 +285,13 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
 
     */
 
-#else
-    //red_black_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-    schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
-#endif
+    //if(g.my_rank==0)
+    //  printf("\n");
+
+//#else
+//    //red_black_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+//    schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+//#endif
   } else if ( g.method == 3 ) {
     sixteen_color_schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
   } else {

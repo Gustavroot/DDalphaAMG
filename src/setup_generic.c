@@ -439,7 +439,7 @@ void test_vector_PRECISION_update( int i, level_struct *l, struct Thread *thread
 
 
 void inv_iter_inv_fcycle_PRECISION( int setup_iter, level_struct *l, struct Thread *threading ) {
-  
+
   vector_PRECISION v_buf = NULL;
   complex_PRECISION *buffer = NULL;
   
@@ -478,7 +478,7 @@ void inv_iter_inv_fcycle_PRECISION( int setup_iter, level_struct *l, struct Thre
       START_MASTER(threading)
       if ( g.print > 0 ) printf0("\033[0m\n");
       END_MASTER(threading)
-      
+
       re_setup_PRECISION( l, threading );
       
       if ( l->depth == 0 && l->next_level->level > 0 ) {

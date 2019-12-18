@@ -377,7 +377,10 @@ void cuda_ghost_update_PRECISION( cuda_vector_PRECISION phi, const int mu, const
       PROF_PRECISION_STOP( _OP_COMM, 1 );
     }
 
+    //printf("num_boundary_sites=%d\n", num_boundary_sites);
+
     cuda_boundary_comms_copy_PRECISION( buffer, phi, c->boundary_table_gpu[inv_mu_dir], num_boundary_sites, l );
+    cuda_safe_call( cudaDeviceSynchronize() );
     //buffer = (cuda_vector_PRECISION)c->buffer[mu_dir];
 
     if ( length > 0 ) {

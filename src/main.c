@@ -121,6 +121,10 @@ int main( int argc, char **argv ) {
   
   finalize_common_thread_data(commonthreaddata);
   finalize_no_threading(no_threading);
+
+  MPI_Barrier(MPI_COMM_WORLD);
+  exit(1);
+
   method_free( &l );
   method_finalize( &l );
   

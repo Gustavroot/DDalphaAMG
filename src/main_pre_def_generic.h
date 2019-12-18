@@ -119,6 +119,7 @@ typedef struct {
     int block_boundary_length[9];
     cu_cmplx_PRECISION gamma_info_vals[16];
     int gamma_info_coo[16];
+    cu_cmplx_PRECISION *alphas;
   } schwarz_PRECISION_struct_on_gpu;
 #endif
 

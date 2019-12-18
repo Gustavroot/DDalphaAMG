@@ -37,7 +37,8 @@ OBJ_CUDADB = $(patsubst %.o,%_db.o,$(OBJ_CUDA))
 DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 
 # --- FLAGS -------------------------------------------
-COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING -DCUDA_OPT 
+#COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING -DCUDA_OPT
+COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING
 #COMMON_FLAGS = -DPROFILING
 
 OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -I$(CUDA_INCLUDE)

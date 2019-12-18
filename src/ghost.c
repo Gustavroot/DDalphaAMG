@@ -63,6 +63,84 @@ void cart_define( level_struct *l ) {
 
   neighbor_define( l );
   MPI_Comm_group( g.comm_cart, &(g.global_comm_group) );
+
+#ifdef CUDA_OPT
+  // TODO: remove the following !
+
+  {
+    //printf("(proc=%d) before ... 1 \n", g.my_rank);
+
+    //struct timeval start, end;
+    //long start_us, end_us;
+
+    //gettimeofday(&start, NULL);
+
+    MPI_Request setup_reqs[2];
+    int dir=1;
+    mu=0;
+    int mu_dir = 2*mu-MIN(dir,0), inv_mu_dir = 2*mu+1+MIN(dir,0);
+    float *recv_buff, *send_buff;
+
+    cuda_safe_call( cudaMalloc( (void**) (&( recv_buff )), 2*sizeof(float) ) );
+    cuda_safe_call( cudaMalloc( (void**) (&( send_buff )), 2*sizeof(float) ) );
+
+    MPI_Irecv( recv_buff, 1, MPI_COMPLEX_float,
+               l->neighbor_rank[mu_dir], mu_dir, g.comm_cart, &(setup_reqs[0]) );
+
+    MPI_Isend( send_buff, 1, MPI_COMPLEX_float,
+               l->neighbor_rank[inv_mu_dir], mu_dir, g.comm_cart, &(setup_reqs[1]) );
+
+    MPI_Wait( &(setup_reqs[0]), MPI_STATUS_IGNORE );
+    MPI_Wait( &(setup_reqs[1]), MPI_STATUS_IGNORE );
+
+    //gettimeofday(&end, NULL);
+
+    //start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+    //end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+    //printf("\n(proc=%d) Time (in us) for GPU computation: %ld\n", g.my_rank,
+    //       (end_us-start_us));
+
+    //printf("(proc=%d) after ... 1 \n", g.my_rank);
+  }
+
+  MPI_Barrier( MPI_COMM_WORLD );
+
+  {
+    //printf("(proc=%d) before ... 2 \n", g.my_rank);
+
+    //struct timeval start, end;
+    //long start_us, end_us;
+
+    //gettimeofday(&start, NULL);
+
+    MPI_Request setup_reqs[2];
+    int dir=1;
+    mu=0;
+    int mu_dir = 2*mu-MIN(dir,0), inv_mu_dir = 2*mu+1+MIN(dir,0);
+    float *recv_buff, *send_buff;
+
+    cuda_safe_call( cudaMalloc( (void**) (&( recv_buff )), 2*sizeof(float) ) );
+    cuda_safe_call( cudaMalloc( (void**) (&( send_buff )), 2*sizeof(float) ) );
+
+    MPI_Irecv( recv_buff, 1, MPI_COMPLEX_float,
+               l->neighbor_rank[mu_dir], mu_dir, g.comm_cart, &(setup_reqs[0]) );
+
+    MPI_Isend( send_buff, 1, MPI_COMPLEX_float,
+               l->neighbor_rank[inv_mu_dir], mu_dir, g.comm_cart, &(setup_reqs[1]) );
+
+    MPI_Wait( &(setup_reqs[0]), MPI_STATUS_IGNORE );
+    MPI_Wait( &(setup_reqs[1]), MPI_STATUS_IGNORE );
+
+    //gettimeofday(&end, NULL);
+
+    //start_us = start.tv_sec * (int)1e6 + start.tv_usec;
+    //end_us = end.tv_sec * (int)1e6 + end.tv_usec;
+    //printf("\n(proc=%d) Time (in us) for GPU computation: %ld\n", g.my_rank,
+    //       (end_us-start_us));
+
+    //printf("(proc=%d) after ... 2 \n", g.my_rank);
+  }
+#endif
 }
 
 
