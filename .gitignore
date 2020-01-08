@@ -9,3 +9,4 @@ conf/*
 !conf/random/
 !conf/split/
 nohup.out
+sample_devel_*
