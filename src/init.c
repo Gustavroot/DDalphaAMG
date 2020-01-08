@@ -188,10 +188,16 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
     t0 = MPI_Wtime();
     if ( g.mixed_precision ) {
       smoother_float_def( l );
+#ifdef CUDA_OPT
+      smoother_float_def_CUDA( l );
+#endif
       if ( g.method >= 4 && g.odd_even )
         oddeven_setup_float( &(g.op_double), l );
     } else {
       smoother_double_def( l );
+#ifdef CUDA_OPT
+      smoother_double_def_CUDA( l );
+#endif
       if ( g.method >= 4 && g.odd_even )
         oddeven_setup_double( &(g.op_double), l );
     }

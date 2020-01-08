@@ -396,6 +396,16 @@
     double tol, relax_fac;
     int n_cy, post_smooth_iter, block_iter, setup_iter;
 
+    // time-measurement vars, overall measurements
+    struct timeval smoother_measr_start, smoother_measr_end;
+    double smoother_measr_lapsed;
+    struct timeval restr_measr_start, restr_measr_end;
+    double restr_measr_lapsed;
+    struct timeval interp_measr_start, interp_measr_end;
+    double interp_measr_lapsed;
+    struct timeval coarse_measr_start, coarse_measr_end;
+    double coarse_measr_lapsed;
+
     // next coarser level
     struct level_struct *next_level;
     
@@ -446,6 +456,12 @@
     // Variable to indicate if we're computing setup or not
     int doing_setup;
 #endif
+
+    int on_solve;
+
+    // time-measurement vars, overall measurements
+    struct timeval solve_measr_start, solve_measr_end;
+    double solve_measr_lapsed;
 
     struct dd_alpha_amg_parameters amg_params;
     struct dd_alpha_amg_setup_status mg_setup_status;

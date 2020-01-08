@@ -35,9 +35,12 @@ void smoother_PRECISION_def( level_struct *l ) {
 }
 
 
-// TODO
 #ifdef CUDA_OPT
-void smoother_PRECISION_def_CUDA( level_struct *l ) { }
+void smoother_PRECISION_def_CUDA( level_struct *l ) {
+
+  if ( g.method >= 0 )
+    schwarz_PRECISION_def_CUDA( &(l->s_PRECISION), &(g.op_double), l );
+}
 #endif
 
 
@@ -45,17 +48,16 @@ void smoother_PRECISION_free( level_struct *l ) {
   
   if ( g.method >= 0 )
     schwarz_PRECISION_free( &(l->s_PRECISION), l );
-#ifdef CUDA_OPT
-  if( l->depth==0 && g.odd_even ){
-    schwarz_PRECISION_free_CUDA( &(l->s_PRECISION), l );
-  }
-#endif
 }
 
 
-// TODO
 #ifdef CUDA_OPT
-void smoother_PRECISION_free_CUDA( level_struct *l ) { }
+void smoother_PRECISION_free_CUDA( level_struct *l ) {
+  
+  if( l->depth==0 && g.odd_even ){
+    schwarz_PRECISION_free_CUDA( &(l->s_PRECISION), l );
+  }
+}
 #endif
 
 
@@ -88,9 +90,12 @@ void schwarz_PRECISION_init( schwarz_PRECISION_struct *s, level_struct *l ) {
 }
 
 
-// TODO
 #ifdef CUDA_OPT
-void schwarz_PRECISION_init_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) { }
+void schwarz_PRECISION_init_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) {
+
+  // TODO !
+
+}
 #endif
 
 
@@ -202,13 +207,13 @@ void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
     MALLOC( s->block[i].bt, int, n );
   }
 
-// TODO: is this commented snippet useful ?
-//#ifdef CUDA_OPT
-//   using pinned memory
-//  //cuda_safe_call( cudaMallocHost( (void**)&(s->buf1), (vs+3*l->schwarz_vector_size)*sizeof(complex_PRECISION) ) );
-//#else
-//  MALLOC( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
-//#endif
+  // TODO: is pinned memory still to be used ?
+  //#ifdef CUDA_OPT
+  //   using pinned memory
+  //  //cuda_safe_call( cudaMallocHost( (void**)&(s->buf1), (vs+3*l->schwarz_vector_size)*sizeof(complex_PRECISION) ) );
+  //#else
+  //  MALLOC( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
+  //#endif
 
   MALLOC( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
   s->buf2 = s->buf1 + vs;
@@ -242,22 +247,17 @@ void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
     MALLOC_HUGEPAGES( s->op.clover_vectorized, PRECISION, 2*6*l->inner_vector_size, 4*SIMD_LENGTH_PRECISION );
   }
 #endif
-
-#ifdef CUDA_OPT
-  // Streams for pipelining the computations in SAP
-  //int nr_streams = ( s->num_blocks/96*96 )/30/2 + 2;
-  // TODO: use safe malloc here
-  s->streams = (cudaStream_t*) malloc( 1 * sizeof(cudaStream_t) );
-  cuda_safe_call( cudaStreamCreate( &(s->streams[0]) ) );
-#endif
 }
 
 
-// TODO
+// FIXME
 #ifdef CUDA_OPT
 void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) {
 
   int vs, i;
+
+  s->streams = (cudaStream_t*) malloc( 1 * sizeof(cudaStream_t) );
+  cuda_safe_call( cudaStreamCreate( &(s->streams[0]) ) );
 
   vs = (l->depth==0)?l->inner_vector_size:l->vector_size;
 
@@ -358,6 +358,7 @@ void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l ) {
   s->bbuf2 = NULL; s->bbuf3 = NULL; s->oe_bbuf[0] = NULL; s->oe_bbuf[1] = NULL;
   s->oe_bbuf[2] = NULL; s->oe_bbuf[3] = NULL; s->oe_bbuf[4] = NULL; s->oe_bbuf[5] = NULL;
 
+  // FIXME: is pinned memory still to be used ?
 #ifdef CUDA_OPT  
   cuda_safe_call( cudaFreeHost(s->buf1) );
 #else
@@ -396,10 +397,6 @@ void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l ) {
     FREE_HUGEPAGES( s->op.clover_vectorized, PRECISION, 2*6*l->inner_vector_size );
   }
 #endif
-
-#ifdef CUDA_OPT
-  free( s->streams );
-#endif
 }
 
 
@@ -408,6 +405,8 @@ void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l ) {
 void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) {
 
   int i;
+
+  free( s->streams );
 
   cuda_safe_call( cudaFree( (s->cu_s).buf1 ) );
   cuda_safe_call( cudaFree( (s->cu_s).buf2 ) );
@@ -759,172 +758,6 @@ void schwarz_layout_PRECISION_define( schwarz_PRECISION_struct *s, level_struct 
   // negative inner boundary table (for communication),
   // translation table (for translation to lexicographical site ordnering)
   define_nt_bt_tt( s->op.neighbor_table, s->op.backward_neighbor_table, s->op.c.boundary_table, s->op.translation_table, it, dt, l );
-
-#ifdef CUDA_OPT
-
-  /*
-
-  int color, comms_ctr, noncomms_ctr;
-
-  // FIXME: call malloc with error check
-
-  // TODO: should I move some of these lines to another schwarz_* function ?
-
-  s->nr_DD_blocks_in_comms = (int*) malloc( s->num_colors*sizeof(int) );
-  s->nr_DD_blocks_notin_comms = (int*) malloc( s->num_colors*sizeof(int) );
-
-  s->DD_blocks_in_comms = (int**) malloc( s->num_colors*sizeof(int*) );
-  s->DD_blocks_notin_comms = (int**) malloc( s->num_colors*sizeof(int*) );
-
-  for(color=0; color<s->num_colors; color++){
-    for(i=0; i<s->num_blocks; i++){
-      if ( color == s->block[i].color && s->block[i].no_comm ) {
-        s->nr_DD_blocks_notin_comms[color]++;
-      }
-      else if( color == s->block[i].color && !s->block[i].no_comm ){
-        s->nr_DD_blocks_in_comms[color]++;
-      }
-    }
-  }
-
-  for(color=0; color<s->num_colors; color++){
-    s->DD_blocks_in_comms[color] = (int*) malloc( s->nr_DD_blocks_in_comms[color]*sizeof(int) );
-    s->DD_blocks_notin_comms[color] = (int*) malloc( s->nr_DD_blocks_notin_comms[color]*sizeof(int) );
-  }
-
-  for(color=0; color<s->num_colors; color++){
-    comms_ctr = 0;
-    noncomms_ctr = 0;
-    for(i=0; i<s->num_blocks; i++){
-      if ( color == s->block[i].color && s->block[i].no_comm ) {
-        s->DD_blocks_notin_comms[color][noncomms_ctr] = i;
-        noncomms_ctr++;
-      }
-      else if( color == s->block[i].color && !s->block[i].no_comm ){
-        s->DD_blocks_in_comms[color][comms_ctr] = i;
-        comms_ctr++;
-      }
-    }
-  }
-
-  (s->cu_s).DD_blocks_in_comms = (int**) malloc( s->num_colors*sizeof(int*) );
-  (s->cu_s).DD_blocks_notin_comms = (int**) malloc( s->num_colors*sizeof(int*) );
-
-  for(color=0; color<s->num_colors; color++){
-    cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).DD_blocks_in_comms[color] )), s->nr_DD_blocks_in_comms[color]*sizeof(int) ) );
-    cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).DD_blocks_notin_comms[color] )), s->nr_DD_blocks_notin_comms[color]*sizeof(int) ) );
-  }
-
-  for(color=0; color<s->num_colors; color++){
-    cuda_safe_call( cudaMemcpy((s->cu_s).DD_blocks_in_comms[color], s->DD_blocks_in_comms[color], s->nr_DD_blocks_in_comms[color]*sizeof(int), cudaMemcpyHostToDevice) );
-    cuda_safe_call( cudaMemcpy((s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color], s->nr_DD_blocks_notin_comms[color]*sizeof(int), cudaMemcpyHostToDevice) );
-  }
-
-  cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).block )), s->num_blocks*sizeof(block_struct) ) );
-  cuda_safe_call( cudaMemcpy((s->cu_s).block, s->block, s->num_blocks*sizeof(block_struct), cudaMemcpyHostToDevice) );
-
-  // CRITICAL DATA MOVEMENT: copying op.oe_clover_vectorized to the GPU
-  //-------------------------------------------------------------------------------------------------------------------------
-  int b, h, nr_DD_sites;
-
-  nr_DD_sites = s->num_block_sites;
-
-  schwarz_PRECISION_struct_on_gpu *out = &(s->s_on_gpu_cpubuff);
-  schwarz_PRECISION_struct *in = s;
-
-  cu_cmplx_PRECISION *buf_D_oe_cpu, *buf_D_oe_cpu_bare;
-  cu_config_PRECISION *buf_D_oe_gpu;
-
-  if(g.csw != 0){
-    buf_D_oe_cpu = (cu_cmplx_PRECISION*) malloc( 72 * nr_DD_sites*in->num_blocks * sizeof(cu_cmplx_PRECISION) );
-    cuda_safe_call( cudaMalloc( (void**) &(buf_D_oe_gpu), 72 * sizeof(cu_config_PRECISION) * nr_DD_sites*in->num_blocks ) );
-  }
-  else{
-    buf_D_oe_cpu = (cu_cmplx_PRECISION*) malloc( 12 * nr_DD_sites*in->num_blocks * sizeof(cu_cmplx_PRECISION) );
-    cuda_safe_call( cudaMalloc( (void**) &(buf_D_oe_gpu), 12 * sizeof(cu_config_PRECISION) * nr_DD_sites*in->num_blocks ) );
-  }
-  buf_D_oe_cpu_bare = buf_D_oe_cpu;
-
-  PRECISION *op_oe_vect_bare = in->op.oe_clover_vectorized;
-  PRECISION *op_oe_vect = op_oe_vect_bare;
-
-  //TODO: put the following 4 lines within the appropriate if statement
-  PRECISION M_tmp[144];
-  PRECISION *M_tmp1, *M_tmp2;
-  M_tmp1 = M_tmp;
-  M_tmp2 = M_tmp + 72;
-
-  for(b=0; b < in->num_blocks; b++){
-
-    if(g.csw != 0){
-      for(h=0; h<nr_DD_sites; h++){
-        //the following snippet of code was taken from function sse_site_clover_invert_float(...) in sse_dirac.c
-        for ( k=0; k<12; k+=SIMD_LENGTH_float ) {
-          for ( j=0; j<6; j++ ) {
-            for ( i=k; i<k+SIMD_LENGTH_float; i++ ) {
-              if ( i<6 ) {
-                M_tmp1[12*j+i] = *op_oe_vect;
-                M_tmp1[12*j+i+6] = *(op_oe_vect+SIMD_LENGTH_float);
-              } else {
-                M_tmp2[12*j+i-6] = *op_oe_vect;
-                M_tmp2[12*j+i] = *(op_oe_vect+SIMD_LENGTH_float);
-              }
-              op_oe_vect++;
-            }
-            op_oe_vect += SIMD_LENGTH_float;
-          }
-        }
-
-        //the following snippet of code was taken from the function sse_cgem_inverse(...) within sse_blas_vectorized.h
-        int N=6;
-        //cu_cmplx_PRECISION tmpA[2*N*N];
-        cu_cmplx_PRECISION *tmpA_1, *tmpA_2;
-        tmpA_1 = buf_D_oe_cpu;
-        tmpA_2 = buf_D_oe_cpu + N*N;
-        for ( j=0; j<N; j++ ) {
-          for ( i=0; i<N; i++ ) {
-            tmpA_1[i+N*j] = make_cu_cmplx_PRECISION(M_tmp1[2*j*N+i], M_tmp1[(2*j+1)*N+i]);
-            tmpA_2[i+N*j] = make_cu_cmplx_PRECISION(M_tmp2[2*j*N+i], M_tmp2[(2*j+1)*N+i]);
-            //printf("%f + i%f\n", cu_creal_PRECISION(tmpA_2[i+N*j]), cu_cimag_PRECISION(tmpA_2[i+N*j]));
-          }
-        }
-
-        buf_D_oe_cpu += 72;
-        op_oe_vect_bare += 144;
-        op_oe_vect = op_oe_vect_bare;
-      }
-    }
-    else{
-      //TODO !!
-    }
-
-  }
-
-  //MPI_Barrier(MPI_COMM_WORLD);
-  //MPI_Abort(MPI_COMM_WORLD, 911);
-
-  if(g.csw != 0){
-    cuda_safe_call( cudaMemcpy(buf_D_oe_gpu, buf_D_oe_cpu_bare, 72*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
-  }
-  else{
-    cuda_safe_call( cudaMemcpy(buf_D_oe_gpu, buf_D_oe_cpu_bare, 12*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
-  }
-
-  free(buf_D_oe_cpu_bare);
-
-  //cudaMemcpy(&(out->op.oe_clover_vectorized), &buf_D_oe_gpu, sizeof(cu_config_PRECISION*), cudaMemcpyHostToDevice);
-  out->op.oe_clover_vectorized = buf_D_oe_gpu;
-  //-------------------------------------------------------------------------------------------------------------------------
-
-  (s->s_on_gpu_cpubuff).num_block_even_sites = s->num_block_even_sites;
-  (s->s_on_gpu_cpubuff).num_block_odd_sites = s->num_block_odd_sites;
-
-  // After all the allocations and definitions associated to s->s_on_gpu_cpubuff, it's time to move to the GPU
-  cuda_safe_call( cudaMemcpy(s->s_on_gpu, &(s->s_on_gpu_cpubuff), 1*sizeof(schwarz_PRECISION_struct_on_gpu), cudaMemcpyHostToDevice) );
-
-  */
-
-#endif
 }
 
 
@@ -1506,18 +1339,17 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   }
   buf_D_oe_cpu_bare = buf_D_oe_cpu;
 
-  PRECISION *op_oe_vect_bare = in->op.oe_clover_vectorized;
-  PRECISION *op_oe_vect = op_oe_vect_bare;
+  if(g.csw != 0){
 
-  //TODO: put the following 4 lines within the appropriate if statement
-  PRECISION M_tmp[144];
-  PRECISION *M_tmp1, *M_tmp2;
-  M_tmp1 = M_tmp;
-  M_tmp2 = M_tmp + 72;
+    PRECISION *op_oe_vect_bare = in->op.oe_clover_vectorized;
+    PRECISION *op_oe_vect = op_oe_vect_bare;
 
-  for(b=0; b < in->num_blocks; b++){
+    PRECISION M_tmp[144];
+    PRECISION *M_tmp1, *M_tmp2;
+    M_tmp1 = M_tmp;
+    M_tmp2 = M_tmp + 72;
 
-    if(g.csw != 0){
+    for(b=0; b < in->num_blocks; b++){
       for(h=0; h<nr_DD_sites; h++){
         //the following snippet of code was taken from function sse_site_clover_invert_float(...) in sse_dirac.c
         for ( k=0; k<12; k+=SIMD_LENGTH_float ) {
@@ -1585,10 +1417,10 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
         op_oe_vect = op_oe_vect_bare;
       }
     }
-    else{
-      //TODO !!
-    }
-
+  }
+  else{
+    //TODO !!
+    //vector_PRECISION_copy( op->oe_clover, op->clover, 0, l->inner_vector_size, l );
   }
 
 
@@ -1711,10 +1543,17 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
 
   int n=l->num_inner_lattice_sites;
 
-  // TODO: consider here csw !
+  // less memory required if csw==0
 
-  cuda_safe_call( cudaMalloc( (void**) &(out->op.clover_gpustorg), 42 * sizeof(cu_cmplx_PRECISION) * n ) );
-  cuda_safe_call( cudaMemcpy( out->op.clover_gpustorg, s->op.clover, 42 * sizeof(cu_cmplx_PRECISION) * n, cudaMemcpyHostToDevice ) );
+  if(g.csw != 0){
+    cuda_safe_call( cudaMalloc( (void**) &(out->op.clover_gpustorg), 42 * sizeof(cu_cmplx_PRECISION) * n ) );
+    cuda_safe_call( cudaMemcpy( out->op.clover_gpustorg, s->op.clover, 42 * sizeof(cu_cmplx_PRECISION) * n, cudaMemcpyHostToDevice ) );
+  }
+  else{
+    cuda_safe_call( cudaMalloc( (void**) &(out->op.clover_gpustorg), 12 * sizeof(cu_cmplx_PRECISION) * n ) );
+    cuda_safe_call( cudaMemcpy( out->op.clover_gpustorg, s->op.clover, 12 * sizeof(cu_cmplx_PRECISION) * n, cudaMemcpyHostToDevice ) );
+  }
+
 
   //-------------------------------------------------------------------------------------------------------------------------
 
@@ -3177,30 +3016,20 @@ void trans_back_PRECISION( vector_double out, vector_PRECISION in, int *tt, leve
 void schwarz_PRECISION_def( schwarz_PRECISION_struct *s, operator_double_struct *op, level_struct *l ) {
 
   schwarz_PRECISION_alloc( s, l );
-#ifdef CUDA_OPT
-  if( l->depth==0 && g.odd_even ){
-    schwarz_PRECISION_alloc_CUDA( s, l );
-  }
-#endif
   schwarz_layout_PRECISION_define( s, l );
   schwarz_PRECISION_setup( s, op, l );
-#ifdef CUDA_OPT
-  //MPI_Barrier(MPI_COMM_WORLD);
-  //printf("before...\n");
-  if( l->depth==0 && g.odd_even ){
-    schwarz_PRECISION_setup_CUDA( s, op, l );
-  }
-  //MPI_Barrier(MPI_COMM_WORLD);
-  //printf("after...\n");
-  //MPI_Barrier(MPI_COMM_WORLD);
-  //MPI_Abort(MPI_COMM_WORLD, 911);
-#endif
 }
 
 
-// TODO
 #ifdef CUDA_OPT
-void schwarz_PRECISION_def_CUDA( schwarz_PRECISION_struct *s, operator_double_struct *op, level_struct *l ) { }
+void schwarz_PRECISION_def_CUDA( schwarz_PRECISION_struct *s, operator_double_struct *op, level_struct *l ) {
+
+  if( l->depth==0 && g.odd_even ){
+    schwarz_PRECISION_alloc_CUDA( s, l );
+    schwarz_PRECISION_setup_CUDA( s, op, l );
+  }
+
+}
 #endif
 
 
