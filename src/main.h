@@ -565,17 +565,11 @@
 #include "dirac.h"
 #include "dirac_float.h"
 #include "dirac_double.h"
-#ifdef CUDA_OPT
-#endif
 #include "oddeven_float.h"
 #include "oddeven_double.h"
-#ifdef CUDA_OPT
-#endif
 #include "linalg.h"
 #include "linalg_float.h"
 #include "linalg_double.h"
-#ifdef CUDA_OPT
-#endif
 #include "ghost_float.h"
 #include "ghost_double.h"
 #include "linsolve_float.h"
@@ -591,8 +585,6 @@
 #include "init_double.h"
 #include "schwarz_double.h"
 #include "schwarz_float.h"
-#ifdef CUDA_OPT
-#endif
 #include "setup_float.h"
 #include "setup_double.h"
 #include "coarsening_float.h"
