@@ -140,12 +140,12 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
     l->dirac_shift = l->real_shift;
     l->level = g.num_levels-1;
   }
-  
+
   prof_float_init( l );
   prof_double_init( l );
   if ( l->depth==0 )
     prof_init( l );
-  
+
   if ( g.method > 0 ) {
     if ( g.mixed_precision == 2 ) {
       fgmres_MP_struct_alloc( g.restart, g.max_restart, l->inner_vector_size,
@@ -182,7 +182,7 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
   }
   END_LOCKED_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
-  
+
   if ( g.method >= 0 ) {
     START_LOCKED_MASTER(threading)
     t0 = MPI_Wtime();
@@ -291,16 +291,24 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
 
 
 void method_free( level_struct *l ) {
-  
+
   if ( g.method>=0 ) {
     if ( g.mixed_precision ) {
       if ( g.method >= 4 && g.odd_even )
         oddeven_free_float( l );
       smoother_float_free( l );
+#ifdef CUDA_OPT
+      if( l->depth==0 )
+        smoother_float_free_CUDA( l );
+#endif
     } else {
       if ( g.method >= 4 && g.odd_even )
         oddeven_free_double( l );
       smoother_double_free( l );
+#ifdef CUDA_OPT
+      if( l->depth==0 )
+        smoother_double_free_CUDA( l );
+#endif
     }
     if ( g.method > 0 )
       if ( g.interpolation )
@@ -413,29 +421,6 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
   g_init( l );
   lg_in( inputfile, l );
   cart_define( l );
-
-#ifdef CUDA_OPT
-
-  if(g.csw == 0){
-    printf("ERROR: g.csw=0 disabled for now.");
-    exit(1);
-  }
-
-  // based on:
-  //		https://cvw.cac.cornell.edu/MPIAdvTopics/splitting
-  //		https://stackoverflow.com/questions/27908813/requirements-for-use-of-cuda-aware-mpi (MPI needs to be CUDA-aware)
-  //		6-Wrap-Up.pdf ----> GPU notes from 1st STIMULATE workshop
-  int local_rank=-1, num_devices;
-  MPI_Comm loc_comm;
-
-  MPI_Comm_split_type( g.comm_cart, MPI_COMM_TYPE_SHARED, g.my_rank, MPI_INFO_NULL, &loc_comm );
-  MPI_Comm_rank( loc_comm, &local_rank );
-  MPI_Comm_free( &loc_comm );
-  cuda_safe_call( cudaGetDeviceCount( &num_devices ) );
-  //printf("(proc=%d) SETTING GPU: %d\n", g.my_rank, local_rank % num_devices);
-  cuda_safe_call( cudaSetDevice( local_rank % num_devices ) );
-#endif
-
   data_layout_init( l );
   operator_double_alloc( &(g.op_double), _ORDINARY, l ); 
   operator_double_define( &(g.op_double), l );

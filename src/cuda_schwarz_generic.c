@@ -132,10 +132,14 @@ void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l 
   // TODO: wrap all the <malloc> calls with a safe call
 
   s->streams = (cudaStream_t*) malloc( 1 * sizeof(cudaStream_t) );
-  cuda_safe_call( cudaStreamCreate( &(s->streams[0]) ) );
+  //MALLOC( s->streams, cudaStream_t, 1 );
+  //cuda_safe_call( cudaStreamCreate( &(s->streams[0]) ) );
+  cudaStreamCreate( &(s->streams[0]) );
 
   // GPU-version of schwarz_PRECISION_struct
   cuda_safe_call( cudaMalloc( (void**) (&( s->s_on_gpu )), 1*sizeof(schwarz_PRECISION_struct_on_gpu) ) );
+
+  //return;
 
   // -------------------------- (s->cu_s)-related
 
@@ -225,11 +229,9 @@ void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l 
 
 void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) {
 
-  int i, color;
-
-  return;
-
   // TODO: wrap all the <free> calls with a safe call
+
+  int i, color;
 
   free( s->streams );
 
@@ -275,7 +277,9 @@ void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l )
   free((s->cu_s).DD_blocks_notin_comms);
   free((s->cu_s).DD_blocks);
 
-  cuda_safe_call( cudaFree( s->block[0].bt_on_gpu ) );
+  // FIXME: enable and fix the following line
+  //cuda_safe_call( cudaFree( s->block[0].bt_on_gpu ) );
+
   cuda_safe_call( cudaFree( (s->cu_s).block ) );
 
   cuda_safe_call( cudaFree( (s->s_on_gpu_cpubuff).op.oe_clover_gpustorg ) );
@@ -869,7 +873,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
 
 void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res,
                              schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
-  
+
   START_NO_HYPERTHREADS(threading)
 
   int color, k, mu, nb = s->num_blocks, init_res = res;
