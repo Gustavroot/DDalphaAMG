@@ -452,11 +452,6 @@
     complex_double **gamma, g5D_shift;
     var_table vt;
 
-#ifdef CUDA_OPT
-    // Variable to indicate if we're computing setup or not
-    int doing_setup;
-#endif
-
     int on_solve;
 
     // time-measurement vars, overall measurements
@@ -570,18 +565,16 @@
 #include "dirac.h"
 #include "dirac_float.h"
 #include "dirac_double.h"
+#ifdef CUDA_OPT
+#endif
 #include "oddeven_float.h"
 #include "oddeven_double.h"
 #ifdef CUDA_OPT
-  #include "cuda_oddeven_float.h"
-  #include "cuda_oddeven_double.h"
 #endif
 #include "linalg.h"
 #include "linalg_float.h"
 #include "linalg_double.h"
 #ifdef CUDA_OPT
-  #include "cuda_linalg_float.h"
-  #include "cuda_linalg_double.h"
 #endif
 #include "ghost_float.h"
 #include "ghost_double.h"
@@ -598,6 +591,8 @@
 #include "init_double.h"
 #include "schwarz_double.h"
 #include "schwarz_float.h"
+#ifdef CUDA_OPT
+#endif
 #include "setup_float.h"
 #include "setup_double.h"
 #include "coarsening_float.h"
@@ -622,5 +617,17 @@
 #endif
 #include "lime_io.h"
 #ifdef CUDA_OPT
+  #include "cuda_dirac_float.h"
+  #include "cuda_dirac_double.h"
+  #include "cuda_oddeven_float.h"
+  #include "cuda_oddeven_double.h"
+  #include "cuda_linalg_float.h"
+  #include "cuda_linalg_double.h"
+  #include "cuda_oddeven_linalg_float.h"
+  #include "cuda_oddeven_linalg_double.h"
+  #include "cuda_linsolve_float.h"
+  #include "cuda_linsolve_double.h"
+  #include "cuda_schwarz_double.h"
+  #include "cuda_schwarz_float.h"
   #include "miscellaneous.h"
 #endif

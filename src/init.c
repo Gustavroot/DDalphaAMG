@@ -189,14 +189,16 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
     if ( g.mixed_precision ) {
       smoother_float_def( l );
 #ifdef CUDA_OPT
-      smoother_float_def_CUDA( l );
+      if(l->depth==0)
+        smoother_float_def_CUDA( l );
 #endif
       if ( g.method >= 4 && g.odd_even )
         oddeven_setup_float( &(g.op_double), l );
     } else {
       smoother_double_def( l );
 #ifdef CUDA_OPT
-      smoother_double_def_CUDA( l );
+      if(l->depth==0)
+        smoother_double_def_CUDA( l );
 #endif
       if ( g.method >= 4 && g.odd_even )
         oddeven_setup_double( &(g.op_double), l );
@@ -413,6 +415,12 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
   cart_define( l );
 
 #ifdef CUDA_OPT
+
+  if(g.csw == 0){
+    printf("ERROR: g.csw=0 disabled for now.");
+    exit(1);
+  }
+
   // based on:
   //		https://cvw.cac.cornell.edu/MPIAdvTopics/splitting
   //		https://stackoverflow.com/questions/27908813/requirements-for-use-of-cuda-aware-mpi (MPI needs to be CUDA-aware)
@@ -424,7 +432,7 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
   MPI_Comm_rank( loc_comm, &local_rank );
   MPI_Comm_free( &loc_comm );
   cuda_safe_call( cudaGetDeviceCount( &num_devices ) );
-  printf("(proc=%d) SETTING GPU: %d\n", g.my_rank, local_rank % num_devices);
+  //printf("(proc=%d) SETTING GPU: %d\n", g.my_rank, local_rank % num_devices);
   cuda_safe_call( cudaSetDevice( local_rank % num_devices ) );
 #endif
 

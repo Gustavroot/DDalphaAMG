@@ -95,7 +95,6 @@ int main( int argc, char **argv ) {
 
   commonthreaddata = (struct common_thread_data *)malloc(sizeof(struct common_thread_data));
   init_common_thread_data(commonthreaddata);
-  
 #pragma omp parallel num_threads(g.num_openmp_processes)
   {
     g.on_solve=0;
@@ -104,19 +103,11 @@ int main( int argc, char **argv ) {
     setup_threading(&threading, commonthreaddata, &l);
     setup_no_threading(no_threading, &l);
 
-#ifdef CUDA_OPT
-    g.doing_setup=1;
-#endif
-
     // setup up initial MG hierarchy
     method_setup( NULL, &l, &threading );
 
     // iterative phase
     method_update( l.setup_iter, &l, &threading );
-
-#ifdef CUDA_OPT
-    g.doing_setup=0;
-#endif
 
     {
       struct level_struct *lb;
@@ -157,17 +148,19 @@ int main( int argc, char **argv ) {
       }
       printf("\n\n");
     }
+
   }
   
   finalize_common_thread_data(commonthreaddata);
   finalize_no_threading(no_threading);
 
+  method_free( &l );
+  method_finalize( &l );
+
+  printf("out!\n");
   MPI_Barrier(MPI_COMM_WORLD);
   exit(1);
 
-  method_free( &l );
-  method_finalize( &l );
-  
   MPI_Finalize();
   
   return 0;

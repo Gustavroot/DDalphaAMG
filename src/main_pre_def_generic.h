@@ -25,9 +25,8 @@
   typedef PRECISION complex complex_PRECISION;
   typedef PRECISION complex *config_PRECISION;
   typedef PRECISION complex *vector_PRECISION;
-
-  // CUDA typedefs
 #ifdef CUDA_OPT
+  // CUDA-only typedefs  ---->  cuda vectors
   typedef cu_cmplx_PRECISION* cuda_vector_PRECISION;
   typedef cu_cmplx_PRECISION* cuda_config_PRECISION;
 #endif
@@ -42,11 +41,9 @@
         num_boundary_sites[8];
 #ifdef CUDA_OPT
     int *boundary_table_gpu[8];
-#endif
-    vector_PRECISION buffer[8];
-#ifdef CUDA_OPT
     cuda_vector_PRECISION buffer_gpu[8];
 #endif
+    vector_PRECISION buffer[8];
     MPI_Request sreqs[8], rreqs[8];
   } comm_PRECISION_struct;
   
@@ -75,15 +72,15 @@
   } operator_PRECISION_struct;
 
 #ifdef CUDA_OPT
-typedef struct {
-  cu_config_PRECISION *oe_clover_vectorized;
-  int *neighbor_table;
-  cu_config_PRECISION *D;
-  cu_cmplx_PRECISION *Dgpu[16];
-  int nr_elems_Dgpu[16];
-  cu_cmplx_PRECISION *clover_gpustorg;
-  cu_cmplx_PRECISION *oe_clover_gpustorg;
-} operator_PRECISION_struct_on_gpu;
+  typedef struct {
+    cu_config_PRECISION *oe_clover_vectorized;
+    int *neighbor_table;
+    cu_config_PRECISION *D;
+    cu_cmplx_PRECISION *Dgpu[16];
+    int nr_elems_Dgpu[16];
+    cu_cmplx_PRECISION *clover_gpustorg;
+    cu_cmplx_PRECISION *oe_clover_gpustorg;
+  } operator_PRECISION_struct_on_gpu;
 #endif
   
   typedef struct {
@@ -99,7 +96,12 @@ typedef struct {
   } gmres_PRECISION_struct;
 
 #ifdef CUDA_OPT
-  // CUDA structs
+  // CUDA structs:
+  //	cuda_schwarz_PRECISION_struct:
+  //		the elements of this struct will be accessed from the CPU, but their content
+  //		are pointers pointing to GPU-data
+  //	schwarz_PRECISION_struct_on_gpu:
+  //		the elements of this struct will be accessed from within the GPU !
   typedef struct {
     cuda_vector_PRECISION buf1, buf2, buf3, buf4, buf5, buf6;
     int **DD_blocks_in_comms, **DD_blocks_notin_comms, **DD_blocks;
@@ -135,19 +137,24 @@ typedef struct {
         **block_list, *block_list_length;
     block_struct *block;
 #ifdef CUDA_OPT
+    // <streams> are objects that live on the CPU, and help the CPU to
+    // control the GPU kernels ordering
     cudaStream_t *streams;
     int nr_streams;
+    //the elements of this struct will be accessed from the CPU, but their content
+    //are pointers pointing to GPU-data
     cuda_schwarz_PRECISION_struct cu_s;
-
+    // there's a good reason for having two of these:
+    //		s_on_gpu_cpubuff: this one lives (always) on the CPU, and it's created
+    //				  to then be copied to the GPU
+    //		s_on_gpu:         this one will point to data on the GPU, corresponding
+    //				  to a copy of s_on_gpu_cpubuff
     schwarz_PRECISION_struct_on_gpu s_on_gpu_cpubuff;
     schwarz_PRECISION_struct_on_gpu *s_on_gpu;
-
     int tot_num_boundary_work;
     int num_boundary_sites[8];
-
     int *nr_DD_blocks_in_comms, *nr_DD_blocks_notin_comms;
     int **DD_blocks_in_comms, **DD_blocks_notin_comms;
-
     int *nr_DD_blocks;
     int **DD_blocks;
 #endif
