@@ -296,19 +296,19 @@ void method_free( level_struct *l ) {
     if ( g.mixed_precision ) {
       if ( g.method >= 4 && g.odd_even )
         oddeven_free_float( l );
-      smoother_float_free( l );
 #ifdef CUDA_OPT
       if( l->depth==0 )
         smoother_float_free_CUDA( l );
 #endif
+      smoother_float_free( l );
     } else {
       if ( g.method >= 4 && g.odd_even )
         oddeven_free_double( l );
-      smoother_double_free( l );
 #ifdef CUDA_OPT
       if( l->depth==0 )
         smoother_double_free_CUDA( l );
 #endif
+      smoother_double_free( l );
     }
     if ( g.method > 0 )
       if ( g.interpolation )

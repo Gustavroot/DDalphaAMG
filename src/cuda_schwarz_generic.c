@@ -129,12 +129,8 @@ void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l 
 
   // -------------------------- s-related
 
-  // TODO: wrap all the <malloc> calls with a safe call
-
-  s->streams = (cudaStream_t*) malloc( 1 * sizeof(cudaStream_t) );
-  //MALLOC( s->streams, cudaStream_t, 1 );
-  //cuda_safe_call( cudaStreamCreate( &(s->streams[0]) ) );
-  cudaStreamCreate( &(s->streams[0]) );
+  MALLOC( s->streams, cudaStream_t, 1 );
+  cuda_safe_call( cudaStreamCreate( &(s->streams[0]) ) );
 
   // GPU-version of schwarz_PRECISION_struct
   cuda_safe_call( cudaMalloc( (void**) (&( s->s_on_gpu )), 1*sizeof(schwarz_PRECISION_struct_on_gpu) ) );
@@ -178,12 +174,12 @@ void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l 
 
   // some allocations necessary to set-up the DD block indices in a
   // friendly way for GPU-computations
-  s->nr_DD_blocks_in_comms = (int*) malloc( s->num_colors*sizeof(int) );
-  s->nr_DD_blocks_notin_comms = (int*) malloc( s->num_colors*sizeof(int) );
-  s->nr_DD_blocks = (int*) malloc( s->num_colors*sizeof(int) );
-  s->DD_blocks_in_comms = (int**) malloc( s->num_colors*sizeof(int*) );
-  s->DD_blocks_notin_comms = (int**) malloc( s->num_colors*sizeof(int*) );
-  s->DD_blocks = (int**) malloc( s->num_colors*sizeof(int*) );
+  MALLOC( s->nr_DD_blocks_in_comms, int, s->num_colors );
+  MALLOC( s->nr_DD_blocks_notin_comms, int, s->num_colors );
+  MALLOC( s->nr_DD_blocks, int, s->num_colors );
+  MALLOC( s->DD_blocks_in_comms, int*, s->num_colors );
+  MALLOC( s->DD_blocks_notin_comms, int*, s->num_colors );
+  MALLOC( s->DD_blocks, int*, s->num_colors );
 
   cuda_safe_call( cudaMalloc( (void**) (&( s->block[0].bt_on_gpu )), s->block_boundary_length[8] * s->num_blocks * sizeof(int) ) );
   cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).block )), s->num_blocks*sizeof(block_struct) ) );
@@ -229,11 +225,9 @@ void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l 
 
 void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l ) {
 
-  // TODO: wrap all the <free> calls with a safe call
-
   int i, color;
 
-  free( s->streams );
+  FREE( s->streams, cudaStream_t, 1 );
 
   cuda_safe_call( cudaFree( s->s_on_gpu ) );
 
@@ -258,27 +252,28 @@ void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l )
   cuda_safe_call( cudaFree( (s->cu_s).local_minres_buffer[2] ) );
 
   for(color=0; color<s->num_colors; color++){
-    free(s->DD_blocks_in_comms[color]);
-    free(s->DD_blocks_notin_comms[color]);
-    free(s->DD_blocks[color]);
+    FREE( s->DD_blocks_in_comms[color], int, s->nr_DD_blocks_in_comms[color] );
+    FREE( s->DD_blocks_notin_comms[color], int, s->nr_DD_blocks_notin_comms[color] );
+    FREE( s->DD_blocks[color], int, s->nr_DD_blocks[color] );
   }
-  free(s->nr_DD_blocks_in_comms);
-  free(s->nr_DD_blocks_notin_comms);
-  free(s->nr_DD_blocks);
-  free(s->DD_blocks_in_comms);
-  free(s->DD_blocks_notin_comms);
-  free(s->DD_blocks);
+
+  FREE( s->nr_DD_blocks_in_comms, int, s->num_colors );
+  FREE( s->nr_DD_blocks_notin_comms, int, s->num_colors );
+  FREE( s->nr_DD_blocks, int, s->num_colors );
+  FREE( s->DD_blocks_in_comms, int*, s->num_colors );
+  FREE( s->DD_blocks_notin_comms, int*, s->num_colors );
+  FREE( s->DD_blocks, int*, s->num_colors );
   for(color=0; color<s->num_colors; color++){
     cuda_safe_call( cudaFree( (s->cu_s).DD_blocks_in_comms[color] ) );
     cuda_safe_call( cudaFree( (s->cu_s).DD_blocks_notin_comms[color] ) );
     cuda_safe_call( cudaFree( (s->cu_s).DD_blocks[color] ) );
   }
-  free((s->cu_s).DD_blocks_in_comms);
-  free((s->cu_s).DD_blocks_notin_comms);
-  free((s->cu_s).DD_blocks);
+  FREE( (s->cu_s).DD_blocks_in_comms, int*, s->num_colors );
+  FREE( (s->cu_s).DD_blocks_notin_comms, int*, s->num_colors );
+  FREE( (s->cu_s).DD_blocks, int*, s->num_colors );
 
   // FIXME: enable and fix the following line
-  //cuda_safe_call( cudaFree( s->block[0].bt_on_gpu ) );
+  cuda_safe_call( cudaFree( s->block[0].bt_on_gpu ) );
 
   cuda_safe_call( cudaFree( (s->cu_s).block ) );
 
@@ -352,9 +347,16 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     }
   }
   for(color=0; color<s->num_colors; color++){
-    s->DD_blocks_in_comms[color] = (int*) malloc( s->nr_DD_blocks_in_comms[color]*sizeof(int) );
+    s->DD_blocks_in_comms[color] = NULL;
+    MALLOC( s->DD_blocks_in_comms[color], int, s->nr_DD_blocks_in_comms[color] );
+
     s->DD_blocks_notin_comms[color] = (int*) malloc( s->nr_DD_blocks_notin_comms[color]*sizeof(int) );
-    s->DD_blocks[color] = (int*) malloc( s->nr_DD_blocks[color]*sizeof(int) );
+    // TODO: enable (and fix errors associated to) following two lines of code !
+    //s->DD_blocks_notin_comms[color] = NULL;
+    //MALLOC( s->DD_blocks_notin_comms[color], int, s->nr_DD_blocks_notin_comms[color] );
+
+    s->DD_blocks[color] = NULL;
+    MALLOC( s->DD_blocks[color], int, s->nr_DD_blocks[color] );
   }
   for(color=0; color<s->num_colors; color++){
     comms_ctr = 0;
@@ -375,9 +377,9 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
       }
     }
   }
-  (s->cu_s).DD_blocks_in_comms = (int**) malloc( s->num_colors*sizeof(int*) );
-  (s->cu_s).DD_blocks_notin_comms = (int**) malloc( s->num_colors*sizeof(int*) );
-  (s->cu_s).DD_blocks = (int**) malloc( s->num_colors*sizeof(int*) );
+  MALLOC( (s->cu_s).DD_blocks_in_comms, int*, s->num_colors );
+  MALLOC( (s->cu_s).DD_blocks_notin_comms, int*, s->num_colors );
+  MALLOC( (s->cu_s).DD_blocks, int*, s->num_colors );
   for(color=0; color<s->num_colors; color++){
     cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).DD_blocks_in_comms[color] )), s->nr_DD_blocks_in_comms[color]*sizeof(int) ) );
     cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).DD_blocks_notin_comms[color] )), s->nr_DD_blocks_notin_comms[color]*sizeof(int) ) );
@@ -421,15 +423,15 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   nr_DD_sites = s->num_block_sites;
   schwarz_PRECISION_struct_on_gpu *out = &(s->s_on_gpu_cpubuff);
   schwarz_PRECISION_struct *in = s;
-  cu_cmplx_PRECISION *buf_D_oe_cpu, *buf_D_oe_cpu_bare;
+  cu_cmplx_PRECISION *buf_D_oe_cpu=NULL, *buf_D_oe_cpu_bare=NULL;
 
   // memory allocs
 
   if(g.csw != 0){
-    buf_D_oe_cpu = (cu_cmplx_PRECISION*) malloc( 72 * nr_DD_sites*in->num_blocks * sizeof(cu_cmplx_PRECISION) );
+    MALLOC( buf_D_oe_cpu, cu_cmplx_PRECISION, 72 * nr_DD_sites*in->num_blocks );
   }
   else{
-    buf_D_oe_cpu = (cu_cmplx_PRECISION*) malloc( 12 * nr_DD_sites*in->num_blocks * sizeof(cu_cmplx_PRECISION) );
+    MALLOC( buf_D_oe_cpu, cu_cmplx_PRECISION, 12 * nr_DD_sites*in->num_blocks );
     //cuda_safe_call( cudaMalloc( (void**) &(out->op.oe_clover_vectorized), 12 * sizeof(cu_config_PRECISION) * nr_DD_sites*in->num_blocks ) );
   }
 
@@ -493,14 +495,13 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   // making use of Doo^-1 (i.e. buf_D_oe_cpu_bare) being Hermitian to store in reduced form
   // IMPORTANT: this matrix is stored in column-form
 
-  cu_cmplx_PRECISION *buf_D_oe_cpu_gpustorg=0, *buf_D_oe_cpu_gpustorg_bare=0;
+  cu_cmplx_PRECISION *buf_D_oe_cpu_gpustorg=NULL, *buf_D_oe_cpu_gpustorg_bare=NULL;
 
   if(g.csw != 0){
-    buf_D_oe_cpu_gpustorg = (cu_cmplx_PRECISION*) malloc( 42 * nr_DD_sites*in->num_blocks * sizeof(cu_cmplx_PRECISION) );
+    MALLOC( buf_D_oe_cpu_gpustorg, cu_cmplx_PRECISION, 42 * nr_DD_sites*in->num_blocks );
   }
   else{
-    //buf_D_oe_cpu = (cu_cmplx_PRECISION*) malloc( 12 * nr_DD_sites*in->num_blocks * sizeof(cu_cmplx_PRECISION) );
-    //cuda_safe_call( cudaMalloc( (void**) &(out->op.oe_clover_vectorized), 12 * sizeof(cu_config_PRECISION) * nr_DD_sites*in->num_blocks ) );
+    //TODO
   }
 
   buf_D_oe_cpu = buf_D_oe_cpu_bare;
@@ -542,8 +543,18 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
 
   // memory de-allocs --> CPU bufs
 
-  free(buf_D_oe_cpu_bare);
-  free(buf_D_oe_cpu_gpustorg_bare);
+  if(g.csw != 0){
+    FREE( buf_D_oe_cpu_bare, cu_cmplx_PRECISION, 72 * nr_DD_sites*in->num_blocks );
+  }
+  else{
+    FREE( buf_D_oe_cpu_bare, cu_cmplx_PRECISION, 12 * nr_DD_sites*in->num_blocks );
+  }
+  if(g.csw != 0){
+    FREE( buf_D_oe_cpu_gpustorg_bare, cu_cmplx_PRECISION, 42 * nr_DD_sites*in->num_blocks );
+  }
+  else{
+    //TODO
+  }
 
   //-------------------------------------------------------------------------------------------------------------------------
   // copying s->op.clover
@@ -615,7 +626,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   // transforming s->op.D to optimal form for accesses from the GPU
 
   // 0, 1, 2, 3 ----> plus-even, plus-odd, minus-even, minus-odd
-  cu_cmplx_PRECISION *Dgpu[16], *Dgpu_buff;
+  cu_cmplx_PRECISION *Dgpu[16]={NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL}, *Dgpu_buff;
   int nr_elems_Dgpu[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   int a1, n1, a2, n2, DD_start, *ind, **index = s->oe_index;
 
@@ -632,7 +643,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     nr_elems_Dgpu[0*8 + 0*4 + dir] *= s->num_blocks;
 
     // 0*8 + 0*4 + dir ---> PLUS(0), EVEN(0), dir
-    Dgpu[0*8 + 0*4 + dir] = (cu_cmplx_PRECISION*) malloc( nr_elems_Dgpu[0*8 + 0*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) );
+    MALLOC( Dgpu[0*8 + 0*4 + dir], cu_cmplx_PRECISION, nr_elems_Dgpu[0*8 + 0*4 + dir] * 9 );
     Dgpu_buff = Dgpu[0*8 + 0*4 + dir];
 
     for( j=0; j<s->num_blocks; j++ ){
@@ -664,7 +675,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     nr_elems_Dgpu[0*8 + 1*4 + dir] *= s->num_blocks;
 
     // 0*8 + 1*4 + dir ---> PLUS(0), ODD(1), dir
-    Dgpu[0*8 + 1*4 + dir] = (cu_cmplx_PRECISION*) malloc( nr_elems_Dgpu[0*8 + 1*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) );
+    MALLOC( Dgpu[0*8 + 1*4 + dir], cu_cmplx_PRECISION, nr_elems_Dgpu[0*8 + 1*4 + dir] * 9 );
     Dgpu_buff = Dgpu[0*8 + 1*4 + dir];
 
     for( j=0; j<s->num_blocks; j++ ){
@@ -699,7 +710,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     nr_elems_Dgpu[1*8 + 0*4 + dir] *= s->num_blocks;
 
     // 1*8 + 0*4 + dir ---> MINUS(1), EVEN(0), dir
-    Dgpu[1*8 + 0*4 + dir] = (cu_cmplx_PRECISION*) malloc( nr_elems_Dgpu[1*8 + 0*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) );
+    MALLOC( Dgpu[1*8 + 0*4 + dir], cu_cmplx_PRECISION, nr_elems_Dgpu[1*8 + 0*4 + dir] * 9 );
     Dgpu_buff = Dgpu[1*8 + 0*4 + dir];
 
     for( j=0; j<s->num_blocks; j++ ){
@@ -732,7 +743,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     nr_elems_Dgpu[1*8 + 1*4 + dir] *= s->num_blocks;
 
     // 1*8 + 1*4 + dir ---> MINUS(1), ODD(1), dir
-    Dgpu[1*8 + 1*4 + dir] = (cu_cmplx_PRECISION*) malloc( nr_elems_Dgpu[1*8 + 1*4 + dir] * 9 * sizeof(cu_cmplx_PRECISION) );
+    MALLOC( Dgpu[1*8 + 1*4 + dir], cu_cmplx_PRECISION, nr_elems_Dgpu[1*8 + 1*4 + dir] * 9 );
     Dgpu_buff = Dgpu[1*8 + 1*4 + dir];
 
     for( j=0; j<s->num_blocks; j++ ){
@@ -761,7 +772,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
 
   // de-allocating CPU buffers used for optimal op.D
   for(i=0; i<16; i++){
-    free( Dgpu[i] );
+    FREE( Dgpu[i], cu_cmplx_PRECISION, nr_elems_Dgpu[i]*9 );
   }
 
   //-------------------------------------------------------------------------------------------------------------------------
