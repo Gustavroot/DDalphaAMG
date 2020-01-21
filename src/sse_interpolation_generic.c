@@ -38,7 +38,7 @@ void interpolation_PRECISION_alloc( level_struct *l ) {
     l->is_PRECISION.interpolation[k] = l->is_PRECISION.interpolation[0] + k*l->vector_size;
 #endif
   // ghost shell is communicated in coarse_operator_setup, so we need size=vector_size, not inner_vector_size
-  MALLOC_HUGEPAGES( l->is_PRECISION.operator, complex_PRECISION,
+  MALLOC_HUGEPAGES( l->is_PRECISION.op, complex_PRECISION,
                     ((size_t)OPERATOR_COMPONENT_OFFSET_PRECISION)*((size_t)l->vector_size), 128 );
 
   l->is_PRECISION.test_vector[0] = NULL;
@@ -74,7 +74,7 @@ void interpolation_PRECISION_free( level_struct *l ) {
   FREE_HUGEPAGES( l->is_PRECISION.interpolation[0], complex_PRECISION, n*l->vector_size );
   FREE( l->is_PRECISION.interpolation, complex_PRECISION*, n );
 #endif
-  FREE_HUGEPAGES( l->is_PRECISION.operator, complex_PRECISION, OPERATOR_COMPONENT_OFFSET_PRECISION*l->vector_size );
+  FREE_HUGEPAGES( l->is_PRECISION.op, complex_PRECISION, OPERATOR_COMPONENT_OFFSET_PRECISION*l->vector_size );
 }
 
 
@@ -97,7 +97,7 @@ void swap8_PRECISION( PRECISION* data ) {
 void define_interpolation_PRECISION_operator( complex_PRECISION **interpolation, level_struct *l, struct Thread *threading ) {
   
   int j, num_eig_vect = l->num_eig_vect;
-  complex_PRECISION *operator = l->is_PRECISION.operator;
+  complex_PRECISION *operator = l->is_PRECISION.op;
 
   int start = threading->start_index[l->depth];
   int end = threading->end_index[l->depth];
@@ -109,7 +109,7 @@ void define_interpolation_PRECISION_operator( complex_PRECISION **interpolation,
     if(j_end > num_eig_vect)
       j_end = num_eig_vect;
     
-    operator = l->is_PRECISION.operator + j*l->vector_size + start*offset;
+    operator = l->is_PRECISION.op + j*l->vector_size + start*offset;
     
     for ( int i=start; i<end; i+=offset/2 ) {
       __m128 data[offset];
@@ -136,7 +136,7 @@ void interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_
   PROF_PRECISION_START( _PR, threading );
   int i, j, k, k1, k2, num_aggregates = l->is_PRECISION.num_agg, num_eig_vect = l->num_eig_vect,
       num_parent_eig_vect = l->num_lattice_site_var/2, aggregate_sites = l->num_inner_lattice_sites / num_aggregates;
-  complex_PRECISION *operator = l->is_PRECISION.operator, *phi_pt = phi,
+  complex_PRECISION *operator = l->is_PRECISION.op, *phi_pt = phi,
                     *phi_c_pt = l->next_level->gs_PRECISION.transfer_buffer;
                     
   START_LOCKED_MASTER(threading)
@@ -168,7 +168,7 @@ void interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_
     // loop over blocks of SIMD_LENGTH_PRECISION vectors
     for ( j=0; j<num_eig_vect; j+=offset ) {
       phi_pt   = phi + i*2*num_parent_eig_vect*aggregate_sites;
-      operator = l->is_PRECISION.operator + j*l->vector_size + i*2*offset*num_parent_eig_vect*aggregate_sites;
+      operator = l->is_PRECISION.op + j*l->vector_size + i*2*offset*num_parent_eig_vect*aggregate_sites;
 
       for ( k=0; k<aggregate_sites; k++ ) {
         // offset used for 2 components of gamma5-symmetry stuff
@@ -221,7 +221,7 @@ void interpolate3_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level
   PROF_PRECISION_START( _PR, threading );
   int i, j, k, k1, k2, num_aggregates = l->is_PRECISION.num_agg, num_eig_vect = l->num_eig_vect,
       num_parent_eig_vect = l->num_lattice_site_var/2, aggregate_sites = l->num_inner_lattice_sites / num_aggregates;
-  complex_PRECISION *operator = l->is_PRECISION.operator, *phi_pt = phi,
+  complex_PRECISION *operator = l->is_PRECISION.op, *phi_pt = phi,
                     *phi_c_pt = l->next_level->gs_PRECISION.transfer_buffer;
   
   START_LOCKED_MASTER(threading)
@@ -253,7 +253,7 @@ void interpolate3_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level
     // loop over blocks of SIMD_LENGTH_PRECISION vectors
     for ( j=0; j<num_eig_vect; j+=offset ) {
       phi_pt   = phi + i*2*num_parent_eig_vect*aggregate_sites;
-      operator = l->is_PRECISION.operator + j*l->vector_size + i*2*offset*num_parent_eig_vect*aggregate_sites;
+      operator = l->is_PRECISION.op + j*l->vector_size + i*2*offset*num_parent_eig_vect*aggregate_sites;
 
       for ( k=0; k<aggregate_sites; k++ ) {
         // offset used for 2 components of gamma5-symmetry stuff
@@ -310,7 +310,7 @@ void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_str
   PROF_PRECISION_START( _PR, threading );
   int i, j, k, k1, k2, num_aggregates = l->is_PRECISION.num_agg, num_eig_vect = l->num_eig_vect,
       num_parent_eig_vect = l->num_lattice_site_var/2, aggregate_sites = l->num_inner_lattice_sites / num_aggregates;
-  complex_PRECISION *operator = l->is_PRECISION.operator, *phi_pt = phi,
+  complex_PRECISION *operator = l->is_PRECISION.op, *phi_pt = phi,
                     *phi_c_pt = l->next_level->gs_PRECISION.transfer_buffer;
 
   for ( i=threading->n_thread*threading->core + threading->thread; i<num_aggregates; i+=threading->n_core*threading->n_thread ) {
@@ -323,7 +323,7 @@ void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_str
     for ( j=0; j<num_eig_vect; j+=offset ) {
       phi_pt   = phi + i*2*num_parent_eig_vect*aggregate_sites;
       phi_c_pt = l->next_level->gs_PRECISION.transfer_buffer + i*2*num_eig_vect;
-      operator = l->is_PRECISION.operator + j*l->vector_size + i*2*offset*num_parent_eig_vect*aggregate_sites;
+      operator = l->is_PRECISION.op + j*l->vector_size + i*2*offset*num_parent_eig_vect*aggregate_sites;
 
       // temporary, so we can used aligned load/store, and don't have to mess around with deinterleaving
       // complex components and masking

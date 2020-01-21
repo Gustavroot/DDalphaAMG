@@ -477,7 +477,7 @@ void operator_updates_PRECISION( level_struct *l ) {
 #ifndef INTERPOLATION_SETUP_LAYOUT_OPTIMIZED_PRECISION
       coarse_operator_PRECISION_setup( l->is_PRECISION.interpolation, l );
 #else
-      coarse_operator_PRECISION_setup_vectorized( l->is_PRECISION.operator, l, no_threading );
+      coarse_operator_PRECISION_setup_vectorized( l->is_PRECISION.op, l, no_threading );
 #endif
       conf_PRECISION_gather( &(l->next_level->s_PRECISION.op), &(l->next_level->op_PRECISION), l->next_level );
     }

@@ -25,12 +25,24 @@
   typedef PRECISION complex complex_PRECISION;
   typedef PRECISION complex *config_PRECISION;
   typedef PRECISION complex *vector_PRECISION;
+#ifdef CUDA_OPT
+  // CUDA-only typedefs  ---->  cuda vectors
+  typedef cu_cmplx_PRECISION* cuda_vector_PRECISION;
+  typedef cu_cmplx_PRECISION* cuda_config_PRECISION;
+#endif
+
+  struct Thread;
+  struct level_struct;
 
   typedef struct {
     int length[8], *boundary_table[8], max_length[4],
         comm_start[8], in_use[8], offset, comm,
         num_even_boundary_sites[8], num_odd_boundary_sites[8],
         num_boundary_sites[8];
+#ifdef CUDA_OPT
+    int *boundary_table_gpu[8];
+    cuda_vector_PRECISION buffer_gpu[8];
+#endif
     vector_PRECISION buffer[8];
     MPI_Request sreqs[8], rreqs[8];
   } comm_PRECISION_struct;
@@ -58,6 +70,18 @@
     OPERATOR_TYPE_PRECISION *clover_vectorized;
     OPERATOR_TYPE_PRECISION *oe_clover_vectorized;
   } operator_PRECISION_struct;
+
+#ifdef CUDA_OPT
+  typedef struct {
+    cu_config_PRECISION *oe_clover_vectorized;
+    int *neighbor_table;
+    cu_config_PRECISION *D;
+    cu_cmplx_PRECISION *Dgpu[16];
+    int nr_elems_Dgpu[16];
+    cu_cmplx_PRECISION *clover_gpustorg;
+    cu_cmplx_PRECISION *oe_clover_gpustorg;
+  } operator_PRECISION_struct_on_gpu;
+#endif
   
   typedef struct {
     vector_PRECISION x, b, r, w, *V, *Z;
@@ -68,9 +92,40 @@
     int num_restart, restart_length, timing, print, kind,
         initial_guess_zero, layout, v_start, v_end, total_storage;
     void (*preconditioner)();
-    void (*eval_operator)();
+    void (*eval_operator)( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
+                           struct level_struct *l, struct Thread *threading );
   } gmres_PRECISION_struct;
-  
+
+#ifdef CUDA_OPT
+  // CUDA structs:
+  //	cuda_schwarz_PRECISION_struct:
+  //		the elements of this struct will be accessed from the CPU, but their content
+  //		are pointers pointing to GPU-data
+  //	schwarz_PRECISION_struct_on_gpu:
+  //		the elements of this struct will be accessed from within the GPU !
+  typedef struct {
+    cuda_vector_PRECISION buf1, buf2, buf3, buf4, buf5, buf6;
+    int **DD_blocks_in_comms, **DD_blocks_notin_comms, **DD_blocks;
+    block_struct* block;
+    cuda_vector_PRECISION local_minres_buffer[3];
+  } cuda_schwarz_PRECISION_struct;
+  typedef struct {
+    cu_cmplx_PRECISION* oe_buf[4];
+    cu_config_PRECISION *oe_clover_vectorized;
+    operator_PRECISION_struct_on_gpu op;
+    int num_block_even_sites, num_block_odd_sites;
+    int block_vector_size;
+    int *oe_index[4];
+    int *index[4];
+    int dir_length_even[4], dir_length_odd[4];
+    int dir_length[4];
+    int block_boundary_length[9];
+    cu_cmplx_PRECISION gamma_info_vals[16];
+    int gamma_info_coo[16];
+    cu_cmplx_PRECISION *alphas;
+  } schwarz_PRECISION_struct_on_gpu;
+#endif
+
   typedef struct {
     operator_PRECISION_struct op;
     vector_PRECISION buf1, buf2, buf3, buf4, buf5, bbuf1, bbuf2, bbuf3, oe_bbuf[6];
@@ -82,13 +137,35 @@
         block_vector_size, num_block_sites, block_boundary_length[9],
         **block_list, *block_list_length;
     block_struct *block;
+#ifdef CUDA_OPT
+    // <streams> are objects that live on the CPU, and help the CPU to
+    // control the GPU kernels ordering
+    cudaStream_t *streams;
+    int nr_streams;
+    //the elements of this struct will be accessed from the CPU, but their content
+    //are pointers pointing to GPU-data
+    cuda_schwarz_PRECISION_struct cu_s;
+    // there's a good reason for having two of these:
+    //		s_on_gpu_cpubuff: this one lives (always) on the CPU, and it's created
+    //				  to then be copied to the GPU
+    //		s_on_gpu:         this one will point to data on the GPU, corresponding
+    //				  to a copy of s_on_gpu_cpubuff
+    schwarz_PRECISION_struct_on_gpu s_on_gpu_cpubuff;
+    schwarz_PRECISION_struct_on_gpu *s_on_gpu;
+    int tot_num_boundary_work;
+    int num_boundary_sites[8];
+    int *nr_DD_blocks_in_comms, *nr_DD_blocks_notin_comms;
+    int **DD_blocks_in_comms, **DD_blocks_notin_comms;
+    int *nr_DD_blocks;
+    int **DD_blocks;
+#endif
   } schwarz_PRECISION_struct;
-  
+
   typedef struct {
     int num_agg, *agg_index[4], agg_length[4], *agg_boundary_index[4],
         *agg_boundary_neighbor[4], agg_boundary_length[4], num_bootstrap_vect;
     vector_PRECISION *test_vector, *interpolation, *bootstrap_vector, tmp;
-    complex_PRECISION *operator, *eigenvalues, *bootstrap_eigenvalues;
+    complex_PRECISION *op, *eigenvalues, *bootstrap_eigenvalues;
   } interpolation_PRECISION_struct;
   
   typedef struct {
@@ -97,7 +174,7 @@
     double count[_NUM_PROF];
     char name[_NUM_PROF][50];
   } profiling_PRECISION_struct;
-  
+
   #ifdef PROFILING
     #define PROF_PRECISION_START_UNTHREADED( TYPE ) do{ l->prof_PRECISION.time[TYPE] -= MPI_Wtime(); }while(0)
     #define PROF_PRECISION_START_THREADED( TYPE, threading ) do{ if(threading->core + threading->thread == 0) l->prof_PRECISION.time[TYPE] -= MPI_Wtime(); }while(0)

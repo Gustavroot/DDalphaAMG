@@ -23,11 +23,21 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
-#include <mpi.h>
+#include "stdbool.h"
+#ifndef IMPORT_FROM_EXTERN_C
+  #include <mpi.h>
+#endif
 #include <complex.h>
 #include <math.h>
 #include <time.h>
 #include <stdarg.h>
+#include <sys/time.h>
+
+#ifdef CUDA_OPT
+  #include <cuComplex.h>
+  #include <cuda.h>
+  #include <cuda_runtime.h>
+#endif
 
 #ifdef JUROPA
 #include <mkl.h>
@@ -204,21 +214,73 @@
       _SM1, _SM2, _SM3, _SM4, _SMALL1, _SMALL2, _NUM_PROF }; // _NUM_PROF has always to be the last constant!
   enum { _VTS = 20 };
   enum { _TRCKD_VAL, _STP_TIME, _SLV_ITER, _SLV_TIME, _CRS_ITER, _CRS_TIME, _SLV_ERR, _CGNR_ERR, _NUM_OPTB };
-  
+
+#ifdef CUDA_OPT
+  enum { _H2D, _D2H, _D2D };
+  enum { _CUDA_ASYNC, _CUDA_SYNC };
+  enum { _SOFT_CHECK, _HARD_CHECK };
+#endif
+
   typedef struct block_struct {
     int start, color, no_comm, *bt;
+#ifdef CUDA_OPT
+    int *bt_on_gpu;
+#endif
   } block_struct;
-  
+
+  // CUDA typedefs
+#ifdef CUDA_OPT
+  typedef cuDoubleComplex cu_cmplx_double;
+  typedef cuFloatComplex cu_cmplx_float;
+  typedef cuDoubleComplex cu_config_double;
+  typedef cuFloatComplex cu_config_float;
+
+  // MACROS for the creation of complex numbers
+  #define make_cu_cmplx_double( cur, cui ) \
+          make_cuDoubleComplex(cur, cui)
+  #define make_cu_cmplx_float( cur, cui ) \
+          make_cuFloatComplex(cur, cui)
+  // MACROS of functions acting ON complex numbers
+  #define cu_creal_double(c_nr) \
+          cuCreal(c_nr)
+  #define cu_cimag_double(c_nr) \
+          cuCimag(c_nr)
+  #define cu_creal_float(c_nr) \
+          cuCrealf(c_nr)
+  #define cu_cimag_float(c_nr) \
+          cuCimagf(c_nr)
+  #define cu_cmul_float(c_nr1, c_nr2) \
+          cuCmulf(c_nr1, c_nr2)
+  #define cu_cmul_double(c_nr1, c_nr2) \
+          cuCmul(c_nr1, c_nr2)
+  #define cu_cdiv_float(c_nr1, c_nr2) \
+          cuCdivf(c_nr1, c_nr2)
+  #define cu_cdiv_double(c_nr1, c_nr2) \
+          cuCdiv(c_nr1, c_nr2)
+  #define cu_csub_float(c_nr1, c_nr2) \
+          cuCsubf(c_nr1, c_nr2)
+  #define cu_csub_double(c_nr1, c_nr2) \
+          cuCsub(c_nr1, c_nr2)
+  #define cu_cadd_float(c_nr1, c_nr2) \
+          cuCaddf(c_nr1, c_nr2)
+  #define cu_cadd_double(c_nr1, c_nr2) \
+          cuCadd(c_nr1, c_nr2)
+  #define cu_conj_float(c_nr) \
+          cuConjf(c_nr)
+  #define cu_conj_double(c_nr) \
+          cuConj(c_nr)
+#endif
+
   #include "main_pre_def_float.h"
   #include "main_pre_def_double.h"
-  
+
   extern complex_double _COMPLEX_double_ONE;
   extern complex_double _COMPLEX_double_ZERO;
   extern complex_double _COMPLEX_double_MINUS_ONE;
   extern complex_float  _COMPLEX_float_ONE;
   extern complex_float  _COMPLEX_float_ZERO;
   extern complex_float  _COMPLEX_float_MINUS_ONE;
-  
+
   typedef struct plot_table_line {
     
     double values[_NUM_OPTB];
@@ -334,7 +396,17 @@
     // local solver parameters
     double tol, relax_fac;
     int n_cy, post_smooth_iter, block_iter, setup_iter;
-    
+
+    // time-measurement vars, overall measurements
+    struct timeval smoother_measr_start, smoother_measr_end;
+    double smoother_measr_lapsed;
+    struct timeval restr_measr_start, restr_measr_end;
+    double restr_measr_lapsed;
+    struct timeval interp_measr_start, interp_measr_end;
+    double interp_measr_lapsed;
+    struct timeval coarse_measr_start, coarse_measr_end;
+    double coarse_measr_lapsed;
+
     // next coarser level
     struct level_struct *next_level;
     
@@ -380,6 +452,12 @@
     
     complex_double **gamma, g5D_shift;
     var_table vt;
+
+    int on_solve;
+
+    // time-measurement vars, overall measurements
+    struct timeval solve_measr_start, solve_measr_end;
+    double solve_measr_lapsed;
 
     struct dd_alpha_amg_parameters amg_params;
     struct dd_alpha_amg_setup_status mg_setup_status;
@@ -531,4 +609,18 @@
 #include <lime_reader.h>
 #endif
 #include "lime_io.h"
-#include "miscellaneous.h"
+#ifdef CUDA_OPT
+  #include "cuda_dirac_float.h"
+  #include "cuda_dirac_double.h"
+  #include "cuda_oddeven_float.h"
+  #include "cuda_oddeven_double.h"
+  #include "cuda_linalg_float.h"
+  #include "cuda_linalg_double.h"
+  #include "cuda_oddeven_linalg_float.h"
+  #include "cuda_oddeven_linalg_double.h"
+  #include "cuda_linsolve_float.h"
+  #include "cuda_linsolve_double.h"
+  #include "cuda_schwarz_double.h"
+  #include "cuda_schwarz_float.h"
+  #include "miscellaneous.h"
+#endif

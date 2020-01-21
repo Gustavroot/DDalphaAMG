@@ -1185,7 +1185,7 @@ void block_hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi,
 #ifndef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
 void block_n_hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi,
     int start, int amount, schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
-  
+
   START_UNTHREADED_FUNCTION(threading)
 
   int i, j, k, a1, a2, n1, n2, *length_even = s->dir_length_even, *length_odd = s->dir_length_odd,
@@ -1316,13 +1316,14 @@ void block_n_hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi,
 
 void apply_block_schur_complement_PRECISION( vector_PRECISION out, vector_PRECISION in, int start,
     schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
-  
+
   vector_PRECISION *tmp = s->oe_buf;
   
   block_diag_ee_PRECISION( out, in, start, s, l, threading );
   START_LOCKED_MASTER(threading)
   vector_PRECISION_define( tmp[0], 0, start + 12*s->num_block_even_sites, start + s->block_vector_size, l );
   END_LOCKED_MASTER(threading)
+
   block_hopping_term_PRECISION( tmp[0], in, start, _ODD_SITES, s, l, threading );
   block_diag_oo_inv_PRECISION( tmp[1], tmp[0], start, s, l, threading );
   block_n_hopping_term_PRECISION( out, tmp[1], start, _EVEN_SITES, s, l, threading );

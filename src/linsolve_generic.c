@@ -1011,10 +1011,13 @@ void local_minres_PRECISION( vector_PRECISION phi, vector_PRECISION eta, vector_
   vector_PRECISION_define( lphi, 0, start, end, l );
   
   for ( i=0; i<n; i++ ) {
+
     // Dr = blockD*r
     block_op( Dr, r, start, s, l, no_threading );
+
     // alpha = <Dr,r>/<Dr,Dr>
     alpha = local_xy_over_xx_PRECISION( Dr, r, start, end, l );
+
     // phi += alpha * r
     vector_PRECISION_saxpy( lphi, lphi, r, alpha, start, end, l );
     // r -= alpha * Dr

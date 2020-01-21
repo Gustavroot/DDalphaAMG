@@ -140,12 +140,12 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
     l->dirac_shift = l->real_shift;
     l->level = g.num_levels-1;
   }
-  
+
   prof_float_init( l );
   prof_double_init( l );
   if ( l->depth==0 )
     prof_init( l );
-  
+
   if ( g.method > 0 ) {
     if ( g.mixed_precision == 2 ) {
       fgmres_MP_struct_alloc( g.restart, g.max_restart, l->inner_vector_size,
@@ -182,16 +182,24 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
   }
   END_LOCKED_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
-  
+
   if ( g.method >= 0 ) {
     START_LOCKED_MASTER(threading)
     t0 = MPI_Wtime();
     if ( g.mixed_precision ) {
       smoother_float_def( l );
+#ifdef CUDA_OPT
+      if(l->depth==0)
+        smoother_float_def_CUDA( l );
+#endif
       if ( g.method >= 4 && g.odd_even )
         oddeven_setup_float( &(g.op_double), l );
     } else {
       smoother_double_def( l );
+#ifdef CUDA_OPT
+      if(l->depth==0)
+        smoother_double_def_CUDA( l );
+#endif
       if ( g.method >= 4 && g.odd_even )
         oddeven_setup_double( &(g.op_double), l );
     }
@@ -283,15 +291,23 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
 
 
 void method_free( level_struct *l ) {
-  
+
   if ( g.method>=0 ) {
     if ( g.mixed_precision ) {
       if ( g.method >= 4 && g.odd_even )
         oddeven_free_float( l );
+#ifdef CUDA_OPT
+      if( l->depth==0 )
+        smoother_float_free_CUDA( l );
+#endif
       smoother_float_free( l );
     } else {
       if ( g.method >= 4 && g.odd_even )
         oddeven_free_double( l );
+#ifdef CUDA_OPT
+      if( l->depth==0 )
+        smoother_double_free_CUDA( l );
+#endif
       smoother_double_free( l );
     }
     if ( g.method > 0 )
@@ -410,6 +426,27 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
   operator_double_define( &(g.op_double), l );
   MALLOC( g.odd_even_table, int, l->num_inner_lattice_sites );
   define_odd_even_table( l );
+
+#ifdef CUDA_OPT
+  {
+    bool examine_csw, examine_block;
+    int i;
+
+    examine_csw = (g.csw == 0.0);
+    examine_block = 1;
+    for( i=0; i<4; i++ ){
+      if( l->block_lattice[i]==4 ) examine_block *= examine_block;
+    }
+
+    if( examine_csw || examine_block!=1 ){
+      if( examine_csw && g.my_rank==0 ) printf("ERROR: g.csw=0.0 disabled for now.\n");
+      if( examine_block!=1 && g.my_rank==0 ) printf("ERROR: only supporting 'block lattice'=4x4x4x4 at the finest level for now.\n");
+      method_finalize( l );
+      MPI_Finalize();
+      exit(0);
+    }
+  }
+#endif
 }
 
 

@@ -55,9 +55,9 @@ int main( int argc, char **argv ) {
     printf("| This program comes with ABSOLUTELY NO WARRANTY.                      |\n");
     printf("+----------------------------------------------------------------------+\n\n");
   }
-  
+
   method_init( &argc, &argv, &l );
-  
+
   no_threading = (struct Thread *)malloc(sizeof(struct Thread));
   setup_no_threading(no_threading, &l);
   
@@ -86,6 +86,7 @@ int main( int argc, char **argv ) {
   if ( !g.two_cnfgs ) {
     g.plaq_clov = g.plaq_clov;
   }
+
   // store configuration, compute clover term
   dirac_setup( hopp, clov, &l );
   FREE( hopp, complex_double, 3*l.inner_vector_size );
@@ -95,27 +96,69 @@ int main( int argc, char **argv ) {
 
   commonthreaddata = (struct common_thread_data *)malloc(sizeof(struct common_thread_data));
   init_common_thread_data(commonthreaddata);
-  
+
 #pragma omp parallel num_threads(g.num_openmp_processes)
   {
+    g.on_solve=0;
+
     struct Thread threading;
     setup_threading(&threading, commonthreaddata, &l);
     setup_no_threading(no_threading, &l);
-    
+
     // setup up initial MG hierarchy
     method_setup( NULL, &l, &threading );
-    
+
     // iterative phase
     method_update( l.setup_iter, &l, &threading );
-    
+
+    {
+      struct level_struct *lb;
+      lb = &l;
+      for(int i=0; i<g.num_levels; i++){
+        lb->smoother_measr_lapsed = 0.0;
+        lb->restr_measr_lapsed = 0.0;
+        lb->interp_measr_lapsed = 0.0;
+        lb->coarse_measr_lapsed = 0.0;
+        lb = lb->next_level;
+      }
+    }
+
+    gettimeofday(&g.solve_measr_start, NULL);
+    g.on_solve=1;
     solve_driver( &l, &threading );
+    gettimeofday(&g.solve_measr_end, NULL);
+
+    g.solve_measr_lapsed = (g.solve_measr_end.tv_sec * 1000000 + g.solve_measr_end.tv_usec) - (g.solve_measr_start.tv_sec * 1000000 + g.solve_measr_start.tv_usec);
+
+    // displaying overall time measurements
+    if( g.my_rank==0 ){
+      printf("---------------------------------------\n");
+      printf("Overall timing: (all times in us)\n\n");
+      printf("Total solve time: %lf\n", g.solve_measr_lapsed);
+      printf("Times per sub-module:\n\n");
+      {
+        struct level_struct *lb;
+        lb = &l;
+        for(int i=0; i<g.num_levels; i++){
+          printf("\tSmoother time, depth=%d: %lf (%d%% of total)\n", lb->depth, lb->smoother_measr_lapsed, (int)(lb->smoother_measr_lapsed/g.solve_measr_lapsed*100));
+          printf("\tInterpolation time, depth=%d: %lf (%d%% of total)\n", lb->depth, lb->interp_measr_lapsed, (int)(lb->interp_measr_lapsed/g.solve_measr_lapsed*100));
+          printf("\tRestriction time, depth=%d: %lf (%d%% of total)\n", lb->depth, lb->restr_measr_lapsed, (int)(lb->restr_measr_lapsed/g.solve_measr_lapsed*100));
+          printf("\tCoarse time, depth=%d: %lf (%d%% of total)\n", lb->depth, lb->coarse_measr_lapsed, (int)(lb->coarse_measr_lapsed/g.solve_measr_lapsed*100));
+          printf("\n");
+          lb = lb->next_level;
+        }
+      }
+      printf("\n\n");
+    }
+
   }
-  
+
   finalize_common_thread_data(commonthreaddata);
   finalize_no_threading(no_threading);
+
   method_free( &l );
   method_finalize( &l );
-  
+
   MPI_Finalize();
   
   return 0;

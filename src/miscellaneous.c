@@ -1,3 +1,4 @@
+#ifdef CUDA_OPT
 #include "main.h"
 
 void field_saver( void* phi, int length, char* datatype, char* filename ){
@@ -25,3 +26,4 @@ void field_saver( void* phi, int length, char* datatype, char* filename ){
 
   fclose(f);
 }
+#endif

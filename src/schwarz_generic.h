@@ -32,17 +32,17 @@ struct Thread;
                                            int k, schwarz_PRECISION_struct *s, level_struct *l );
   void n_coarse_block_PRECISION_boundary_op( vector_PRECISION eta, vector_PRECISION phi,
                                              int k, schwarz_PRECISION_struct *s, level_struct *l );
-  
+
   void smoother_PRECISION_def( level_struct *l );
   void smoother_PRECISION_free( level_struct *l );
-  
+
   void schwarz_PRECISION_init( schwarz_PRECISION_struct *s, level_struct *l );
   void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l );
   void schwarz_layout_PRECISION_define( schwarz_PRECISION_struct *s, level_struct *l );
   void schwarz_PRECISION_boundary_update( schwarz_PRECISION_struct *s, level_struct *l );
-  
+
   void schwarz_PRECISION_setup( schwarz_PRECISION_struct *s, operator_double_struct *op_in, level_struct *l );
-  
+
   void schwarz_PRECISION_def( schwarz_PRECISION_struct *s, operator_double_struct *op, level_struct *l );
   void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l );
   

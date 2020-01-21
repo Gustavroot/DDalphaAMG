@@ -26,7 +26,7 @@ void interpolation_PRECISION_struct_init( interpolation_PRECISION_struct *is ) {
   is->agg_index[T] = NULL;
   is->agg_boundary_index[T] = NULL;
   is->agg_boundary_neighbor[T] = NULL;
-  is->operator = NULL;
+  is->op = NULL;
   is->test_vector = NULL;
   is->interpolation = NULL;
   is->eigenvalues = NULL;

@@ -38,6 +38,10 @@
                              comm_PRECISION_struct *c, const int amount, level_struct *l );
   
   void ghost_update_PRECISION( vector_PRECISION phi, const int mu, const int dir, comm_PRECISION_struct *c, level_struct *l );
+#ifdef CUDA_OPT
+  void cuda_ghost_update_PRECISION( cuda_vector_PRECISION phi, const int mu, const int dir, comm_PRECISION_struct *c, level_struct *l );
+  void cuda_ghost_update_wait_PRECISION( cuda_vector_PRECISION phi, const int mu, const int dir, comm_PRECISION_struct *c, level_struct *l );
+#endif
   void ghost_update_wait_PRECISION( vector_PRECISION phi, const int mu, const int dir, comm_PRECISION_struct *c, level_struct *l );
 
 #endif

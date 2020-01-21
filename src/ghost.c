@@ -63,6 +63,67 @@ void cart_define( level_struct *l ) {
 
   neighbor_define( l );
   MPI_Comm_group( g.comm_cart, &(g.global_comm_group) );
+
+#ifdef CUDA_OPT
+  // Set the device for each MPI process, in correspondence with
+  // the <local rank>
+
+  // Based on:
+  //		https://cvw.cac.cornell.edu/MPIAdvTopics/splitting
+  //		https://stackoverflow.com/questions/27908813/requirements-for-use-of-cuda-aware-mpi (MPI needs to be CUDA-aware)
+  //		6-Wrap-Up.pdf ----> GPU notes from 1st STIMULATE workshop
+  int local_rank=0, num_devices=0;
+
+  // one alternative to get the <local rank>
+  //local_rank = atoi(getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
+
+  // another alternative to get the <local rank>
+  MPI_Comm loc_comm;
+  MPI_Comm_split_type( g.comm_cart, MPI_COMM_TYPE_SHARED, g.my_rank, MPI_INFO_NULL, &loc_comm );
+  MPI_Comm_rank( loc_comm, &local_rank );
+  MPI_Comm_free( &loc_comm );
+
+  cuda_safe_call( cudaGetDeviceCount( &num_devices ) );
+  cuda_safe_call( cudaSetDevice( local_rank % num_devices ) );
+
+  // Run async ghost exchanges once, to remove offset setup time introduced
+  // by the MPI-Aware implementation of OpenMPI
+  {
+    MPI_Request setup_reqs[2];
+    int dir, mu, mu_dir, inv_mu_dir;
+    dir=1;
+    mu=0;
+    mu_dir = 2*mu-MIN(dir,0);
+    inv_mu_dir = 2*mu+1+MIN(dir,0);
+
+    if( l->neighbor_rank[mu_dir]==g.my_rank || l->neighbor_rank[inv_mu_dir]==g.my_rank ){
+      if( g.my_rank==0 ){
+        printf("ERROR: mu=%d is not a good direction for ghost-exch initial test! FIXME!\n", mu);
+        exit(1);
+      }
+    }
+
+    // buffers for test exchange
+    float *recv_buff, *send_buff;
+
+    // 8 is just to make sure we don't go over mem size
+    cuda_safe_call( cudaMalloc( (void**) (&( recv_buff )), 8*sizeof(float) ) );
+    cuda_safe_call( cudaMalloc( (void**) (&( send_buff )), 8*sizeof(float) ) );
+
+    MPI_Irecv( recv_buff, 2, MPI_FLOAT,
+               l->neighbor_rank[mu_dir], mu_dir, g.comm_cart, &(setup_reqs[0]) );
+
+    MPI_Isend( send_buff, 2, MPI_FLOAT,
+               l->neighbor_rank[inv_mu_dir], mu_dir, g.comm_cart, &(setup_reqs[1]) );
+
+    MPI_Wait( &(setup_reqs[0]), MPI_STATUS_IGNORE );
+    MPI_Wait( &(setup_reqs[1]), MPI_STATUS_IGNORE );
+
+    // release test buffers
+    cuda_safe_call( cudaFree( recv_buff ) );
+    cuda_safe_call( cudaFree( send_buff ) );
+  }
+#endif
 }
 
 

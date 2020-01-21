@@ -8,3 +8,5 @@ conf/*
 !conf/convert/
 !conf/random/
 !conf/split/
+nohup.out
+sample_devel_*

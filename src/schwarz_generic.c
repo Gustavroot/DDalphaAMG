@@ -178,7 +178,15 @@ void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
     s->block[i].bt = NULL;
     MALLOC( s->block[i].bt, int, n );
   }
-  
+
+  // TODO: is pinned memory still to be used ?
+  //#ifdef CUDA_OPT
+  //   using pinned memory
+  //  //cuda_safe_call( cudaMallocHost( (void**)&(s->buf1), (vs+3*l->schwarz_vector_size)*sizeof(complex_PRECISION) ) );
+  //#else
+  //  MALLOC( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
+  //#endif
+
   MALLOC( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
   s->buf2 = s->buf1 + vs;
   s->buf3 = s->buf2 + l->schwarz_vector_size;
@@ -271,7 +279,14 @@ void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l ) {
 #endif
   s->bbuf2 = NULL; s->bbuf3 = NULL; s->oe_bbuf[0] = NULL; s->oe_bbuf[1] = NULL;
   s->oe_bbuf[2] = NULL; s->oe_bbuf[3] = NULL; s->oe_bbuf[4] = NULL; s->oe_bbuf[5] = NULL;
-  
+
+  // FIXME: is pinned memory still to be used ?
+  //#ifdef CUDA_OPT  
+    //cuda_safe_call( cudaFreeHost(s->buf1) );
+  //#else
+    //FREE( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
+  //#endif
+
   FREE( s->buf1, complex_PRECISION, vs+3*l->schwarz_vector_size );
   s->buf2 = NULL; s->buf3 = NULL;
   s->buf4 = NULL;
@@ -1074,6 +1089,7 @@ void schwarz_PRECISION_setup( schwarz_PRECISION_struct *s, operator_double_struc
 }
 #endif
 
+
 void additive_schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res, 
                                  schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
   
@@ -1466,7 +1482,7 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
   END_MASTER(threading)
   
   SYNC_CORES(threading)
-  
+
   for ( k=0; k<cycles; k++ ) {
     
     for ( color=0; color<s->num_colors; color++ ) {
@@ -1481,7 +1497,7 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
         // we need a barrier between black and white blocks
         SYNC_CORES(threading)
       }
-        
+
       for ( i=nb_thread_start; i<nb_thread_end; i++ ) {
         // for all blocks of current color NOT involved in communication
         if ( color == s->block[i].color && s->block[i].no_comm ) {
@@ -1510,7 +1526,7 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
           END_MASTER(threading)
         }
       }
-      
+
       if ( res == _RES ) {
         START_LOCKED_MASTER(threading)
         for ( mu=0; mu<4; mu++ ) {
@@ -1522,7 +1538,7 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
         // we need a barrier between black and white blocks
         SYNC_CORES(threading)
       }
-        
+
       for ( i=nb_thread_start; i<nb_thread_end; i++ ) {
         // for all blocks of current color involved in communication
         if ( color == s->block[i].color && !s->block[i].no_comm ) {
