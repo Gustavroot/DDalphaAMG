@@ -426,6 +426,27 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
   operator_double_define( &(g.op_double), l );
   MALLOC( g.odd_even_table, int, l->num_inner_lattice_sites );
   define_odd_even_table( l );
+
+#ifdef CUDA_OPT
+  {
+    bool examine_csw, examine_block;
+    int i;
+
+    examine_csw = (g.csw == 0.0);
+    examine_block = 1;
+    for( i=0; i<4; i++ ){
+      if( l->block_lattice[i]==4 ) examine_block *= examine_block;
+    }
+
+    if( examine_csw || examine_block!=1 ){
+      if( examine_csw && g.my_rank==0 ) printf("ERROR: g.csw=0.0 disabled for now.\n");
+      if( examine_block!=1 && g.my_rank==0 ) printf("ERROR: only supporting 'block lattice'=4x4x4x4 at the finest level for now.\n");
+      method_finalize( l );
+      MPI_Finalize();
+      exit(0);
+    }
+  }
+#endif
 }
 
 

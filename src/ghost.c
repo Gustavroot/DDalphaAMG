@@ -67,10 +67,7 @@ void cart_define( level_struct *l ) {
 #ifdef CUDA_OPT
   // Set the device for each MPI process, in correspondence with
   // the <local rank>
-  if(g.csw == 0){
-    printf("ERROR: g.csw=0 disabled for now.");
-    exit(1);
-  }
+
   // Based on:
   //		https://cvw.cac.cornell.edu/MPIAdvTopics/splitting
   //		https://stackoverflow.com/questions/27908813/requirements-for-use-of-cuda-aware-mpi (MPI needs to be CUDA-aware)

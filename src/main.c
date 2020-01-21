@@ -57,7 +57,7 @@ int main( int argc, char **argv ) {
   }
 
   method_init( &argc, &argv, &l );
-  
+
   no_threading = (struct Thread *)malloc(sizeof(struct Thread));
   setup_no_threading(no_threading, &l);
   

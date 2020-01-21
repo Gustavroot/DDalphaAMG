@@ -23,6 +23,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 #include <string.h>
+#include "stdbool.h"
 #ifndef IMPORT_FROM_EXTERN_C
   #include <mpi.h>
 #endif
