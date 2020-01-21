@@ -92,7 +92,8 @@
     int num_restart, restart_length, timing, print, kind,
         initial_guess_zero, layout, v_start, v_end, total_storage;
     void (*preconditioner)();
-    void (*eval_operator)( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op, struct level_struct *l, struct Thread *threading );
+    void (*eval_operator)( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
+                           struct level_struct *l, struct Thread *threading );
   } gmres_PRECISION_struct;
 
 #ifdef CUDA_OPT
