@@ -84,7 +84,11 @@ void cart_define( level_struct *l ) {
   MPI_Comm_free( &loc_comm );
 
   cuda_safe_call( cudaGetDeviceCount( &num_devices ) );
-  cuda_safe_call( cudaSetDevice( local_rank % num_devices ) );
+  // Using pragma omp here to raise persistent thread-to-GPU linkage
+#pragma omp parallel num_threads(g.num_openmp_processes)
+  {
+    cuda_safe_call( cudaSetDevice( local_rank % num_devices ) );
+  }
 
   // Run async ghost exchanges once, to remove offset setup time introduced
   // by the MPI-Aware implementation of OpenMPI

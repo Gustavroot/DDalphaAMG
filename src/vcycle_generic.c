@@ -107,7 +107,7 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
         gettimeofday(&l->restr_measr_start, NULL);
         restrict_PRECISION( l->next_level->p_PRECISION.b, eta, l, threading );
         gettimeofday(&l->restr_measr_end, NULL);
-        l->restr_measr_lapsed += (l->restr_measr_end.tv_sec * 1000000 + l->restr_measr_end.tv_usec) - (l->restr_measr_start.tv_sec * 1000000 + l->restr_measr_start.tv_usec);
+        if(threading->core==0) l->restr_measr_lapsed += (l->restr_measr_end.tv_sec * 1000000 + l->restr_measr_end.tv_usec) - (l->restr_measr_start.tv_sec * 1000000 + l->restr_measr_start.tv_usec);
       } else {
         int start = threading->start_index[l->depth];
         int end   = threading->end_index[l->depth];
@@ -116,7 +116,7 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
         gettimeofday(&l->restr_measr_start, NULL);
         restrict_PRECISION( l->next_level->p_PRECISION.b, l->vbuf_PRECISION[3], l, threading );
         gettimeofday(&l->restr_measr_end, NULL);
-        l->restr_measr_lapsed += (l->restr_measr_end.tv_sec * 1000000 + l->restr_measr_end.tv_usec) - (l->restr_measr_start.tv_sec * 1000000 + l->restr_measr_start.tv_usec);
+        if(threading->core==0) l->restr_measr_lapsed += (l->restr_measr_end.tv_sec * 1000000 + l->restr_measr_end.tv_usec) - (l->restr_measr_start.tv_sec * 1000000 + l->restr_measr_start.tv_usec);
       }
       if ( !l->next_level->idle ) {
         START_MASTER(threading)
@@ -140,7 +140,7 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
             fgmres_PRECISION( &(l->next_level->p_PRECISION), l->next_level, threading );
           }
           gettimeofday(&l->next_level->coarse_measr_end, NULL);
-          l->next_level->coarse_measr_lapsed += (l->next_level->coarse_measr_end.tv_sec * 1000000 + l->next_level->coarse_measr_end.tv_usec) - (l->next_level->coarse_measr_start.tv_sec * 1000000 + l->next_level->coarse_measr_start.tv_usec);
+          if(threading->core==0) l->next_level->coarse_measr_lapsed += (l->next_level->coarse_measr_end.tv_sec * 1000000 + l->next_level->coarse_measr_end.tv_usec) - (l->next_level->coarse_measr_start.tv_sec * 1000000 + l->next_level->coarse_measr_start.tv_usec);
         }
         START_MASTER(threading)
         if ( l->depth == 0 )
@@ -154,12 +154,12 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
       else
         interpolate_PRECISION( phi, l->next_level->p_PRECISION.x, l, threading );
       gettimeofday(&l->interp_measr_end, NULL);
-      l->interp_measr_lapsed += (l->interp_measr_end.tv_sec * 1000000 + l->interp_measr_end.tv_usec) - (l->interp_measr_start.tv_sec * 1000000 + l->interp_measr_start.tv_usec);
+      if(threading->core==0) l->interp_measr_lapsed += (l->interp_measr_end.tv_sec * 1000000 + l->interp_measr_end.tv_usec) - (l->interp_measr_start.tv_sec * 1000000 + l->interp_measr_start.tv_usec);
 
       gettimeofday(&l->smoother_measr_start, NULL);
       smoother_PRECISION( phi, Dphi, eta, l->post_smooth_iter, _RES, _NO_SHIFT, l, threading );
       gettimeofday(&l->smoother_measr_end, NULL);
-      l->smoother_measr_lapsed += (l->smoother_measr_end.tv_sec * 1000000 + l->smoother_measr_end.tv_usec) - (l->smoother_measr_start.tv_sec * 1000000 + l->smoother_measr_start.tv_usec);
+      if(threading->core==0) l->smoother_measr_lapsed += (l->smoother_measr_end.tv_sec * 1000000 + l->smoother_measr_end.tv_usec) - (l->smoother_measr_start.tv_sec * 1000000 + l->smoother_measr_start.tv_usec);
 
       res = _RES;
     }
