@@ -911,17 +911,24 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
 }
 
 
-// FIXME: profiling is not measuring correctly
-
 void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res,
                              schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
+
+  // TODO-s:
+
+  //	1. move the code for nr_thrDD_blocks_notin_comms[2] (and
+  //	   the others) to schwarz_PRECISION_setup_CUDA(...)
+  //	2. reconsider all the calls to cudaDeviceSynchronize() and
+  //	   SYNC_CORES(threading): reduce synchronizations as much
+  //	   as possible (go over all of the FIXME-s)
+  //	3. add local profiling
+  //	4. fix unknown (minor) memory leakage
 
   START_NO_HYPERTHREADS(threading)
 
   // Assign a different sub-set of DD blocks to each OpenMP thread
   // Computing the offset of DD-blocks indices and nr of such DD blocks, per color,
   // depending on the nr of OpenMP threads available
-  // TODO: move this code to schwarz_PRECISION_setup_CUDA(...)
   int nr_thrDD_blocks_notin_comms[2] = { s->nr_DD_blocks_notin_comms[0],
                                          s->nr_DD_blocks_notin_comms[1]
                                        },
@@ -982,7 +989,6 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   cuda_safe_call( cudaEventCreate(&stop_event_copy) );
   cuda_safe_call( cudaEventCreate(&start_event_comp) );
   cuda_safe_call( cudaEventCreate(&stop_event_comp) );
-  // TODO: generalization to more than one streams pending
   cudaStream_t *streams_schwarz = s->streams;
 
   cuda_vector_PRECISION_copy( (void*)eta_dev, (void*)eta, nb_thread_start*s->block_vector_size,
@@ -1011,7 +1017,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
   }
   END_MASTER(threading)
 
-  // TODO: remove?
+  // FIXME ?
   cuda_safe_call( cudaDeviceSynchronize() );
   SYNC_CORES(threading)
 
@@ -1030,8 +1036,6 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
         SYNC_CORES(threading)
         cuda_safe_call( cudaDeviceSynchronize() );
       }
-
-      // TODO: add profiling !
 
       if ( res == _RES ) {
         if ( k==0 && init_res == _RES ) {
@@ -1069,7 +1073,6 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
         for ( mu=0; mu<4; mu++ ) {
           cuda_ghost_update_wait_PRECISION( (k==0 && init_res == _RES)?x_dev:latest_iter_dev, mu, +1, &(s->op.c), l );
           cuda_ghost_update_wait_PRECISION( (k==0 && init_res == _RES)?x_dev:latest_iter_dev, mu, -1, &(s->op.c), l );
-          // TODO: remove the following line?
           cuda_safe_call( cudaDeviceSynchronize() );
         }
         END_LOCKED_MASTER(threading)
@@ -1079,6 +1082,10 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
         SYNC_CORES(threading)
         cuda_safe_call( cudaDeviceSynchronize() );
       }
+
+      // FIXME ?
+      SYNC_CORES(threading)
+      cuda_safe_call( cudaDeviceSynchronize() );
 
       if ( res == _RES ) {
         if ( k==0 && init_res == _RES ) {
@@ -1126,18 +1133,12 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
       vector_PRECISION_scale( phi, phi, l->relax_fac, s->block[i].start*l->num_lattice_site_var,
                               s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );
     }
-    //cuda_vector_PRECISION_scale( phi, make_cu_cmplx_PRECISION( l->relax_fac, 0 ), nb_thread_start*s->block_vector_size,
-    //                             (nb_thread_end-nb_thread_start)*s->block_vector_size, l, _CUDA_SYNC, threading->core, streams_schwarz );
-    //cuda_vector_PRECISION_copy( (void*)phi, (void*)x_dev, nb_thread_start*s->block_vector_size,
-    //                            (nb_thread_end-nb_thread_start)*s->block_vector_size, l, _D2H, _CUDA_SYNC, threading->core, streams_schwarz );
   } else {
     cuda_vector_PRECISION_copy( (void*)phi, (void*)x_dev, nb_thread_start*s->block_vector_size,
                                 (nb_thread_end-nb_thread_start)*s->block_vector_size, l, _D2H, _CUDA_SYNC, threading->core, streams_schwarz );
   }
 
   if( D_phi != NULL ){
-
-    // TODO: FIXME !!
 
     START_LOCKED_MASTER(threading)
     for ( mu=0; mu<4; mu++ ) {
@@ -1168,6 +1169,10 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
                                          (s->cu_s).DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0],
                                          s->DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0] );
     }
+
+    // FIXME ?
+    cuda_safe_call( cudaDeviceSynchronize() );
+    SYNC_CORES(threading)
 
     // 2. for all those DD blocks of color=1: vector_PRECISION_minus( ... ), vector_PRECISION_scale( ... )
 
