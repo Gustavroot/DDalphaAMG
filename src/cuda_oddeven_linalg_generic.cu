@@ -682,7 +682,7 @@ extern "C" void cuda_vector_PRECISION_define( cuda_vector_PRECISION phi, cu_cmpl
   int threads_per_cublock = 32;
 
   _cuda_vector_PRECISION_define<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>>
-                               ( phi, scalar );
+                               ( phi+start, scalar );
 
   if( sync_type == _CUDA_SYNC ){
     cuda_safe_call( cudaDeviceSynchronize() );
@@ -692,23 +692,24 @@ extern "C" void cuda_vector_PRECISION_define( cuda_vector_PRECISION phi, cu_cmpl
 
 
 // TODO: generalize to receive a CUDA stream as parameter
-__global__ void _cuda_vector_PRECISION_scale( cuda_vector_PRECISION phi, cu_cmplx_PRECISION scalar ){
+__global__ void _cuda_vector_PRECISION_scale( cuda_vector_PRECISION phi1, cuda_vector_PRECISION phi2, cu_cmplx_PRECISION scalar ){
 
   int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
-  phi[idx] = cu_cmul_PRECISION( phi[idx], scalar );
+  //phi[idx] = cu_cmul_PRECISION( phi[idx], scalar );
+  phi1[idx] = cu_cmul_PRECISION( phi2[idx], scalar );
 
 }
 
 
-extern "C" void cuda_vector_PRECISION_scale( cuda_vector_PRECISION phi, cu_cmplx_PRECISION scalar, int start,
+extern "C" void cuda_vector_PRECISION_scale( cuda_vector_PRECISION phi1, cuda_vector_PRECISION phi2, cu_cmplx_PRECISION scalar, int start,
                                              int length, level_struct *l, int sync_type, int stream_id, cudaStream_t *streams ){
 
   int nr_threads = length;
   int threads_per_cublock = 32;
 
   _cuda_vector_PRECISION_scale<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>>
-                               ( phi, scalar );
+                               ( phi1+start, phi2+start, scalar );
 
   if( sync_type == _CUDA_SYNC ){
     cuda_safe_call( cudaDeviceSynchronize() );

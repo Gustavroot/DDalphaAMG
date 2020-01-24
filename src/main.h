@@ -454,6 +454,7 @@
     var_table vt;
 
     int on_solve;
+    int nr_threads;
 
     // time-measurement vars, overall measurements
     struct timeval solve_measr_start, solve_measr_end;

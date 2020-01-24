@@ -1598,6 +1598,8 @@ void schwarz_PRECISION( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRE
                                   s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );
         }
       }
+    }
+    for ( i=nb_thread_start; i<nb_thread_end; i++ ) {
       if ( 1 == s->block[i].color ) {
         vector_PRECISION_minus( D_phi, eta, r, s->block[i].start*l->num_lattice_site_var,
                                 s->block[i].start*l->num_lattice_site_var+s->block_vector_size, l );

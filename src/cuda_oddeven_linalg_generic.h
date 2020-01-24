@@ -41,7 +41,7 @@
   extern void cuda_vector_PRECISION_define( cuda_vector_PRECISION phi, cu_cmplx_PRECISION scalar, int start,
                                             int length, level_struct *l, int sync_type, int stream_id, cudaStream_t *streams );
 
-  extern void cuda_vector_PRECISION_scale( cuda_vector_PRECISION phi, cu_cmplx_PRECISION scalar, int start,
+  extern void cuda_vector_PRECISION_scale( cuda_vector_PRECISION phi1, cuda_vector_PRECISION phi2, cu_cmplx_PRECISION scalar, int start,
                                            int length, level_struct *l, int sync_type, int stream_id, cudaStream_t *streams );
 
   extern void cuda_block_vector_PRECISION_scale( cuda_vector_PRECISION out, cuda_vector_PRECISION in, cu_cmplx_PRECISION scalar,

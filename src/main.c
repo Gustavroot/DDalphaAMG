@@ -105,6 +105,9 @@ int main( int argc, char **argv ) {
     setup_threading(&threading, commonthreaddata, &l);
     setup_no_threading(no_threading, &l);
 
+    // TODO: move this line to a better place !
+    g.nr_threads = threading.n_core;
+
     // setup up initial MG hierarchy
     method_setup( NULL, &l, &threading );
 
@@ -131,7 +134,7 @@ int main( int argc, char **argv ) {
     g.solve_measr_lapsed = (g.solve_measr_end.tv_sec * 1000000 + g.solve_measr_end.tv_usec) - (g.solve_measr_start.tv_sec * 1000000 + g.solve_measr_start.tv_usec);
 
     // displaying overall time measurements
-    if( g.my_rank==0 ){
+    if( g.my_rank==0 && threading.core==0 ){
       printf("---------------------------------------\n");
       printf("Overall timing: (all times in us)\n\n");
       printf("Total solve time: %lf\n", g.solve_measr_lapsed);
