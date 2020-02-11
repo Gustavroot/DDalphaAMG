@@ -58,7 +58,6 @@ void schwarz_PRECISION_init_CUDA( schwarz_PRECISION_struct *s, level_struct *l )
   (s->cu_s).DD_blocks_notin_comms = NULL;
   (s->cu_s).DD_blocks = NULL;
 
-  s->block[0].bt_on_gpu = NULL;
   (s->cu_s).block = NULL;
 
   (s->s_on_gpu_cpubuff).op.oe_clover_vectorized = NULL;
@@ -109,6 +108,10 @@ void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l 
 
   int vs, i;
 
+  // The following line has to go here and not in init(), due to previous
+  // allocation of s->block
+  s->block[0].bt_on_gpu = NULL;
+
   // -------------------------- s-related
 
   MALLOC( s->streams, cudaStream_t, g.nr_threads );
@@ -118,8 +121,6 @@ void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l 
 
   // GPU-version of schwarz_PRECISION_struct
   cuda_safe_call( cudaMalloc( (void**) (&( s->s_on_gpu )), 1*sizeof(schwarz_PRECISION_struct_on_gpu) ) );
-
-  //return;
 
   // -------------------------- (s->cu_s)-related
 
