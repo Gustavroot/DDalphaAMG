@@ -435,7 +435,7 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
     examine_csw = (g.csw == 0.0);
     examine_block = 1;
     for( i=0; i<4; i++ ){
-      if( l->block_lattice[i]==4 ) examine_block *= examine_block;
+      if( l->block_lattice[i]!=4 ) examine_block &= 0;
     }
 
     if( examine_csw || examine_block!=1 ){
@@ -1034,7 +1034,7 @@ void validate_parameters( int ls, level_struct *l ) {
       ASSERT( DIVIDES( g.global_lattice[i][mu]/g.global_lattice[i+1][mu], g.local_lattice[i][mu] ) ); 
       ASSERT( DIVIDES( g.block_lattice[i][mu], g.global_lattice[i][mu]/g.global_lattice[i+1][mu] ) );
 #ifdef SSE
-      if ( ! g.block_lattice[i][mu] == g.global_lattice[i][mu]/g.global_lattice[i+1][mu] )
+      if ( ! (g.block_lattice[i][mu] == g.global_lattice[i][mu]/g.global_lattice[i+1][mu]) )
         warning0("when using SSE, Schwarz block size and aggregate size have to match.\n");
       ASSERT( g.block_lattice[i][mu] == g.global_lattice[i][mu]/g.global_lattice[i+1][mu] );
 #endif

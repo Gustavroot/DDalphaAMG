@@ -1,5 +1,3 @@
-#ifdef CUDA_OPT
-
 #include <mpi.h>
 
 #ifdef CUDA_OPT
@@ -16,6 +14,7 @@ extern "C"{
 
 }
 
+#ifdef CUDA_OPT
 
 // Pre-definitions of CUDA functions to be called from the CUDA kernels, force inlining on some device functions
 

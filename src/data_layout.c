@@ -231,7 +231,8 @@ void define_nt_bt_tt( int *nt, int *backward_nt, int **bt, int *tt, int *it, int
                 bt_mu[i] = site_index( t, z, y, x, dt, it );
                 i++;
               }
-              l_st[mu] = ls[mu];
+
+        l_st[mu] = ls[mu];
       }
     }
   }

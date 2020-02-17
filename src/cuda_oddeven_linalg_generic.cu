@@ -1,6 +1,3 @@
-#ifdef CUDA_OPT
-
-
 #include <mpi.h>
 
 extern "C"{
@@ -11,6 +8,7 @@ extern "C"{
 
 }
 
+#ifdef CUDA_OPT
 
 __global__ void cuda_block_oe_vector_PRECISION_copy_6threads_opt( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
                                                                   schwarz_PRECISION_struct_on_gpu *s, int thread_id, \

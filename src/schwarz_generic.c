@@ -584,7 +584,8 @@ void schwarz_layout_PRECISION_define( schwarz_PRECISION_struct *s, level_struct 
                             s->block[j].bt[i] = connect_link_PRECISION( t, z, y, x, mu, -1, dt, it, s, l );
                             i++;
                           }
-                          block_end[mu] = tmp;
+
+                    block_end[mu] = tmp;
                   }
                   j++;
                 }

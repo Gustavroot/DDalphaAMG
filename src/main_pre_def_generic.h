@@ -21,7 +21,7 @@
 
 #ifndef MAIN_PRE_DEF_PRECISION_HEADER
   #define MAIN_PRE_DEF_PRECISION_HEADER
-  
+
   typedef PRECISION complex complex_PRECISION;
   typedef PRECISION complex *config_PRECISION;
   typedef PRECISION complex *vector_PRECISION;

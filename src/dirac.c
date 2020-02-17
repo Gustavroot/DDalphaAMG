@@ -47,7 +47,8 @@ void compute_clover_term ( SU3_storage U, level_struct *l ) {
                 Qdiff( Qstore, mu, nu, t, z, y, x, U );
                 set_clover( Qstore, mu, nu, i, g.op_double.clover );
               }
-              i++;
+
+            i++;
           }
     
     mat_free( &Qstore, 3 );

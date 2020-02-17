@@ -1,7 +1,6 @@
-#ifdef CUDA_OPT
-
 #include "main.h"
 
+#ifdef CUDA_OPT
 
 void smoother_PRECISION_def_CUDA( level_struct *l ) {
 

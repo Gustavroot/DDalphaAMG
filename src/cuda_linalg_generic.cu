@@ -1,6 +1,3 @@
-#ifdef CUDA_OPT
-
-
 #include <mpi.h>
 
 extern "C"{
@@ -10,6 +7,8 @@ extern "C"{
   #undef IMPORT_FROM_EXTERN_C
 
 }
+
+#ifdef CUDA_OPT
 
 extern "C" void
 cuda_vector_PRECISION_copy(					void* out, void* in, int start, int size_of_copy, level_struct *l,

@@ -1,6 +1,3 @@
-#ifdef CUDA_OPT
-
-
 #include <mpi.h>
 
 extern "C"{
@@ -10,6 +7,8 @@ extern "C"{
   #undef IMPORT_FROM_EXTERN_C
 
 }
+
+#ifdef CUDA_OPT
 
 // sites_to_solve = {_EVEN_SITES, _ODD_SITES, _FULL_SYSTEM}
 extern "C" void cuda_local_minres_PRECISION( cuda_vector_PRECISION phi, cuda_vector_PRECISION eta, cuda_vector_PRECISION latest_iter,

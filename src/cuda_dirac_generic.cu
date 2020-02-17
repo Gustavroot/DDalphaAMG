@@ -1,6 +1,3 @@
-#ifdef CUDA_OPT
-
-
 #include <mpi.h>
 
 extern "C"{
@@ -11,6 +8,7 @@ extern "C"{
 
 }
 
+#ifdef CUDA_OPT
 
 __forceinline__ __device__ void
 _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,

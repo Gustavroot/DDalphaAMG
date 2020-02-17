@@ -1,13 +1,13 @@
 # --- COMPILER ----------------------------------------
 
-CC = mpicc -std=gnu11 -Wall -pedantic
+CC = mpicc -std=gnu11 -Wall #-pedantic
 MPI_INCLUDE = /home/ramirez/installs/openmpi/include/
 MPI_LIB = /home/ramirez/installs/openmpi/lib64/
 
 CPP = cpp
 MAKEDEP = $(CPP) -MM
 
-NVCC=/usr/local/cuda/bin/nvcc
+NVCC = nvcc -c --std=c++03
 CUDA_INCLUDE = /usr/local/cuda/include/
 CUDA_LIB = /usr/local/cuda/lib64/
 
@@ -37,8 +37,8 @@ OBJ_CUDADB = $(patsubst %.o,%_db.o,$(OBJ_CUDA))
 DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 
 # --- FLAGS -------------------------------------------
-COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING -DCUDA_OPT
-#COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING
+CUDA_ENABLER = -DCUDA_OPT
+COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING $(CUDA_ENABLER)
 #COMMON_FLAGS = -DPROFILING
 
 OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -I$(CUDA_INCLUDE)
@@ -78,10 +78,17 @@ documentation: doc/user_doc.pdf
 .SECONDARY:
 
 dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
-	$(NVCC) --compiler-options='$(OPT_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJ) $(OBJ_CUDA) $(H5LIB) $(LIMELIB) -lm
-
+ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
+	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -c $< -o $@
+else
+	$(CC) $(OPT_VERSION_FLAGS) $(LIMEH) -o $@ $(OBJ) $(H5LIB) $(LIMELIB) -lm
+endif
 dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
-	$(NVCC) -g --compiler-options='$(DEBUG_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(OBJ_CUDADB) $(H5LIB) $(LIMELIB) -lm
+ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
+	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -DDEBUG -c $< -o $@
+else
+	$(CC) -g $(DEBUG_VERSION_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(H5LIB) $(LIMELIB) -lm
+endif
 
 lib/libdd_alpha_amg.a: $(OBJ)
 	ar rc $@ $(OBJ)
@@ -103,11 +110,15 @@ $(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h
 	$(CC) -g $(CFLAGS) $(DEBUG_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -DDEBUG -c $< -o $@
 
+ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
 $(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
 	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -c $< -o $@
+endif
 
+ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
 	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -DDEBUG -c $< -o $@
+endif
 
 $(GSRCDIR)/%.h: $(SRCDIR)/%.h $(firstword $(MAKEFILE_LIST))
 	cp $< $@

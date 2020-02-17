@@ -1,5 +1,6 @@
-#ifdef CUDA_OPT
 #include "main.h"
+
+#ifdef CUDA_OPT
 
 void field_saver( void* phi, int length, char* datatype, char* filename ){
   int i;

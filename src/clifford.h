@@ -35,7 +35,7 @@
   #ifndef I
     #define I _Complex_I
   #endif
-  
+
   #ifdef BASIS0
     // Basis used within the OPENQCD/DD-HMC code
     #define CLIFFORD_BASIS "BASIS0:OPENQCD/DD-HMC BASIS"

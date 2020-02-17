@@ -140,7 +140,8 @@ void read_tv_from_file_PRECISION( level_struct *l, struct Thread *threading ) {
       START_LOCKED_MASTER(threading)
 
       int n = l->num_eig_vect, i;
-      char filename[STRINGLENGTH+1];
+      //char filename[STRINGLENGTH+1];
+      char filename[STRINGLENGTH+11];
       vector_double tmp = NULL;
       
       MALLOC( tmp, complex_double, l->inner_vector_size );

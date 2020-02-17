@@ -159,6 +159,7 @@
   }
 
   static inline void prp_Z_PRECISION( const vector_PRECISION prp_pt, const vector_PRECISION l_pt ) {
+
     prp_pt[0] = l_pt[0] -GAMMA_Z_SPIN0_VAL*l_pt[3*GAMMA_Z_SPIN0_CO];
     prp_pt[1] = l_pt[1] -GAMMA_Z_SPIN0_VAL*l_pt[3*GAMMA_Z_SPIN0_CO+1];
     prp_pt[2] = l_pt[2] -GAMMA_Z_SPIN0_VAL*l_pt[3*GAMMA_Z_SPIN0_CO+2];
