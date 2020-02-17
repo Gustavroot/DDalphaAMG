@@ -7,7 +7,7 @@ MPI_LIB = /home/ramirez/installs/openmpi/lib64/
 CPP = cpp
 MAKEDEP = $(CPP) -MM
 
-NVCC = nvcc -c --std=c++03
+NVCC = nvcc --std=c++03
 CUDA_INCLUDE = /usr/local/cuda/include/
 CUDA_LIB = /usr/local/cuda/lib64/
 
@@ -79,13 +79,13 @@ documentation: doc/user_doc.pdf
 
 dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
-	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -c $< -o $@
+	$(NVCC) --compiler-options='$(OPT_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJ) $(OBJ_CUDA) $(H5LIB) $(LIMELIB) -lm
 else
 	$(CC) $(OPT_VERSION_FLAGS) $(LIMEH) -o $@ $(OBJ) $(H5LIB) $(LIMELIB) -lm
 endif
 dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
-	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -DDEBUG -c $< -o $@
+	$(NVCC) -g --compiler-options='$(DEBUG_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(OBJ_CUDADB) $(H5LIB) $(LIMELIB) -lm
 else
 	$(CC) -g $(DEBUG_VERSION_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(H5LIB) $(LIMELIB) -lm
 endif
