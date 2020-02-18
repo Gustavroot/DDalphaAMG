@@ -428,6 +428,27 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
   define_odd_even_table( l );
 
 #ifdef CUDA_OPT
+
+  // For now, block lattice dimensions other than multiples of 4 are disabled. The reason for
+  // this is the use of the value 96 within the CUDA code. This 96 represents the amount of
+  // "basic" GPU work, in the sense of: due to gamma 5 symmetry, we can compute 6 out of 12
+  // lattice site components "independently", and then, to accomodate with the 32 threads per
+  // warp, if we choose 16 lattice sites per CUDA block, that means 96 threads are associated
+  // to 16 lattice sites. This is convenient, because 96 is divisible by both 6 and 32. Incidently,
+  // the number 12 appears in the GPU code, due to 96/6 = 12.
+
+  // To fix all of this (i.e. to generalize the code to be able to use not only >4^4 and multiples
+  // of 4):
+
+  //	1. change the number 12 by its corresponding variable-representation
+  //	2. change the number 96 to be somehow retrieved (directly or indirectly) from the .ini file
+  //	3. in particular, change the code to be able to use multiples of 3. From there, we might
+  //	   still restrict >=4 and >=3. Then, the user might for example be able to use 3^4 or 6^4,
+  //	   and in both cases the "base" size of the CUDA blocks would be (4^4)*6 = (81)*6, instead of
+  //	   (96)*6
+  //	4. add some if statements, because the user is still not allowed to put whatever comes to mind,
+  //	   both for DD block as for CUDA block sizes
+
   {
     bool examine_csw, examine_block;
     int i;
@@ -435,12 +456,12 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
     examine_csw = (g.csw == 0.0);
     examine_block = 1;
     for( i=0; i<4; i++ ){
-      if( l->block_lattice[i]!=4 ) examine_block &= 0;
+      if( (l->block_lattice[i] < 4) || (l->block_lattice[i]%4 != 0) ) examine_block &= 0;
     }
 
     if( examine_csw || examine_block!=1 ){
       if( examine_csw && g.my_rank==0 ) printf("ERROR: g.csw=0.0 disabled for now.\n");
-      if( examine_block!=1 && g.my_rank==0 ) printf("ERROR: only supporting 'block lattice'=4x4x4x4 at the finest level for now.\n");
+      if( examine_block!=1 && g.my_rank==0 ) printf("ERROR: only supporting 'block lattice _ mu' a multiple of 4 at the finest level for now.\n");
       method_finalize( l );
       MPI_Finalize();
       exit(0);
