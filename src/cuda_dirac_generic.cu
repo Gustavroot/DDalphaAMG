@@ -98,7 +98,7 @@ _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu
 __global__ void
 cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
                                                                 schwarz_PRECISION_struct_on_gpu *s, int thread_id,
-                                                                int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
+                                                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
                                                                 int num_latt_site_var, block_struct* block, int ext_dir ){
 
   int idx, DD_block_id, block_id, start;
@@ -155,8 +155,22 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
 
   // clover term
   if ( g.csw == 0.0 ) {
-    //clover_PRECISION( leta, lphi, clover, 12*n, l, threading ); 
-    //TODO
+    threads_per_cublock = 96;
+
+    nr_threads = n;
+    nr_threads *= l->num_lattice_site_var;
+    nr_threads *= nr_DD_blocks_to_compute;
+
+    nr_threads_per_DD_block = nr_threads / nr_DD_blocks_to_compute;
+
+    tot_shared_mem = 0;
+
+    cuda_clover_diag_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock,
+                                  tot_shared_mem, streams[stream_id]
+                              >>>
+                              ( eta, phi, s->s_on_gpu, g.my_rank, nr_threads_per_DD_block,
+                                DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block );
+
   } else {
     threads_per_cublock = 96;
 
@@ -173,7 +187,6 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
                               >>>
                               ( eta, phi, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
                                 DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block );
-
   }
 
   threads_per_cublock = 96;

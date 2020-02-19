@@ -174,12 +174,21 @@ void schwarz_PRECISION_alloc_CUDA( schwarz_PRECISION_struct *s, level_struct *l 
   cuda_safe_call( cudaMalloc( (void**) (&( (s->cu_s).block )),
                               s->num_blocks*sizeof(block_struct) ) );
 
-  cuda_safe_call( cudaMalloc( (void**) &((s->s_on_gpu_cpubuff).op.oe_clover_gpustorg),
-                              42 * sizeof(cu_cmplx_PRECISION) * s->num_block_sites * s->num_blocks ) );
-  cuda_safe_call( cudaMalloc( (void**) &((s->s_on_gpu_cpubuff).op.oe_clover_vectorized),
-                              72 * sizeof(cu_config_PRECISION) * s->num_block_sites * s->num_blocks ) );
+  if( g.csw != 0.0 ){
+    cuda_safe_call( cudaMalloc( (void**) &((s->s_on_gpu_cpubuff).op.oe_clover_gpustorg),
+                                42 * sizeof(cu_cmplx_PRECISION) * s->num_block_sites * s->num_blocks ) );
+    cuda_safe_call( cudaMalloc( (void**) &((s->s_on_gpu_cpubuff).op.oe_clover_vectorized),
+                                72 * sizeof(cu_config_PRECISION) * s->num_block_sites * s->num_blocks ) );
+  }
+  else{
+    cuda_safe_call( cudaMalloc( (void**) &((s->s_on_gpu_cpubuff).op.oe_clover_gpustorg),
+                                12 * sizeof(cu_cmplx_PRECISION) * s->num_block_sites * s->num_blocks ) );
+    cuda_safe_call( cudaMalloc( (void**) &((s->s_on_gpu_cpubuff).op.oe_clover_vectorized),
+                                12 * sizeof(cu_config_PRECISION) * s->num_block_sites * s->num_blocks ) );
+  }
 
-  if(g.csw != 0){
+
+  if( g.csw != 0.0 ){
     cuda_safe_call( cudaMalloc( (void**) &((s->s_on_gpu_cpubuff).op.clover_gpustorg),
                                 42 * sizeof(cu_cmplx_PRECISION) * l->num_inner_lattice_sites ) );
   }
@@ -430,20 +439,18 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
 
   // memory allocs
 
-  if(g.csw != 0){
+  if(g.csw != 0.0){
     MALLOC( buf_D_oe_cpu, cu_cmplx_PRECISION, 72 * nr_DD_sites*in->num_blocks );
   }
   else{
-    MALLOC( buf_D_oe_cpu, cu_cmplx_PRECISION, 12 * nr_DD_sites*in->num_blocks );
-    //cuda_safe_call( cudaMalloc( (void**) &(out->op.oe_clover_vectorized), 12 *
-    // sizeof(cu_config_PRECISION) * nr_DD_sites*in->num_blocks ) );
+    // no buffers needed to re-arrange data, as clover is diagonal when csw=0
   }
 
   // transactions
 
   buf_D_oe_cpu_bare = buf_D_oe_cpu;
 
-  if(g.csw != 0){
+  if(g.csw != 0.0){
 
     PRECISION *op_oe_vect_bare = in->op.oe_clover_vectorized;
     PRECISION *op_oe_vect = op_oe_vect_bare;
@@ -493,7 +500,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
     }
   }
   else{
-    //vector_PRECISION_copy( op->oe_clover, op->clover, 0, l->inner_vector_size, l );
+    // no buffers needed to re-arrange data, as clover is diagonal when csw=0
   }
 
   // making use of Doo^-1 (i.e. buf_D_oe_cpu_bare) being Hermitian to store in reduced form
@@ -501,67 +508,71 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
 
   cu_cmplx_PRECISION *buf_D_oe_cpu_gpustorg=NULL, *buf_D_oe_cpu_gpustorg_bare=NULL;
 
-  if(g.csw != 0){
+  if(g.csw != 0.0){
     MALLOC( buf_D_oe_cpu_gpustorg, cu_cmplx_PRECISION, 42 * nr_DD_sites*in->num_blocks );
   }
   else{
-    //TODO
+    // no buffers needed to re-arrange data, as clover is diagonal when csw=0
   }
 
   buf_D_oe_cpu = buf_D_oe_cpu_bare;
   buf_D_oe_cpu_gpustorg_bare = buf_D_oe_cpu_gpustorg;
 
-  for(b=0; b < in->num_blocks; b++){
-    for(h=0; h<nr_DD_sites; h++){
-      int N=6, k=0;
-      for ( j=0; j<N; j++ ) {
-        for ( i=j; i<N; i++ ) {
+  if( g.csw != 0.0 ){
+    for(b=0; b < in->num_blocks; b++){
+      for(h=0; h<nr_DD_sites; h++){
+        int N=6, k=0;
+        for ( j=0; j<N; j++ ) {
+          for ( i=j; i<N; i++ ) {
 
-          (buf_D_oe_cpu_gpustorg +    0)[k] = (buf_D_oe_cpu +    0)[i+j*N];
-          (buf_D_oe_cpu_gpustorg + 42/2)[k] = (buf_D_oe_cpu + 72/2)[i+j*N];
-          k++;
+            (buf_D_oe_cpu_gpustorg +    0)[k] = (buf_D_oe_cpu +    0)[i+j*N];
+            (buf_D_oe_cpu_gpustorg + 42/2)[k] = (buf_D_oe_cpu + 72/2)[i+j*N];
+            k++;
 
+          }
         }
-      }
 
-      buf_D_oe_cpu += 72;
-      buf_D_oe_cpu_gpustorg += 42;
+        buf_D_oe_cpu += 72;
+        buf_D_oe_cpu_gpustorg += 42;
+      }
     }
   }
+  else{
+    // no buffers needed to re-arrange data, as clover is diagonal when csw=0
+  }
 
-  if(g.csw != 0){
+  if(g.csw != 0.0){
     cuda_safe_call( cudaMemcpy( out->op.oe_clover_vectorized, buf_D_oe_cpu_bare,
                                 72*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
   }
   else{
-    cuda_safe_call( cudaMemcpy( out->op.oe_clover_vectorized, buf_D_oe_cpu_bare,
+    cuda_safe_call( cudaMemcpy( out->op.oe_clover_vectorized, in->op.oe_clover_vectorized,
                                 12*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
   }
 
-  if(g.csw != 0){
+  if(g.csw != 0.0){
     cuda_safe_call( cudaMemcpy( out->op.oe_clover_gpustorg, buf_D_oe_cpu_gpustorg_bare,
                                 42*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
   }
   else{
-    //cuda_safe_call( cudaMemcpy(out->op.oe_clover_vectorized, buf_D_oe_cpu_bare,
-    // 12*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
-    //buf_D_oe_gpu_gpustorg = NULL;
+    cuda_safe_call( cudaMemcpy(out->op.oe_clover_gpustorg, in->op.oe_clover,
+                    12*sizeof(cu_cmplx_PRECISION)*nr_DD_sites*in->num_blocks, cudaMemcpyHostToDevice) );
     buf_D_oe_cpu_gpustorg_bare = NULL;
   }
 
   // memory de-allocs --> CPU bufs
 
-  if(g.csw != 0){
+  if(g.csw != 0.0){
     FREE( buf_D_oe_cpu_bare, cu_cmplx_PRECISION, 72 * nr_DD_sites*in->num_blocks );
   }
   else{
-    FREE( buf_D_oe_cpu_bare, cu_cmplx_PRECISION, 12 * nr_DD_sites*in->num_blocks );
+    // no buffers needed to re-arrange data, as clover is diagonal when csw=0
   }
-  if(g.csw != 0){
+  if(g.csw != 0.0){
     FREE( buf_D_oe_cpu_gpustorg_bare, cu_cmplx_PRECISION, 42 * nr_DD_sites*in->num_blocks );
   }
   else{
-    //TODO
+    // no buffers needed to re-arrange data, as clover is diagonal when csw=0
   }
 
   //-------------------------------------------------------------------------------------------------------------------------
@@ -569,7 +580,7 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
 
   int n=l->num_inner_lattice_sites;
 
-  if(g.csw != 0){
+  if(g.csw != 0.0){
     cuda_safe_call( cudaMemcpy( out->op.clover_gpustorg, s->op.clover,
                                 42 * sizeof(cu_cmplx_PRECISION) * n, cudaMemcpyHostToDevice ) );
   }

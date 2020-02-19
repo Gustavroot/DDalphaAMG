@@ -12,7 +12,7 @@ extern "C"{
 
 __global__ void cuda_block_oe_vector_PRECISION_copy_6threads_opt( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
                                                                   schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                                  int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                  double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                                   int num_latt_site_var, block_struct* block, int sites_to_copy ){
 
   int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;
@@ -79,7 +79,7 @@ __global__ void cuda_block_oe_vector_PRECISION_copy_6threads_opt( cu_cmplx_PRECI
 
 __global__ void cuda_block_oe_vector_PRECISION_define_6threads_opt( cu_cmplx_PRECISION* spinor,\
                                                                     schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                                    int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                    double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                                     int num_latt_site_var, block_struct* block, int sites_to_define,
                                                                     cu_cmplx_PRECISION val_to_assign ){
 
@@ -147,7 +147,7 @@ __global__ void cuda_block_oe_vector_PRECISION_define_6threads_opt( cu_cmplx_PRE
 
 __global__ void cuda_block_oe_vector_PRECISION_plus_6threads_opt( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in1, cu_cmplx_PRECISION* in2, \
                                                                   schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                                  int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                  double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                                   int num_latt_site_var, block_struct* block, int sites_to_add ){
 
   int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;
@@ -232,7 +232,7 @@ __global__ void cuda_block_oe_vector_PRECISION_plus_6threads_opt( cu_cmplx_PRECI
 
 __global__ void cuda_block_oe_vector_PRECISION_minus_6threads_opt( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in1, cu_cmplx_PRECISION* in2, \
                                                                    schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                                   int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                   double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                                    int num_latt_site_var, block_struct* block, int sites_to_add ){
 
   int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;
@@ -317,7 +317,7 @@ __global__ void cuda_block_oe_vector_PRECISION_minus_6threads_opt( cu_cmplx_PREC
 
 __global__ void cuda_local_xy_over_xx_PRECISION( cu_cmplx_PRECISION* vec1, cu_cmplx_PRECISION* vec2, \
                                                  schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                 int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                 double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                  int num_latt_site_var, block_struct* block, int sites_to_dot ){
 
   //int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;
@@ -422,7 +422,7 @@ __global__ void cuda_local_xy_over_xx_PRECISION( cu_cmplx_PRECISION* vec1, cu_cm
 
 __global__ void cuda_block_oe_vector_PRECISION_saxpy_6threads_opt( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in1, cu_cmplx_PRECISION* in2, cu_cmplx_PRECISION alpha, \
                                                                    schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                                   int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                   double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                                    int num_latt_site_var, block_struct* block, int sites_to_add ){
 
   int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;
@@ -529,7 +529,7 @@ __global__ void cuda_block_oe_vector_PRECISION_saxpy_6threads_opt( cu_cmplx_PREC
 
 __global__ void cuda_block_oe_vector_PRECISION_saxpy_6threads_opt_onchip( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in1, cu_cmplx_PRECISION* in2, PRECISION prefctr_alpha, cu_cmplx_PRECISION *alphas, \
                                                                           schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                                          int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                          double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                                           int num_latt_site_var, block_struct* block, int sites_to_add ){
 
   int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;
@@ -718,7 +718,7 @@ extern "C" void cuda_vector_PRECISION_scale( cuda_vector_PRECISION phi1, cuda_ve
 
 __global__ void cuda_block_oe_vector_PRECISION_scale_6threads_opt( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, cu_cmplx_PRECISION scalar, \
                                                                    schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                                   int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                   double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                                    int num_latt_site_var, block_struct* block, int sites_to_add ){
 
   int i, idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;

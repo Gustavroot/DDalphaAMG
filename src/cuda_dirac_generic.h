@@ -5,7 +5,7 @@
 
   __global__ void cuda_block_d_plus_clover_PRECISION_6threads_naive( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
                                                                      schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
-                                                                     int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                     double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                                                      int num_latt_site_var, block_struct* block, int ext_dir );
 
   // host functions

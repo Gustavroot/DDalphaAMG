@@ -9,19 +9,25 @@ struct Thread;
   __global__ void
   cuda_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
 		                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id,
-                  		                                int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
+                  		                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
                                     		                int num_latt_site_var, block_struct* block );
+
+  __global__ void
+  cuda_clover_diag_PRECISION(                                   cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
+                                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id,
+                                                                int nr_threads_per_DD_block, int* DD_blocks_to_compute,
+                                                                int num_latt_site_var, block_struct* block );
 
   __global__ void
   cuda_block_hopping_term_PRECISION_plus_6threads_naive(	cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
                                                                 schwarz_PRECISION_struct_on_gpu *s, int thread_id,
-                                                                int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
+                                                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
                                                                 int num_latt_site_var, block_struct* block, int ext_dir, int amount );
 
   __global__ void
   cuda_block_hopping_term_PRECISION_minus_6threads_naive(	cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
                                                                 schwarz_PRECISION_struct_on_gpu *s, int thread_id,
-                                                                int csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
+                                                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
                                                                 int num_latt_site_var, block_struct* block, int ext_dir, int amount );
 
   // host functions

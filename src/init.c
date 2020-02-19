@@ -450,17 +450,17 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
   //	   both for DD block as for CUDA block sizes
 
   {
-    bool examine_csw, examine_block;
+    bool examine_block=1;
     int i;
 
-    examine_csw = (g.csw == 0.0);
+    //examine_csw = (g.csw == 0.0);
     examine_block = 1;
     for( i=0; i<4; i++ ){
       if( (l->block_lattice[i] < 4) || (l->block_lattice[i]%4 != 0) ) examine_block &= 0;
     }
 
-    if( examine_csw || examine_block!=1 ){
-      if( examine_csw && g.my_rank==0 ) printf("ERROR: g.csw=0.0 disabled for now.\n");
+    if( examine_block!=1 ){
+      //if( examine_csw && g.my_rank==0 ) printf("ERROR: g.csw=0.0 disabled for now.\n");
       if( examine_block!=1 && g.my_rank==0 ) printf("ERROR: only supporting 'block lattice _ mu' a multiple of 4 at the finest level for now.\n");
       method_finalize( l );
       MPI_Finalize();
