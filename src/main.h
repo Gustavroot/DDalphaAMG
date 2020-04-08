@@ -381,16 +381,6 @@
     double tol, relax_fac;
     int n_cy, post_smooth_iter, block_iter, setup_iter;
 
-    // time-measurement vars, overall measurements
-    struct timeval smoother_measr_start, smoother_measr_end;
-    double smoother_measr_lapsed;
-    struct timeval restr_measr_start, restr_measr_end;
-    double restr_measr_lapsed;
-    struct timeval interp_measr_start, interp_measr_end;
-    double interp_measr_lapsed;
-    struct timeval coarse_measr_start, coarse_measr_end;
-    double coarse_measr_lapsed;
-
     // next coarser level
     struct level_struct *next_level;
     

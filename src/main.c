@@ -114,46 +114,8 @@ int main( int argc, char **argv ) {
     // iterative phase
     method_update( l.setup_iter, &l, &threading );
 
-    {
-      struct level_struct *lb;
-      lb = &l;
-      for(int i=0; i<g.num_levels; i++){
-        lb->smoother_measr_lapsed = 0.0;
-        lb->restr_measr_lapsed = 0.0;
-        lb->interp_measr_lapsed = 0.0;
-        lb->coarse_measr_lapsed = 0.0;
-        lb = lb->next_level;
-      }
-    }
-
-    gettimeofday(&g.solve_measr_start, NULL);
     g.on_solve=1;
     solve_driver( &l, &threading );
-    gettimeofday(&g.solve_measr_end, NULL);
-
-    g.solve_measr_lapsed = (g.solve_measr_end.tv_sec * 1000000 + g.solve_measr_end.tv_usec) - (g.solve_measr_start.tv_sec * 1000000 + g.solve_measr_start.tv_usec);
-
-    // displaying overall time measurements
-    if( g.my_rank==0 && threading.core==0 ){
-      printf("---------------------------------------\n");
-      printf("Overall timing: (all times in us)\n\n");
-      printf("Total solve time: %lf\n", g.solve_measr_lapsed);
-      printf("Times per sub-module:\n\n");
-      {
-        struct level_struct *lb;
-        lb = &l;
-        for(int i=0; i<g.num_levels; i++){
-          printf("\tSmoother time, depth=%d: %lf (%d%% of total)\n", lb->depth, lb->smoother_measr_lapsed, (int)(lb->smoother_measr_lapsed/g.solve_measr_lapsed*100));
-          printf("\tInterpolation time, depth=%d: %lf (%d%% of total)\n", lb->depth, lb->interp_measr_lapsed, (int)(lb->interp_measr_lapsed/g.solve_measr_lapsed*100));
-          printf("\tRestriction time, depth=%d: %lf (%d%% of total)\n", lb->depth, lb->restr_measr_lapsed, (int)(lb->restr_measr_lapsed/g.solve_measr_lapsed*100));
-          printf("\tCoarse time, depth=%d: %lf (%d%% of total)\n", lb->depth, lb->coarse_measr_lapsed, (int)(lb->coarse_measr_lapsed/g.solve_measr_lapsed*100));
-          printf("\n");
-          lb = lb->next_level;
-        }
-      }
-      printf("\n\n");
-    }
-
   }
 
   finalize_common_thread_data(commonthreaddata);
