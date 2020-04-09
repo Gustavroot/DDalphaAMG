@@ -205,24 +205,28 @@ DD_gateway_hopping(						schwarz_PRECISION_struct_on_gpu *s, int *DD_blocks_to_c
 
   extern __shared__ cu_cmplx_PRECISION shared_data_bare[];
   cu_cmplx_PRECISION* shared_data = shared_data_bare;
-  (*gamma_coo) = (int*)shared_data;
-  shared_data = (cu_cmplx_PRECISION*)((int*)shared_data + 16);
-  (*gamma_val) = shared_data;
-  shared_data = shared_data + 16;
+  //(*gamma_coo) = (int*)shared_data;
+  //shared_data = (cu_cmplx_PRECISION*)((int*)shared_data + 16);
+  //(*gamma_val) = shared_data;
+  //shared_data = shared_data + 16;
   (*tmp_loc) = shared_data;
   shared_data = shared_data + 2*blockDim.x;
   (*Dgpu_local) = shared_data;
 
   // loading gamma coordinates into shared memory
-  if( threadIdx.x<16 ){
+  //if( threadIdx.x<16 ){
     //(*gamma_coo)[threadIdx.x] = s->gamma_info_coo[threadIdx.x];
-    (*gamma_coo)[threadIdx.x] = gamma_info_coo_PRECISION[threadIdx.x];
-  }
+    //(*gamma_coo)[threadIdx.x] = gamma_info_coo_PRECISION[threadIdx.x];
+  //}
   // loading gamma values into shared memory
-  if( threadIdx.x<16 ){
+  //if( threadIdx.x<16 ){
     //(*gamma_val)[threadIdx.x] = s->gamma_info_vals[threadIdx.x];
-    (*gamma_val)[threadIdx.x] = gamma_info_vals_PRECISION[threadIdx.x];
-  }
+    //(*gamma_val)[threadIdx.x] = gamma_info_vals_PRECISION[threadIdx.x];
+  //}
+
+  (*gamma_val) = gamma_info_vals_PRECISION;
+  (*gamma_coo) = gamma_info_coo_PRECISION;
+
   // initializing to zero a local buffer for temporary computations
   //if(idx < 6*nr_block_even_sites){
   if((*idx) < 6*( (amount==_EVEN_SITES)?(s->dir_length_even[ext_dir]):(s->dir_length_odd[ext_dir]) )){
@@ -1537,6 +1541,7 @@ _cuda_n_block_PRECISION_boundary_op_minus_naive(		cu_cmplx_PRECISION *eta, cu_cm
 }
 
 
+/*
 __device__ void
 _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
 								schwarz_PRECISION_struct_on_gpu *s, int idx, cu_cmplx_PRECISION *buf,
@@ -1622,6 +1627,7 @@ _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu
   						   );
 
 }
+*/
 
 
 __forceinline__ __device__ void
@@ -2735,8 +2741,8 @@ cuda_apply_block_schur_complement_PRECISION(			cuda_vector_PRECISION out, cuda_v
   //block_hopping_term_PRECISION( tmp[0], in, start, _ODD_SITES, s, l, threading );
   threads_per_cublock = 96;
   tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) +
-                   1*9*(threads_per_cublock/6)*sizeof(cu_cmplx_PRECISION) +
-                   16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
+                   1*9*(threads_per_cublock/6)*sizeof(cu_cmplx_PRECISION);
+                   //16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
   //tot_shared_mem = (2+1)*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION); // to load in, out and allocate
   // tmp_loc (this last one to use as buf1 and buf2)
   //tot_shared_mem += 1*36*(threads_per_cublock/6)*sizeof(cu_config_PRECISION); // to load s->op.D
@@ -2789,8 +2795,8 @@ cuda_apply_block_schur_complement_PRECISION(			cuda_vector_PRECISION out, cuda_v
   // hopping term, even sites
   threads_per_cublock = 96;
   tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) +
-                   1*9*(threads_per_cublock/6)*sizeof(cu_cmplx_PRECISION) +
-                   16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
+                   1*9*(threads_per_cublock/6)*sizeof(cu_cmplx_PRECISION);
+                   //16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
   for( dir=0; dir<4; dir++ ){
     nr_threads = (sites_to_solve==_EVEN_SITES)?s->dir_length_even[dir]:s->dir_length_odd[dir];
     nr_threads = nr_threads*(12/2);
@@ -2945,8 +2951,8 @@ cuda_block_solve_oddeven_PRECISION(				cuda_vector_PRECISION phi, cuda_vector_PR
     // hopping term, even sites
     threads_per_cublock = 96;
     tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) +
-                     1*9*(threads_per_cublock/6)*sizeof(cu_cmplx_PRECISION) +\
-                     16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
+                     1*9*(threads_per_cublock/6)*sizeof(cu_cmplx_PRECISION);
+                     //16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
     for( dir=0; dir<4; dir++ ){
       nr_threads = s->dir_length_even[dir];
       nr_threads = nr_threads*(12/2);
@@ -2972,8 +2978,8 @@ cuda_block_solve_oddeven_PRECISION(				cuda_vector_PRECISION phi, cuda_vector_PR
     // hopping term, odd sites
     threads_per_cublock = 96;
     tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) +
-                     1*9*(threads_per_cublock/6)*sizeof(cu_cmplx_PRECISION) +
-                     16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
+                     1*9*(threads_per_cublock/6)*sizeof(cu_cmplx_PRECISION);
+                     //16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
     for( dir=0; dir<4; dir++ ){
       nr_threads = s->dir_length_odd[dir];
       nr_threads = nr_threads*(12/2);
