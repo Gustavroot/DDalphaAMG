@@ -601,5 +601,3 @@ void g5D_shift_update_PRECISION( operator_PRECISION_struct *op, complex_PRECISIO
     SYNC_CORES(threading)
   }
 }
-
-

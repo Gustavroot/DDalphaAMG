@@ -866,6 +866,10 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   gamma_info_coo_buff[14] = GAMMA_X_SPIN1_CO;
   gamma_info_coo_buff[15] = GAMMA_X_SPIN3_CO;
 
+  // copying gamma-matrices info to constant GPU memory
+  cudaMemcpyToSymbol(gamma_info_vals_PRECISION, gamma_info_vals_buff, sizeof(cu_cmplx_PRECISION)*16, 0, cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(gamma_info_coo_PRECISION, gamma_info_coo_buff, sizeof(int)*16, 0, cudaMemcpyHostToDevice);
+
   //-------------------------------------------------------------------------------------------------------------------------
   // copying some minor variables
 

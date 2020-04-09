@@ -215,11 +215,13 @@ DD_gateway_hopping(						schwarz_PRECISION_struct_on_gpu *s, int *DD_blocks_to_c
 
   // loading gamma coordinates into shared memory
   if( threadIdx.x<16 ){
-    (*gamma_coo)[threadIdx.x] = s->gamma_info_coo[threadIdx.x];
+    //(*gamma_coo)[threadIdx.x] = s->gamma_info_coo[threadIdx.x];
+    (*gamma_coo)[threadIdx.x] = gamma_info_coo_PRECISION[threadIdx.x];
   }
   // loading gamma values into shared memory
   if( threadIdx.x<16 ){
-    (*gamma_val)[threadIdx.x] = s->gamma_info_vals[threadIdx.x];
+    //(*gamma_val)[threadIdx.x] = s->gamma_info_vals[threadIdx.x];
+    (*gamma_val)[threadIdx.x] = gamma_info_vals_PRECISION[threadIdx.x];
   }
   // initializing to zero a local buffer for temporary computations
   //if(idx < 6*nr_block_even_sites){
@@ -1239,8 +1241,10 @@ _cuda_block_PRECISION_boundary_op_plus_naive(			cu_cmplx_PRECISION *eta, cu_cmpl
 
   spin = (loc_ind/3)*2;
   //with this setup, gamma_val[0] gives spins 0 and 1, and gamma_val[1] spins 2 and 3
-  gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
-  gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  //gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
+  //gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  gamma_val = gamma_info_vals_PRECISION + ext_dir*4 + spin;
+  gamma_coo = gamma_info_coo_PRECISION  + ext_dir*4 + spin;
 
   // prp_T_PRECISION(...)
   buf1[ loc_ind ] = cu_csub_PRECISION( phi_pt[ loc_ind ],
@@ -1333,8 +1337,10 @@ _cuda_block_PRECISION_boundary_op_minus_naive(			cu_cmplx_PRECISION *eta, cu_cmp
 
   spin = (loc_ind/3)*2;
   //with this setup, gamma_val[0] gives spins 0 and 1, and gamma_val[1] spins 2 and 3
-  gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
-  gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  //gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
+  //gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  gamma_val = gamma_info_vals_PRECISION + ext_dir*4 + spin;
+  gamma_coo = gamma_info_coo_PRECISION  + ext_dir*4 + spin;
 
   // prn_T_PRECISION(...)
   buf1[ loc_ind ] = cu_cadd_PRECISION( phi_pt[ loc_ind ],
@@ -1433,8 +1439,10 @@ _cuda_n_block_PRECISION_boundary_op_plus_naive(			cu_cmplx_PRECISION *eta, cu_cm
 
   spin = (loc_ind/3)*2;
   //with this setup, gamma_val[0] gives spins 0 and 1, and gamma_val[1] spins 2 and 3
-  gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
-  gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  //gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
+  //gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  gamma_val = gamma_info_vals_PRECISION + ext_dir*4 + spin;
+  gamma_coo = gamma_info_coo_PRECISION  + ext_dir*4 + spin;
 
   // prp_T_PRECISION(...)
   buf1[ loc_ind ] = cu_csub_PRECISION( phi_pt[ loc_ind ],
@@ -1494,8 +1502,10 @@ _cuda_n_block_PRECISION_boundary_op_minus_naive(		cu_cmplx_PRECISION *eta, cu_cm
 
   spin = (loc_ind/3)*2;
   //with this setup, gamma_val[0] gives spins 0 and 1, and gamma_val[1] spins 2 and 3
-  gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
-  gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  //gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
+  //gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  gamma_val = gamma_info_vals_PRECISION + ext_dir*4 + spin;
+  gamma_coo = gamma_info_coo_PRECISION  + ext_dir*4 + spin;
 
   // prn_T_PRECISION(...)
   buf1[ loc_ind ] = cu_cadd_PRECISION( phi_pt[ loc_ind ],
@@ -1562,8 +1572,10 @@ _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu
 
   spin = (loc_ind/3)*2;
   //with this setup, gamma_val[0] gives spins 0 and 1, and gamma_val[1] spins 2 and 3
-  gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
-  gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  //gamma_val = s->gamma_info_vals + ext_dir*4 + spin;
+  //gamma_coo = s->gamma_info_coo  + ext_dir*4 + spin;
+  gamma_val = gamma_info_vals_PRECISION + ext_dir*4 + spin;
+  gamma_coo = gamma_info_coo_PRECISION  + ext_dir*4 + spin;
 
   // prn_T_PRECISION(...)
   buf1[ loc_ind ] = cu_cadd_PRECISION( (lphi + 12*k)[ loc_ind ],

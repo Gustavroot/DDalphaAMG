@@ -34,6 +34,11 @@
   struct Thread;
   struct level_struct;
 
+#ifdef CUDA_OPT
+  extern __constant__ cu_cmplx_PRECISION gamma_info_vals_PRECISION[16];
+  extern __constant__ int gamma_info_coo_PRECISION[16];
+#endif
+
   typedef struct {
     int length[8], *boundary_table[8], max_length[4],
         comm_start[8], in_use[8], offset, comm,

@@ -10,6 +10,9 @@ extern "C"{
 
 #ifdef CUDA_OPT
 
+__constant__ cu_cmplx_PRECISION gamma_info_vals_PRECISION[16];
+__constant__ int gamma_info_coo_PRECISION[16];
+
 __forceinline__ __device__ void
 _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
                                                                 schwarz_PRECISION_struct_on_gpu *s, int idx,
@@ -48,8 +51,10 @@ _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu
 
   spin = (loc_ind/3)*2;
   //with this setup, gamma_val[0] gives spins 0 and 1, and gamma_val[1] spins 2 and 3
-  gamma_val = s->gamma_info_vals + dir*4 + spin;
-  gamma_coo = s->gamma_info_coo  + dir*4 + spin;
+  //gamma_val = s->gamma_info_vals + dir*4 + spin;
+  //gamma_coo = s->gamma_info_coo  + dir*4 + spin;
+  gamma_val = gamma_info_vals_PRECISION + dir*4 + spin;
+  gamma_coo = gamma_info_coo_PRECISION  + dir*4 + spin;
 
   // prn_T_PRECISION(...)
   buf1[ loc_ind ] = cu_cadd_PRECISION( (lphi + 12*k)[ loc_ind ],
