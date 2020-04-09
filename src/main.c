@@ -47,13 +47,13 @@ int main( int argc, char **argv ) {
   
   predefine_rank();
   if ( g.my_rank == 0 ) {
-    printf("\n\n+----------------------------------------------------------------------+\n");
-    printf("| The DDalphaAMG solver library.                                       |\n");
-    printf("| Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez,                |\n");
-    printf("|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori. |\n");
-    printf("|                                                                      |\n");
-    printf("| This program comes with ABSOLUTELY NO WARRANTY.                      |\n");
-    printf("+----------------------------------------------------------------------+\n\n");
+    printf("\n\n+------------------------------------------------------------------------+\n");
+    printf("| The DDalphaAMG solver library.                                         |\n");
+    printf("| Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, |\n");
+    printf("|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.   |\n");
+    printf("|                                                                        |\n");
+    printf("| This program comes with ABSOLUTELY NO WARRANTY.                        |\n");
+    printf("+------------------------------------------------------------------------+\n\n");
   }
 
   method_init( &argc, &argv, &l );

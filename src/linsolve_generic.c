@@ -370,6 +370,9 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
               g.coarse_time, 100*(g.coarse_time/(t1-t0)) );
     printf0("|  consumed core minutes*: %-8.2le (solve only)           |\n", ((t1-t0)*g.num_processes*MAX(1,threading->n_core))/60.0 );
     printf0("|    max used mem/MPIproc: %-8.2le GB                     |\n", g.max_storage/1024.0 );
+#ifdef CUDA_OPT
+    printf0("|        max used mem/GPU: %-8.2le GB                     |\n", g.max_gpu_storage/1024.0 );
+#endif
     printf0("+----------------------------------------------------------+\n");
     printf0("*: only correct if #MPIprocs*#threads == #CPUs\n\n");
     END_MASTER(threading)
@@ -627,6 +630,9 @@ void cgn_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *
     printf0("| elapsed wall clock time: %-12g seconds            |\n", t1-t0 );
     printf0("|  consumed core minutes*: %-8.2le (solve only)           |\n", ((t1-t0)*g.num_processes*MAX(1,threading->n_core))/60.0 );
     printf0("|    max used mem/MPIproc: %-8.2le GB                     |\n", g.max_storage/1024.0 );
+#ifdef CUDA_OPT
+    printf0("|        max used mem/GPU: %-8.2le GB                     |\n", g.max_gpu_storage/1024.0 );
+#endif
     printf0("+----------------------------------------------------------+\n");
     printf0("*: only correct if #MPIprocs*#threads == #CPUs\n\n");
     END_MASTER(threading)

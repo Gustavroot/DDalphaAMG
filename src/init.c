@@ -494,6 +494,10 @@ void method_finalize( level_struct *l ) {
   
   if ( g.cur_storage )
     warning0("amount of not freed memory/MPIproc: %lf MB\n", g.cur_storage );
+#ifdef CUDA_OPT
+  if ( g.cur_gpu_storage )
+    warning0("amount of not freed memory/GPU: %lf MB\n", g.cur_gpu_storage );
+#endif
   
 #ifdef WRITE_LOGFILE
   fprintf(g.logfile,"---------- end of log file -----------\n\n");
@@ -619,6 +623,10 @@ void g_init( level_struct *l ) {
   g.two_cnfgs = 0;
   g.cur_storage = 0;
   g.max_storage = 0;
+#ifdef CUDA_OPT
+  g.cur_gpu_storage = 0;
+  g.max_gpu_storage = 0;
+#endif
   g.in_setup = 0;
 }
 
