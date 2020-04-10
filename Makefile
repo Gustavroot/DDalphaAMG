@@ -13,12 +13,15 @@ CUDA_LIB = /usr/local/cuda/lib64/
 
 # --- DO NOT CHANGE -----------------------------------
 SRCDIR = src
+SRCDIR_CUDA = src/gpu
+SRC = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.c,$(wildcard $(SRCDIR)/*.c)))
+SRC += $(patsubst $(SRCDIR_CUDA)/%,%,$(filter-out %_generic.c,$(wildcard $(SRCDIR_CUDA)/*.c)))
+SRC_CUDA = $(patsubst $(SRCDIR_CUDA)/%,%,$(filter-out %_generic.cu,$(wildcard $(SRCDIR_CUDA)/*.cu)))
 BUILDDIR = build
 GSRCDIR = $(BUILDDIR)/gsrc
-SRC = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.c,$(wildcard $(SRCDIR)/*.c)))
-SRC_CUDA = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.cu,$(wildcard $(SRCDIR)/*.cu)))
 SRCGEN = $(patsubst $(SRCDIR)/%,%,$(wildcard $(SRCDIR)/*_generic.c))
-SRCGEN_CUDA = $(patsubst $(SRCDIR)/%,%,$(wildcard $(SRCDIR)/*_generic.cu))
+SRCGEN += $(patsubst $(SRCDIR_CUDA)/%,%,$(wildcard $(SRCDIR_CUDA)/*_generic.c))
+SRCGEN_CUDA = $(patsubst $(SRCDIR_CUDA)/%,%,$(wildcard $(SRCDIR_CUDA)/*_generic.cu))
 GSRCFLT = $(patsubst %_generic.c,$(GSRCDIR)/%_float.c,$(SRCGEN))
 GSRCFLT_CUDA = $(patsubst %_generic.cu,$(GSRCDIR)/%_float.cu,$(SRCGEN_CUDA))
 GSRCDBL = $(patsubst %_generic.c,$(GSRCDIR)/%_double.c,$(SRCGEN))
@@ -26,10 +29,14 @@ GSRCDBL_CUDA = $(patsubst %_generic.cu,$(GSRCDIR)/%_double.cu,$(SRCGEN_CUDA))
 GSRC = $(patsubst %,$(GSRCDIR)/%,$(SRC)) $(GSRCFLT) $(GSRCDBL)
 GSRC_CUDA = $(patsubst %,$(GSRCDIR)/%,$(SRC_CUDA)) $(GSRCFLT_CUDA) $(GSRCDBL_CUDA)
 HEA = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.h,$(wildcard $(SRCDIR)/*.h)))
+HEA_CUDA = $(patsubst $(SRCDIR_CUDA)/%,%,$(filter-out %_generic.h,$(wildcard $(SRCDIR_CUDA)/*.h)))
 HEAGEN = $(patsubst $(SRCDIR)/%,%,$(wildcard $(SRCDIR)/*_generic.h))
+HEAGEN_CUDA = $(patsubst $(SRCDIR_CUDA)/%,%,$(wildcard $(SRCDIR_CUDA)/*_generic.h))
 GHEAFLT = $(patsubst %_generic.h,$(GSRCDIR)/%_float.h,$(HEAGEN))
+GHEAFLT_CUDA = $(patsubst %_generic.h,$(GSRCDIR)/%_float.h,$(HEAGEN_CUDA))
 GHEADBL = $(patsubst %_generic.h,$(GSRCDIR)/%_double.h,$(HEAGEN))
-GHEA = $(patsubst %,$(GSRCDIR)/%,$(HEA)) $(GHEAFLT) $(GHEADBL)
+GHEADBL_CUDA = $(patsubst %_generic.h,$(GSRCDIR)/%_double.h,$(HEAGEN_CUDA))
+GHEA = $(patsubst %,$(GSRCDIR)/%,$(HEA) $(HEA_CUDA)) $(GHEAFLT) $(GHEAFLT_CUDA) $(GHEADBL) $(GHEADBL_CUDA)
 OBJ = $(patsubst $(GSRCDIR)/%.c,$(BUILDDIR)/%.o,$(GSRC))
 OBJDB = $(patsubst %.o,%_db.o,$(OBJ))
 OBJ_CUDA = $(patsubst $(GSRCDIR)/%.cu,$(BUILDDIR)/%.o,$(GSRC_CUDA))
@@ -104,44 +111,44 @@ include/dd_alpha_amg.h: src/dd_alpha_amg.h
 include/dd_alpha_amg_parameters.h: src/dd_alpha_amg_parameters.h
 	cp src/dd_alpha_amg_parameters.h $@
 
-$(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h
+$(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
 	$(CC) $(CFLAGS) $(OPT_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -c $< -o $@
 
-$(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h
+$(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
 	$(CC) -g $(CFLAGS) $(DEBUG_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -DDEBUG -c $< -o $@
 
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
-$(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
+$(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
 	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -c $< -o $@
 endif
 
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
-$(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h
+$(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
 	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -DDEBUG -c $< -o $@
 endif
 
-$(GSRCDIR)/%.h: $(SRCDIR)/%.h $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%.h: $(SRCDIR)/%.h $(SRCDIR_CUDA)/%.h $(firstword $(MAKEFILE_LIST))
 	cp $< $@
 
-$(GSRCDIR)/%_float.h: $(SRCDIR)/%_generic.h $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%_float.h: $(SRCDIR)/%_generic.h $(SRCDIR_CUDA)/%_generic.h $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
 
-$(GSRCDIR)/%_double.h: $(SRCDIR)/%_generic.h $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%_double.h: $(SRCDIR)/%_generic.h $(SRCDIR_CUDA)/%_generic.h $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
 
-$(GSRCDIR)/%.cu: $(SRCDIR)/%.cu $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%.cu: $(SRCDIR_CUDA)/%.cu $(firstword $(MAKEFILE_LIST))
 	cp $< $@
 
 $(GSRCDIR)/%.c: $(SRCDIR)/%.c $(firstword $(MAKEFILE_LIST))
 	cp $< $@
 
-$(GSRCDIR)/%_float.cu: $(SRCDIR)/%_generic.cu $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%_float.cu: $(SRCDIR_CUDA)/%_generic.cu $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
 
 $(GSRCDIR)/%_float.c: $(SRCDIR)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
 
-$(GSRCDIR)/%_double.cu: $(SRCDIR)/%_generic.cu $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%_double.cu: $(SRCDIR_CUDA)/%_generic.cu $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
 
 $(GSRCDIR)/%_double.c: $(SRCDIR)/%_generic.c $(firstword $(MAKEFILE_LIST))
