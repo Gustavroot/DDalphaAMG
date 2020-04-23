@@ -382,7 +382,15 @@ void coarse_gamma5_PRECISION( vector_PRECISION eta, vector_PRECISION phi, int st
 #ifndef VECTORIZE_COARSE_OPERATOR_PRECISION
 void apply_coarse_operator_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                                       level_struct *l, struct Thread *threading ) {
-  
+
+  // this function is supposed to be called from the intermediate levels only
+  if (l->depth==0 || l->level==0)
+    error0("apply_coarse_operator_PRECISION(...) is supposed to be called from intermediate levels. Is odd-even not being applied to the coarsest-level?");
+
+#ifdef CUDA_OPT
+  // TODO : add profiling here (see non-CUDA code below)
+  apply_coarse_operator_PRECISION_CUDA( (cuda_vector_PRECISION)eta, (cuda_vector_PRECISION)phi, op, l, threading );
+#else
   PROF_PRECISION_START( _SC, threading );
   START_LOCKED_MASTER(threading)
   coarse_self_couplings_PRECISION( eta, phi, op->clover, l->inner_vector_size, l );
@@ -391,6 +399,7 @@ void apply_coarse_operator_PRECISION( vector_PRECISION eta, vector_PRECISION phi
   PROF_PRECISION_START( _NC, threading );
   coarse_hopping_term_PRECISION( eta, phi, op, _FULL_SYSTEM, l, threading );
   PROF_PRECISION_STOP( _NC, 1, threading );
+#endif
 }
 #endif
 

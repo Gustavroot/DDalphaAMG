@@ -72,7 +72,8 @@ void cart_define( level_struct *l ) {
   //		https://cvw.cac.cornell.edu/MPIAdvTopics/splitting
   //		https://stackoverflow.com/questions/27908813/requirements-for-use-of-cuda-aware-mpi (MPI needs to be CUDA-aware)
   //		6-Wrap-Up.pdf ----> GPU notes from 1st STIMULATE workshop
-  int local_rank=0, num_devices=0;
+  int local_rank = 0;
+  g.num_devices = 0;
 
   // one alternative to get the <local rank>
   //local_rank = atoi(getenv("OMPI_COMM_WORLD_LOCAL_RANK"));
@@ -83,12 +84,14 @@ void cart_define( level_struct *l ) {
   MPI_Comm_rank( loc_comm, &local_rank );
   MPI_Comm_free( &loc_comm );
 
-  cuda_safe_call( cudaGetDeviceCount( &num_devices ) );
+  cuda_safe_call( cudaGetDeviceCount( &(g.num_devices) ) );
   // Using pragma omp here to raise persistent thread-to-GPU linkage
 #pragma omp parallel num_threads(g.num_openmp_processes)
   {
-    cuda_safe_call( cudaSetDevice( local_rank % num_devices ) );
+    cuda_safe_call( cudaSetDevice( local_rank % g.num_devices ) );
   }
+
+  g.device_id = local_rank % g.num_devices;
 
   // Run async ghost exchanges once, to remove offset setup time introduced
   // by the MPI-Aware implementation of OpenMPI
@@ -101,13 +104,10 @@ void cart_define( level_struct *l ) {
     inv_mu_dir = 2*mu+1+MIN(dir,0);
 
     if( l->neighbor_rank[mu_dir]==g.my_rank || l->neighbor_rank[inv_mu_dir]==g.my_rank ){
-      if( g.my_rank==0 ){
-        printf("ERROR: mu=%d is not a good direction for ghost-exch initial test! FIXME!\n", mu);
-        exit(1);
-      }
+      error0("mu=%d is not a good direction for ghost-exch initial test! FIXME!\n", mu);
     }
 
-    // buffers for test exchange
+    // buffers for test exchange --> this text exchange is necessary to 'eliminate' an initial overhead
     float *recv_buff, *send_buff;
 
     // 8 is just to make sure we don't go over mem size

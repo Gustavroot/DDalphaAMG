@@ -436,6 +436,11 @@
 
 #ifdef CUDA_OPT
     double cur_gpu_storage, max_gpu_storage;
+
+    // some CUDA-specific values
+    int warp_size;
+    int num_devices;
+    int device_id;
 #endif
            
     // index functions for external usage
@@ -614,5 +619,10 @@
   #include "cuda_linsolve_double.h"
   #include "cuda_schwarz_double.h"
   #include "cuda_schwarz_float.h"
+  #include "cuda_coarse_oddeven_float.h"
+  #include "cuda_coarse_oddeven_double.h"
+  #include "cuda_coarse_operator_float.h"
+  #include "cuda_coarse_operator_double.h"
   #include "miscellaneous.h"
+  #include "cuda_miscellaneous.h"
 #endif

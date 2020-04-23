@@ -2972,7 +2972,7 @@ cuda_block_solve_oddeven_PRECISION(				cuda_vector_PRECISION phi, cuda_vector_PR
                                                               dir, _EVEN_SITES );
     }
 
-    cuda_local_minres_PRECISION( NULL, tmp3, tmp2, s, l, nr_DD_blocks_to_compute,
+    local_minres_PRECISION_CUDA( NULL, tmp3, tmp2, s, l, nr_DD_blocks_to_compute,
                                  DD_blocks_to_compute_gpu, streams, stream_id, _EVEN_SITES );
 
     // hopping term, odd sites

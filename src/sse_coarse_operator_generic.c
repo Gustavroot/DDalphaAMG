@@ -751,7 +751,16 @@ void coarse_block_operator_PRECISION( vector_PRECISION eta, vector_PRECISION phi
 #ifdef VECTORIZE_COARSE_OPERATOR_PRECISION
 void apply_coarse_operator_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                                       level_struct *l, struct Thread *threading ) {
-  
+
+  printf0("WITHIN NON-SCHUR !!, depth=%d \n", l->depth);
+
+  // this function is supposed to be called from the intermediate levels only
+  if (l->depth==0 || l->level==0)
+    error0("apply_coarse_operator_PRECISION(...) is supposed to be called from intermediate levels. Is odd-even not being applied to the coarsest-level?");
+
+#ifdef CUDA_OPT
+  apply_coarse_operator_PRECISION_CUDA( (cuda_vector_PRECISION)eta, (cuda_vector_PRECISION)phi, op, l, threading );
+#else
   PROF_PRECISION_START( _SC, threading );
   SYNC_CORES(threading)
   int start;
@@ -763,6 +772,7 @@ void apply_coarse_operator_PRECISION( vector_PRECISION eta, vector_PRECISION phi
   PROF_PRECISION_START( _NC, threading );
   coarse_hopping_term_PRECISION( eta, phi, op, _FULL_SYSTEM, l, threading );
   PROF_PRECISION_STOP( _NC, 1, threading );
+#endif
 }
 #endif
 

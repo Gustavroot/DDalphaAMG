@@ -123,6 +123,8 @@ void sse_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_
                            int start, int end, level_struct *l, struct Thread *threading );
 void d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                               level_struct *l, struct Thread *threading ) {
+
+  printf0("WITHIN d_plus_clover_PRECISION(...) !!, depth=%d \n", l->depth);
   
   int n = l->num_inner_lattice_sites, *neighbor = op->neighbor_table, start, end;
 #ifndef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION

@@ -24,6 +24,8 @@
 
 void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECISION eta,
                          int n, const int res, complex_PRECISION shift, level_struct *l, struct Thread *threading ) {
+
+  printf0("WITHIN SMOOTHER !!, depth=%d \n", l->depth);
   
   ASSERT( phi != eta );
 
@@ -130,6 +132,7 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
               g5D_coarse_solve_odd_even_PRECISION( &(l->next_level->p_PRECISION), &(l->next_level->oe_op_PRECISION), l->next_level, threading );
             } else {
               coarse_solve_odd_even_PRECISION( &(l->next_level->p_PRECISION), &(l->next_level->oe_op_PRECISION), l->next_level, threading );
+              //fgmres_PRECISION( &(l->next_level->p_PRECISION), l->next_level, threading );
             }
           } else {
             fgmres_PRECISION( &(l->next_level->p_PRECISION), l->next_level, threading );

@@ -10,8 +10,9 @@ extern "C"{
 
 #ifdef CUDA_OPT
 
+
 // sites_to_solve = {_EVEN_SITES, _ODD_SITES, _FULL_SYSTEM}
-extern "C" void cuda_local_minres_PRECISION( cuda_vector_PRECISION phi, cuda_vector_PRECISION eta, cuda_vector_PRECISION latest_iter,
+extern "C" void local_minres_PRECISION_CUDA( cuda_vector_PRECISION phi, cuda_vector_PRECISION eta, cuda_vector_PRECISION latest_iter,
                                              schwarz_PRECISION_struct *s, level_struct *l, int nr_DD_blocks_to_compute,
                                              int* DD_blocks_to_compute, cudaStream_t *streams, int stream_id, int sites_to_solve ) {
 
@@ -124,7 +125,5 @@ extern "C" void cuda_local_minres_PRECISION( cuda_vector_PRECISION phi, cuda_vec
                                                   (eta, r, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
 
 }
-
-
 
 #endif
