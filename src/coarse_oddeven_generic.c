@@ -122,8 +122,6 @@ void coarse_diag_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_PRE
 
 void coarse_diag_ee_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
 
-  //printf("%d, %d\n", op->num_even_sites, l->num_lattice_site_var);
-  
   int n1 = op->num_even_sites;
   int start;
   int end;
@@ -355,11 +353,7 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
   MALLOC( op->D, complex_PRECISION, 4*nc_size*n );
   MALLOC( op->clover, complex_PRECISION, lu_dec_size*n );
 #ifdef CUDA_OPT
-  //if (l->level == 0) {
-  //  //int clover_size = (op->num_even_sites+op->num_odd_sites)*((l->num_lattice_site_var + SQUARE(l->num_lattice_site_var))/2);
-  //  //printf("clover_size = %d\n", clover_size);
   CUDA_MALLOC( op->clover_gpu, cu_cmplx_PRECISION, lu_dec_size*n );
-  //}
 #endif
 #ifdef VECTORIZE_COARSE_OPERATOR_PRECISION
   int column_offset = SIMD_LENGTH_PRECISION*((l->num_lattice_site_var+SIMD_LENGTH_PRECISION-1)/SIMD_LENGTH_PRECISION);
@@ -378,11 +372,6 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
     clover_size *= (op->num_odd_sites + op->num_even_sites);
     cuda_vector_PRECISION_copy( (void*) op->clover_gpu, (void*) op->clover, 0, clover_size, l, _H2D, _CUDA_SYNC,
                                 0, l->p_PRECISION.streams );
-
-    //cuda_vector_PRECISION_copy( (void*)r_dev, (void*)eta_dev, nb_thread_start*s->block_vector_size,
-    //                            (nb_thread_end-nb_thread_start)*s->block_vector_size, l, _D2D, _CUDA_SYNC,
-    //                            threading->core, streams_schwarz );
-
   }
 #endif
 
@@ -1196,6 +1185,7 @@ void coarse_apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECI
   if (l->level != 0) error0("coarse_apply_schur_complement_PRECISION(...) is supposed to be called from the coarsest-level. Is odd-even being applied to FGMRES in intermediate levels?");
 
 #ifdef CUDA_OPT
+  // TODO : add profiling here (see non-GPU code below)
   coarse_apply_schur_complement_PRECISION_CUDA( (cuda_vector_PRECISION)out, (cuda_vector_PRECISION)in, op, l, threading );
 #else
   // start and end indices for vector functions depending on thread

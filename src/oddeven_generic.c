@@ -317,9 +317,7 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   if ( g.csw ) {
     MALLOC( op->clover, complex_PRECISION, lu_dec_size*n );
 #ifdef CUDA_OPT
-    //if (l->level == 0) {
     CUDA_MALLOC( op->clover_gpu, cu_cmplx_PRECISION, lu_dec_size*n );
-    //}
 #endif
     Aee = op->clover;
     Aoo = op->clover + op->num_even_sites*lu_dec_size;
@@ -356,9 +354,7 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   } else {
     MALLOC( op->clover, complex_PRECISION, 12*n );
 #ifdef CUDA_OPT
-    //if (l->level == 0) {
     CUDA_MALLOC( op->clover_gpu, cu_cmplx_PRECISION, 12*n );
-    //}
 #endif
     Aee = op->clover;
     Aoo = op->clover + op->num_even_sites*12;
@@ -473,16 +469,12 @@ void oddeven_free_PRECISION( level_struct *l ) {
   if ( g.csw ) {
     FREE( l->oe_op_PRECISION.clover, complex_PRECISION, lu_dec_size*n );
 #ifdef CUDA_OPT
-    //if (l->level == 0) {
     CUDA_FREE( l->oe_op_PRECISION.clover_gpu, cu_cmplx_PRECISION, lu_dec_size*n );
-    //}
 #endif
   } else {
     FREE( l->oe_op_PRECISION.clover, complex_PRECISION, 12*n );
 #ifdef CUDA_OPT
-    //if (l->level == 0) {
     CUDA_FREE( l->oe_op_PRECISION.clover_gpu, cu_cmplx_PRECISION, 12*n );
-    //}
 #endif
   }
   FREE( l->oe_op_PRECISION.index_table, int, (ll[T]+1)*(ll[Z]+1)*(ll[Y]+1)*(ll[X]+1) );

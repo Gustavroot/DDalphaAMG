@@ -10,6 +10,7 @@ extern "C"{
 
 #ifdef CUDA_OPT
 
+
 extern "C" void copy_2_cpu_PRECISION_v2( vector_PRECISION out, cuda_vector_PRECISION out_gpu, vector_PRECISION in, cuda_vector_PRECISION in_gpu, level_struct *l){
   cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
 
@@ -19,11 +20,8 @@ extern "C" void copy_2_cpu_PRECISION_v2( vector_PRECISION out, cuda_vector_PRECI
                               0, streams_gmres );
 }
 
-__global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, cuda_config_PRECISION clover, int num_lattice_site_var ) {
 
-  // CUDA thread id
-  //int idx;
-  //idx = threadIdx.x + blockDim.x * blockIdx.x;
+__global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, cuda_config_PRECISION clover, int num_lattice_site_var ) {
 
   int pipe_width;
   int i,j;
@@ -34,7 +32,6 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
       clover_step_size2 = SQUARE(num_lattice_site_var/2);
 
   cuda_config_PRECISION clover_pt = clover;
-  //cuda_vector_PRECISION phi_pt=phi, eta_pt=eta, phi_end_pt=phi+length;
   cuda_vector_PRECISION phi_pt=phi, eta_pt=eta;
 
   // U(x) = [ A B      , A=A*, D=D*, C = -B*
@@ -89,31 +86,9 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
 
   // PART 3 : computations within each CUDA block, only a subset of the threads do work
 
-  //i = threadIdx.x;
-  //int mag_nr = (i+1)*(i+2)/2 - 1;
-
-  //mvp_PRECISION( eta_pt, clover_pt, phi_pt, num_eig_vect );
-  //{
-  //  // diagonal
-  //  if (threadIdx.x < num_eig_vect) {
-  //    eta_shared[i] = cu_cmul_PRECISION( clover_shared[mag_nr], phi_shared[i] );
-  //  }
-
-  //  // upper triangular, no conjugation needed
-  //  // TODO
-
-  //  // lower triangular
-  //  // TODO
-  //}
-
   if (threadIdx.x < num_eig_vect) {
 
-    //if (threadIdx.x == 0) {
-    //  printf("%d, %f + %f\n", blockIdx.x, cu_creal_PRECISION(clover_pt[11]), cu_cimag_PRECISION(clover_pt[11]));
-    //  printf("%d, %f + %f\n", blockIdx.x, cu_creal_PRECISION(clover_shared[11]), cu_cimag_PRECISION(clover_shared[11]));
-    //}
-
-    //// A
+    // A
     //mvp_PRECISION( eta_pt, clover_pt, phi_pt, num_eig_vect );
     {
       i = threadIdx.x;
@@ -134,7 +109,7 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
 
     clover_shared += clover_step_size1; eta_shared += num_eig_vect; phi_shared += num_eig_vect;
 
-    //// D
+    // D
     //mvp_PRECISION( eta_pt, clover_pt, phi_pt, num_eig_vect );
     {
       i = threadIdx.x;
@@ -155,9 +130,7 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
 
     clover_shared += clover_step_size1; phi_shared -= num_eig_vect;
 
-    // TODO
-
-    //// C = -B*
+    // C = -B*
     //nmvh_PRECISION( eta_pt, clover_pt, phi_pt, num_eig_vect );
     {
       i = threadIdx.x;
@@ -172,7 +145,7 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
 
     phi_shared += num_eig_vect; eta_shared -= num_eig_vect;
 
-    //// B
+    // B
     //mv_PRECISION( eta_pt, clover_pt, phi_pt, num_eig_vect );
     {
       i = threadIdx.x;
@@ -184,9 +157,6 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
         eta_shared[i] = cu_cadd_PRECISION( eta_shared[i], cu_cmul_PRECISION( clover_shared[k],phi_shared[j] ) );
       }
     }
-
-    //clover_pt += clover_step_size2; phi_pt += num_eig_vect; eta_pt += site_var;
-
   }
 
   // sync before loading back into global memory
@@ -194,15 +164,6 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
 
   // PART 4 : putting results into global memory, collaborative effort by ALL the threads within the CUDA block
 
-  //eta_shared -= site_var;
-
-  //i = 0;
-  //pipe_width = site_var;
-  //while (i*blockDim.x < pipe_width) {
-  //  j = i*blockDim.x + threadIdx.x;
-  //  if (j<pipe_width) phi_pt[j] = phi_shared[j];
-  //  i++;
-  //}
   i = 0;
   pipe_width = site_var;
   while (i*blockDim.x < pipe_width) {
@@ -210,20 +171,11 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
     if (j<pipe_width) eta_pt[j] = eta_shared[j];
     i++;
   }
-  //i = 0;
-  //pipe_width = 2*clover_step_size1 + clover_step_size2;
-  //while (i*blockDim.x < pipe_width) {
-  //  j = i*blockDim.x + threadIdx.x;
-  //  if (j<pipe_width) clover_pt[j] = clover_shared[j];
-  //  i++;
-  //}
-
 }
+
 
 extern "C" void apply_coarse_operator_PRECISION_CUDA( cuda_vector_PRECISION eta_gpu, cuda_vector_PRECISION phi_gpu,
                                                       operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
-
-  //printf0("\n\nGPU1!!!\n\n\n");
 
   cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
 
@@ -258,7 +210,6 @@ extern "C" void apply_coarse_operator_PRECISION_CUDA( cuda_vector_PRECISION eta_
 
   free(eta);
   free(phi);
-
 }
 
 

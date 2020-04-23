@@ -105,9 +105,7 @@ void operator_PRECISION_alloc( operator_PRECISION_struct *op, const int type, le
   MALLOC( op->D, complex_PRECISION, coupling_site_size*nls );
   MALLOC( op->clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
 #ifdef CUDA_OPT
-  //if (l->level == 0) {
   CUDA_MALLOC( op->clover_gpu, cu_cmplx_PRECISION, clover_site_size*l->num_inner_lattice_sites );
-  //}
 #endif
   if ( type == _SCHWARZ && l->depth == 0 && g.odd_even )
     MALLOC( op->oe_clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
@@ -149,16 +147,6 @@ void operator_PRECISION_free( operator_PRECISION_struct *op, const int type, lev
   
   int mu, nu, its = 1, clover_site_size, coupling_site_size;
 
-//#ifdef CUDA_OPT
-//  if (l->level == 0) {
-//    int clover_size = (op->num_even_sites+op->num_odd_sites)*((l->num_lattice_site_var + SQUARE(l->num_lattice_site_var))/2);
-//    printf("clover_size = %d\n", clover_size);
-//    clover_size = (l->num_inner_lattice_sites)*((l->num_lattice_site_var + SQUARE(l->num_lattice_site_var))/2);
-//    printf("clover_size = %d\n", clover_size);
-//    CUDA_FREE( op->clover_gpu, cu_cmplx_PRECISION, clover_size );
-//  }
-//#endif
-
   if ( l->depth == 0 ) {
     clover_site_size = 42;
     coupling_site_size = 4*9;
@@ -181,9 +169,7 @@ void operator_PRECISION_free( operator_PRECISION_struct *op, const int type, lev
   FREE( op->D, complex_PRECISION, coupling_site_size*nls );
   FREE( op->clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
 #ifdef CUDA_OPT
-  //if (l->level == 0) {
   CUDA_FREE( op->clover_gpu, cu_cmplx_PRECISION, clover_site_size*l->num_inner_lattice_sites );
-  //}
 #endif
   if ( type == _SCHWARZ && l->depth == 0 && g.odd_even )
     FREE( op->oe_clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );

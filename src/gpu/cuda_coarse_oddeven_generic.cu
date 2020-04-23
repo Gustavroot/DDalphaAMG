@@ -10,6 +10,7 @@ extern "C"{
 
 #ifdef CUDA_OPT
 
+
 extern "C" void copy_2_cpu_PRECISION( vector_PRECISION out, cuda_vector_PRECISION out_gpu, vector_PRECISION in, cuda_vector_PRECISION in_gpu, level_struct *l){
   cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
 
@@ -19,12 +20,11 @@ extern "C" void copy_2_cpu_PRECISION( vector_PRECISION out, cuda_vector_PRECISIO
                               0, streams_gmres );
 }
 
+
 extern "C" void coarse_apply_schur_complement_PRECISION_CUDA( cuda_vector_PRECISION out_gpu, cuda_vector_PRECISION in_gpu, 
                                                               operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
 
   // TODO : finish all of the CUDA kernels associated to this function
-
-  //printf0("\n\nGPU2!!!\n\n\n");
 
   // start and end indices for vector functions depending on thread
   int start;
@@ -36,14 +36,10 @@ extern "C" void coarse_apply_schur_complement_PRECISION_CUDA( cuda_vector_PRECIS
   vector_PRECISION *tmp = op->buffer;
 
   vector_PRECISION out=NULL, in=NULL;
-  //MALLOC( out, complex_PRECISION, l->vector_size );
-  //MALLOC( in, complex_PRECISION, l->vector_size );
   out = (complex_PRECISION*) malloc( l->vector_size * sizeof(complex_PRECISION) );
   in = (complex_PRECISION*) malloc( l->vector_size * sizeof(complex_PRECISION) );
 
   cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
-
-  //copy_2_cpu_PRECISION(out, out_gpu, in, in_gpu, l);
 
   SYNC_CORES(threading)
   PROF_PRECISION_START( _SC, threading );
@@ -51,9 +47,6 @@ extern "C" void coarse_apply_schur_complement_PRECISION_CUDA( cuda_vector_PRECIS
   // 1. 
 
   coarse_diag_ee_PRECISION_CUDA( out_gpu, in_gpu, op, l, threading );
-
-  //coarse_diag_ee_PRECISION( out, in, op, l, threading );
-
   cudaDeviceSynchronize();
 
   copy_2_cpu_PRECISION(out, out_gpu, in, in_gpu, l);
@@ -93,12 +86,9 @@ extern "C" void coarse_apply_schur_complement_PRECISION_CUDA( cuda_vector_PRECIS
   cuda_vector_PRECISION_copy( (void*)in_gpu, (void*)in, 0, l->vector_size, l, _H2D, _CUDA_SYNC,
                               threading->core, streams_gmres );
 
-  //FREE( out, complex_PRECISION, l->vector_size );
-  //FREE( in, complex_PRECISION, l->vector_size );
   free(out);
   free(in);
 }
-
 
 
 extern "C" void coarse_self_couplings_PRECISION_CUDA( cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, cuda_config_PRECISION clover, 
@@ -138,7 +128,6 @@ extern "C" void coarse_self_couplings_PRECISION_CUDA( cuda_vector_PRECISION eta,
   // even sites
   coarse_self_couplings_PRECISION_CUDA_kernel<<<nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams_gmres[threading->core]>>>
                                              (eta, phi, clover, offset);
-
 }
 
 
@@ -147,64 +136,12 @@ extern "C" void coarse_diag_ee_PRECISION_CUDA( cuda_vector_PRECISION y, cuda_vec
 
   int n1, start, end, offset;
 
-  // one CUDA stream per OpenMP thread
-  //cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
-  //cudaStream_t *streams_gmres = op->streams;
-
   n1 = op->num_even_sites;
   compute_core_start_end_custom(0, n1, &start, &end, l, threading, 1);
 
   offset = l->num_lattice_site_var;
 
   coarse_self_couplings_PRECISION_CUDA( y+start*offset, x+start*offset, op->clover_gpu+start*(offset*offset+offset)/2, (end-start)*offset, l, threading );
-
-  /*
-  {
-
-    cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
-
-    int nr_threads, threads_per_cublock, num_eig_vect;
-    size_t tot_shared_mem;
-
-    offset = l->num_lattice_site_var;
-
-    num_eig_vect = offset/2;
-
-    // Add some "padding" such that each CUDA block corresponds to a coarse-site,
-    // but also such that its size is a multiple of g.warp_size
-    if (num_eig_vect%g.warp_size == 0) {
-      threads_per_cublock = num_eig_vect;
-    } else {
-      threads_per_cublock = (num_eig_vect/g.warp_size + 1) * g.warp_size;
-    }
-
-    // <end-start> gives us, based on n1, the nr of sites per OpenMP thread
-    nr_threads = (end-start);
-    // and divided by 2 due to hermiticity of the matrix
-    nr_threads *= num_eig_vect;
-
-    tot_shared_mem = 1;
-    // shared memory associated to clover
-    tot_shared_mem += (offset*offset+offset)/2;
-    // shared memory associated to buffer spinors (two spinors)
-    tot_shared_mem += 2*offset;
-    // and, add shared memory for the lower-triangular off-diagonal part in the two diagonal-blocks
-    //tot_shared_mem += 2*((num_eig_vect*num_eig_vect-num_eig_vect)/2);
-    tot_shared_mem *= sizeof(cu_cmplx_PRECISION);
-
-    // even sites
-    coarse_self_couplings_PRECISION_CUDA_kernel<<<nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams_gmres[threading->core]>>>
-                                               (y+start*offset, x+start*offset, op->clover_gpu+start*(offset*offset+offset)/2, offset);
-
-  }
-  */
-
-//#ifndef VECTORIZE_COARSE_OPERATOR_PRECISION
-//  int offset = l->num_lattice_site_var;
-//  coarse_self_couplings_PRECISION( y+start*offset, x+start*offset, op->clover+start*(offset*offset+offset)/2, (end-start)*offset, l );
-//#else
-//  coarse_self_couplings_PRECISION_vectorized( y, x, op->clover_vectorized, start, end, l );
-//#endif
 }
 
 #endif
