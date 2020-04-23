@@ -90,73 +90,25 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
 
     // A
     //mvp_PRECISION( eta_pt, clover_pt, phi_pt, num_eig_vect );
-    {
-      i = threadIdx.x;
-      int m;
-      int mag_nr = (i+1)*(i+2)/2-1;
-      for (j=0; j<num_eig_vect; j++) {
-        if (i>j) {
-          // conjugation
-          m = mag_nr-(i-j);
-          eta_shared[i] = cu_cadd_PRECISION( eta_shared[i], cu_cmul_PRECISION( cu_conj_PRECISION(clover_shared[m]),phi_shared[j] ) );
-        } else {
-          // no conjugation
-          m = mag_nr-(j-i);
-          eta_shared[i] = cu_cadd_PRECISION( eta_shared[i], cu_cmul_PRECISION( clover_shared[m],phi_shared[j] ) );
-        }
-      }
-    }
+    mvp_PRECISION_CUDA( eta_shared, clover_shared, phi_shared, num_eig_vect, threadIdx.x );
 
     clover_shared += clover_step_size1; eta_shared += num_eig_vect; phi_shared += num_eig_vect;
 
     // D
     //mvp_PRECISION( eta_pt, clover_pt, phi_pt, num_eig_vect );
-    {
-      i = threadIdx.x;
-      int k;
-      int mag_nr = (i+1)*(i+2)/2-1;
-      for (j=0; j<num_eig_vect; j++) {
-        if (i>j) {
-          // conjugation
-          k = mag_nr-(i-j);
-          eta_shared[i] = cu_cadd_PRECISION( eta_shared[i], cu_cmul_PRECISION( cu_conj_PRECISION(clover_shared[k]),phi_shared[j] ) );
-        } else {
-          // no conjugation
-          k = mag_nr-(j-i);
-          eta_shared[i] = cu_cadd_PRECISION( eta_shared[i], cu_cmul_PRECISION( clover_shared[k],phi_shared[j] ) );
-        }
-      }
-    }
+    mvp_PRECISION_CUDA( eta_shared, clover_shared, phi_shared, num_eig_vect, threadIdx.x );
 
     clover_shared += clover_step_size1; phi_shared -= num_eig_vect;
 
     // C = -B*
     //nmvh_PRECISION( eta_pt, clover_pt, phi_pt, num_eig_vect );
-    {
-      i = threadIdx.x;
-      int k;
-      for ( j=0; j<num_eig_vect; j++) {
-        //eta[i] -= conj_PRECISION(D[k])*phi[j];
-        // accessing the matrix columnwise
-        k = i*num_eig_vect + j;
-        eta_shared[i] = cu_csub_PRECISION( eta_shared[i], cu_cmul_PRECISION( cu_conj_PRECISION(clover_shared[k]),phi_shared[j] ) );
-      }
-    }
+    nmvh_PRECISION_CUDA( eta_shared, clover_shared, phi_shared, num_eig_vect, threadIdx.x );
 
     phi_shared += num_eig_vect; eta_shared -= num_eig_vect;
 
     // B
     //mv_PRECISION( eta_pt, clover_pt, phi_pt, num_eig_vect );
-    {
-      i = threadIdx.x;
-      int k;
-      for ( j=0; j<num_eig_vect; j++) {
-        //eta[j] += D[k]*phi[i];
-        // accessing the matrix columnwise
-        k = j*num_eig_vect + i;
-        eta_shared[i] = cu_cadd_PRECISION( eta_shared[i], cu_cmul_PRECISION( clover_shared[k],phi_shared[j] ) );
-      }
-    }
+    mv_PRECISION_CUDA( eta_shared, clover_shared, phi_shared, num_eig_vect, threadIdx.x );
   }
 
   // sync before loading back into global memory
