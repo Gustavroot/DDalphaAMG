@@ -147,7 +147,7 @@ void fgmres_MP_struct_free( gmres_MP_struct *p ) {
   FREE( p->dp.H[0], complex_double, p->dp.total_storage );
   FREE( p->dp.H, complex_double*, p->dp.restart_length );
   
-} 
+}
   
   
 int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading ) {
@@ -186,7 +186,7 @@ int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading ) {
   
   // Outer loop in double precision
   for( ol=0; ol<p->dp.num_restart && finish==0; ol++ )  {
-  
+
     if( ol == 0 && p->dp.initial_guess_zero ) {
       vector_double_copy( p->dp.r, p->dp.b, start, end, l );
     } else {
@@ -219,6 +219,7 @@ int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading ) {
     
     // inner loop in single precision
     for( il=0; il<p->dp.restart_length && finish==0; il++) {
+
       j = il; iter++;
       arnoldi_step_MP( p->sp.V, p->sp.Z, p->sp.w, p->dp.H, p->dp.y, j, p->sp.preconditioner,
                        p->sp.shift, &(p->sp), l, threading );
