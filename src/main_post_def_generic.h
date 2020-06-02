@@ -34,13 +34,15 @@
 #ifdef CUDA_OPT
     //if (l->depth == 0)
 #endif
-    //{
-    //  if ( p->shift ) {
-    //    int start, end;
-    //    compute_core_start_end_custom(p->v_start, p->v_end, &start, &end, l, threading, l->num_lattice_site_var );
-    //    vector_PRECISION_saxpy( output, output, input, -p->shift, start, end, l );
-    //  }
-    //}
+
+    // RE-DISABLE !
+    {
+      if ( p->shift ) {
+        int start, end;
+        compute_core_start_end_custom(p->v_start, p->v_end, &start, &end, l, threading, l->num_lattice_site_var );
+        vector_PRECISION_saxpy( output, output, input, -p->shift, start, end, l );
+      }
+    }
 
   }
 

@@ -247,7 +247,8 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
 * stored in p->x.                                                              
 *********************************************************************************/  
 
-  printf0("WITHIN fgmres_PRECISION(...), depth=%d \n", l->depth);
+  // RE-ENABLE !
+  //printf0("WITHIN fgmres_PRECISION(...), depth=%d \n", l->depth);
 
   // start and end indices for vector functions depending on thread
   int start;
@@ -283,11 +284,13 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
   //cuda_safe_call( cudaEventCreate(&stop_event_comp) );
   //cudaStream_t *streams_gmres = p->streams;
 
-  printf0("p->num_restart = %d\n", p->num_restart);
+  // RE-ENABLE !
+  //printf0("p->num_restart = %d\n", p->num_restart);
 
   for( ol=0; ol<p->num_restart && finish==0; ol++ )  {
 
-    printf0("for loop of fgmres_PRECISION, iter=%d, depth=%d \n", ol, l->depth);
+    // RE-ENABLE !
+    ///printf0("for loop of fgmres_PRECISION, iter=%d, depth=%d \n", ol, l->depth);
   
     if( ol == 0 && p->initial_guess_zero ) {
       res = _NO_RES;
@@ -309,7 +312,8 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
       } else {
         //printf("SPOT 2\n");
 
-        //apply_operator_PRECISION( p->w, p->x, p, l, threading ); // compute w = D*x
+        // RE-DISABLE !
+        apply_operator_PRECISION( p->w, p->x, p, l, threading ); // compute w = D*x
 
 #ifdef CUDA_OPT
         //if (l->depth == 0)
@@ -319,6 +323,8 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
         //}
 #ifdef CUDA_OPT
         //else
+        // RE-ENABLE !
+        /*
         {
           cudaStream_t *streams_gmres = p->streams;
           int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
@@ -337,6 +343,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
             vector_PRECISION_saxpy( p->w, p->w, p->x, -p->shift, start, end, l );
           }
         }
+        */
         //}
 #endif
 
@@ -364,7 +371,8 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
     
     for( il=0; il<p->restart_length && finish==0; il++) {
 
-      printf0("\ninner for loop of fgmres_PRECISION, iter=%d, depth=%d \n\n", il, l->depth);
+      // RE-ENABLE !!
+      //printf0("\ninner for loop of fgmres_PRECISION, iter=%d, depth=%d \n\n", il, l->depth);
 
       j = il; iter++;
       if ( g.method == 5 ) {
@@ -430,10 +438,13 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
 
     //printf("SPOT X1 !\n");
 
-    //apply_operator_PRECISION( p->w, p->x, p, l, threading );
+    // RE-DISABLE !
+    apply_operator_PRECISION( p->w, p->x, p, l, threading );
 
 #ifdef CUDA_OPT
     //else
+    // RE-ENABLE !
+    /*
     {
       cudaStream_t *streams_gmres = p->streams;
       int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
@@ -452,9 +463,9 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
         vector_PRECISION_saxpy( p->w, p->w, p->x, -p->shift, start, end, l );
       }
     }
+    */
     //}
 #endif
-
 
     vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
     beta = global_norm_PRECISION( p->r, p->v_start, p->v_end, l, threading );
@@ -953,7 +964,8 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
           prec( Z[j], NULL, V[j], _NO_RES, l, threading );
           //printf("SPOT 10\n");
 
-          //apply_operator_PRECISION( w, Z[j], p, l, threading ); // w = D*Z[j]
+          // RE-DISABLE !
+          apply_operator_PRECISION( w, Z[j], p, l, threading ); // w = D*Z[j]
 
 #ifdef CUDA_OPT
           //if (l->depth == 0)
@@ -963,6 +975,8 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
           //}
 #ifdef CUDA_OPT
           //else
+          // RE-ENABLE !
+          /*
           {
             cudaStream_t *streams_gmres = p->streams;
             int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
@@ -981,6 +995,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
               vector_PRECISION_saxpy( w, w, Z[j], -p->shift, start, end, l );
             }
           }
+          */
           //}
 #endif
 
@@ -991,7 +1006,10 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
   } else {
 
     //printf("SPOT 11\n");
-    //apply_operator_PRECISION( w, V[j], p, l, threading ); // w = D*V[j]
+
+    // RE-DISABLE !
+    apply_operator_PRECISION( w, V[j], p, l, threading ); // w = D*V[j]
+
 #ifdef CUDA_OPT
     //if (l->depth == 0)
 #endif
@@ -1000,6 +1018,8 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
     //}
 #ifdef CUDA_OPT
     //else
+    // RE-ENABLE !
+    /*
     {
       cudaStream_t *streams_gmres = p->streams;
       int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
@@ -1018,6 +1038,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
         vector_PRECISION_saxpy( w, w, V[j], -p->shift, start, end, l );
       }
     }
+    */
     //}
 #endif
 

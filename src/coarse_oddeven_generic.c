@@ -1179,15 +1179,18 @@ void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECIS
 
 void coarse_apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
 
-  printf0("WITHIN SCHUR !!, depth=%d \n", l->depth);
+  // RE-ENABLE !
+  //printf0("WITHIN SCHUR !!, depth=%d \n", l->depth);
 
   // this function is supposed to be called from the coarsest-level only
   if (l->level != 0) error0("coarse_apply_schur_complement_PRECISION(...) is supposed to be called from the coarsest-level. Is odd-even being applied to FGMRES in intermediate levels?");
 
-#ifdef CUDA_OPT
-  // TODO : add profiling here (see non-GPU code below)
-  coarse_apply_schur_complement_PRECISION_CUDA( (cuda_vector_PRECISION)out, (cuda_vector_PRECISION)in, op, l, threading );
-#else
+  // RE-ENABLE CUDA_OPT !!
+
+//#ifdef CUDA_OPT
+//  // TODO : add profiling here (see non-GPU code below)
+//  coarse_apply_schur_complement_PRECISION_CUDA( (cuda_vector_PRECISION)out, (cuda_vector_PRECISION)in, op, l, threading );
+//#else
   // start and end indices for vector functions depending on thread
   int start;
   int end;
@@ -1213,7 +1216,7 @@ void coarse_apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECI
   PROF_PRECISION_START( _NC, threading );
   coarse_n_hopping_term_PRECISION( out, tmp[1], op, _EVEN_SITES, l, threading );
   PROF_PRECISION_STOP( _NC, 1, threading );
-#endif
+//#endif
 }
 
 

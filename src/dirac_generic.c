@@ -162,9 +162,11 @@ void d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operat
   if (l->depth != 0)
     error0("d_plus_clover_PRECISION(...) is supposed to be called from the finest level only.");
 
-#ifdef CUDA_OPT
-  d_plus_clover_PRECISION_CUDA( (cuda_vector_PRECISION)eta, (cuda_vector_PRECISION)phi, op, l, threading );
-#else  
+  // RE-ENABLE CUDA_OPT !!
+
+//#ifdef CUDA_OPT
+//  d_plus_clover_PRECISION_CUDA( (cuda_vector_PRECISION)eta, (cuda_vector_PRECISION)phi, op, l, threading );
+//#else  
   int n = l->num_inner_lattice_sites, *neighbor = op->neighbor_table, start, end;
   int i, j, *nb_pt;
   complex_PRECISION pbuf[6];
@@ -281,7 +283,7 @@ void d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operat
   END_MASTER(threading)
   
   SYNC_MASTER_TO_ALL(threading)
-#endif
+//#endif
 }
 #endif
 
