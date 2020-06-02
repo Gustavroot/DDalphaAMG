@@ -185,7 +185,7 @@ fi
 # run programm
 
 #MPIRUN=/usr/lib64/mpi/gcc/openmpi/bin/mpirun
-MPIRUN=/home/ramirez/installs/openmpi/bin/mpirun
+MPIRUN=/home/ramirez/installs/openmpi/dir/bin/mpirun
 NVPROF=
 
 if [ ${ipa[0]} = 0  ]
