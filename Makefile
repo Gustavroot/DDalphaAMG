@@ -1,8 +1,8 @@
 # --- COMPILER ----------------------------------------
 
 CC = mpicc -std=gnu11 -Wall #-pedantic
-MPI_INCLUDE = /home/ramirez/installs/openmpi/include/
-MPI_LIB = /home/ramirez/installs/openmpi/lib64/
+MPI_INCLUDE = /home/ramirez/installs/openmpi/dir/include/
+MPI_LIB = /home/ramirez/installs/openmpi/dir/lib64/
 
 CPP = cpp
 MAKEDEP = $(CPP) -MM
@@ -36,7 +36,9 @@ GHEAFLT = $(patsubst %_generic.h,$(GSRCDIR)/%_float.h,$(HEAGEN))
 GHEAFLT_CUDA = $(patsubst %_generic.h,$(GSRCDIR)/%_float.h,$(HEAGEN_CUDA))
 GHEADBL = $(patsubst %_generic.h,$(GSRCDIR)/%_double.h,$(HEAGEN))
 GHEADBL_CUDA = $(patsubst %_generic.h,$(GSRCDIR)/%_double.h,$(HEAGEN_CUDA))
-GHEA = $(patsubst %,$(GSRCDIR)/%,$(HEA) $(HEA_CUDA)) $(GHEAFLT) $(GHEAFLT_CUDA) $(GHEADBL) $(GHEADBL_CUDA)
+GHEA = $(patsubst %,$(GSRCDIR)/%,$(HEA))
+GHEA += $(patsubst %,$(GSRCDIR)/%,$(HEA_CUDA))
+GHEA += $(GHEAFLT) $(GHEAFLT_CUDA) $(GHEADBL) $(GHEADBL_CUDA)
 OBJ = $(patsubst $(GSRCDIR)/%.c,$(BUILDDIR)/%.o,$(GSRC))
 OBJDB = $(patsubst %.o,%_db.o,$(OBJ))
 OBJ_CUDA = $(patsubst $(GSRCDIR)/%.cu,$(BUILDDIR)/%.o,$(GSRC_CUDA))
@@ -127,13 +129,22 @@ $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
 	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -DDEBUG -c $< -o $@
 endif
 
-$(GSRCDIR)/%.h: $(SRCDIR)/%.h $(SRCDIR_CUDA)/%.h $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%.h: $(SRCDIR)/%.h $(firstword $(MAKEFILE_LIST))
 	cp $< $@
 
-$(GSRCDIR)/%_float.h: $(SRCDIR)/%_generic.h $(SRCDIR_CUDA)/%_generic.h $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%.h: $(SRCDIR_CUDA)/%.h $(firstword $(MAKEFILE_LIST))
+	cp $< $@
+
+$(GSRCDIR)/%_float.h: $(SRCDIR)/%_generic.h $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
 
-$(GSRCDIR)/%_double.h: $(SRCDIR)/%_generic.h $(SRCDIR_CUDA)/%_generic.h $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%_float.h: $(SRCDIR_CUDA)/%_generic.h $(firstword $(MAKEFILE_LIST))
+	sed -f float.sed $< > $@
+
+$(GSRCDIR)/%_double.h: $(SRCDIR)/%_generic.h $(firstword $(MAKEFILE_LIST))
+	sed -f double.sed $< > $@
+
+$(GSRCDIR)/%_double.h: $(SRCDIR_CUDA)/%_generic.h $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
 
 $(GSRCDIR)/%.cu: $(SRCDIR_CUDA)/%.cu $(firstword $(MAKEFILE_LIST))
@@ -142,16 +153,25 @@ $(GSRCDIR)/%.cu: $(SRCDIR_CUDA)/%.cu $(firstword $(MAKEFILE_LIST))
 $(GSRCDIR)/%.c: $(SRCDIR)/%.c $(firstword $(MAKEFILE_LIST))
 	cp $< $@
 
+$(GSRCDIR)/%.c: $(SRCDIR_CUDA)/%.c $(firstword $(MAKEFILE_LIST))
+	cp $< $@
+
 $(GSRCDIR)/%_float.cu: $(SRCDIR_CUDA)/%_generic.cu $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
 
 $(GSRCDIR)/%_float.c: $(SRCDIR)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
 
+$(GSRCDIR)/%_float.c: $(SRCDIR_CUDA)/%_generic.c $(firstword $(MAKEFILE_LIST))
+	sed -f float.sed $< > $@
+
 $(GSRCDIR)/%_double.cu: $(SRCDIR_CUDA)/%_generic.cu $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
 
 $(GSRCDIR)/%_double.c: $(SRCDIR)/%_generic.c $(firstword $(MAKEFILE_LIST))
+	sed -f double.sed $< > $@
+
+$(GSRCDIR)/%_double.c: $(SRCDIR_CUDA)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
 
 %.dep: %.c $(GHEA)
