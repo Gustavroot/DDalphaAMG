@@ -429,6 +429,9 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
 
 #ifdef CUDA_OPT
 
+  // globally-setting some GPU device properties
+  get_device_properties();
+
   // For now, block lattice dimensions other than multiples of 4 are disabled. The reason for
   // this is the use of the value 96 within the CUDA code. This 96 represents the amount of
   // "basic" GPU work, in the sense of: due to gamma 5 symmetry, we can compute 6 out of 12
@@ -453,19 +456,31 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
     bool examine_block=1;
     int i;
 
-    //examine_csw = (g.csw == 0.0);
+    // examine_csw = (g.csw == 0.0);
     examine_block = 1;
     for( i=0; i<4; i++ ){
       if( (l->block_lattice[i] < 4) || (l->block_lattice[i]%4 != 0) ) examine_block &= 0;
     }
 
     if( examine_block!=1 ){
-      //if( examine_csw && g.my_rank==0 ) printf("ERROR: g.csw=0.0 disabled for now.\n");
-      if( examine_block!=1 && g.my_rank==0 ) printf("ERROR: only supporting 'block lattice _ mu' a multiple of 4 at the finest level for now.\n");
-      method_finalize( l );
-      MPI_Finalize();
-      exit(0);
+      error0("only supporting 'block lattice _ mu' a multiple of 4 at the finest level for now.\n");
     }
+
+    if (g.method != 2) {
+      error0("only supporting method=2 for now when -DCUDA_OPT enabled. Check your .ini file.");
+    }
+    if (g.odd_even != 1) {
+      error0("only supporting odd_even=1 for now when -DCUDA_OPT enabled. Check your .ini file.");
+    }
+
+    // restrict/recommend the use of ntv%32==0 test vectors at any level
+    for (i=0; i<(g.num_levels-1); i++) {
+      if (g.num_eig_vect[i] > g.warp_size) {
+        warning0("number of test vectors (ntv) at level %d is %d (>%d). We recommend to use as close to ntv mod %d == 0 as possible.\n",
+                 i, g.num_eig_vect[i], g.warp_size, g.warp_size);
+      }
+    }
+
   }
 #endif
 }

@@ -30,6 +30,9 @@ void operator_PRECISION_init( operator_PRECISION_struct *op ) {
   op->translation_table = NULL;
   op->D = NULL;
   op->clover = NULL;
+#ifdef CUDA_OPT
+  op->clover_gpu = NULL;
+#endif
   op->oe_clover = NULL;
   op->oe_clover_vectorized = NULL;
   
@@ -101,6 +104,9 @@ void operator_PRECISION_alloc( operator_PRECISION_struct *op, const int type, le
   nls = (type==_ORDINARY)?l->num_inner_lattice_sites:2*l->num_lattice_sites-l->num_inner_lattice_sites;
   MALLOC( op->D, complex_PRECISION, coupling_site_size*nls );
   MALLOC( op->clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
+#ifdef CUDA_OPT
+  CUDA_MALLOC( op->clover_gpu, cu_cmplx_PRECISION, clover_site_size*l->num_inner_lattice_sites );
+#endif
   if ( type == _SCHWARZ && l->depth == 0 && g.odd_even )
     MALLOC( op->oe_clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
   MALLOC( op->index_table, int, its );
@@ -140,7 +146,7 @@ void operator_PRECISION_alloc( operator_PRECISION_struct *op, const int type, le
 void operator_PRECISION_free( operator_PRECISION_struct *op, const int type, level_struct *l ) {
   
   int mu, nu, its = 1, clover_site_size, coupling_site_size;
-  
+
   if ( l->depth == 0 ) {
     clover_site_size = 42;
     coupling_site_size = 4*9;
@@ -162,6 +168,9 @@ void operator_PRECISION_free( operator_PRECISION_struct *op, const int type, lev
   int nls = (type==_ORDINARY)?l->num_inner_lattice_sites:2*l->num_lattice_sites-l->num_inner_lattice_sites;
   FREE( op->D, complex_PRECISION, coupling_site_size*nls );
   FREE( op->clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
+#ifdef CUDA_OPT
+  CUDA_FREE( op->clover_gpu, cu_cmplx_PRECISION, clover_site_size*l->num_inner_lattice_sites );
+#endif
   if ( type == _SCHWARZ && l->depth == 0 && g.odd_even )
     FREE( op->oe_clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
   FREE( op->index_table, int, its );
@@ -243,6 +252,8 @@ void operator_PRECISION_define( operator_PRECISION_struct *op, level_struct *l )
   // negative inner boundary table (for communication),
   // translation table (for translation to lexicographical site ordnering)
   define_nt_bt_tt( op->neighbor_table, op->backward_neighbor_table, op->c.boundary_table, op->translation_table, it, dt, l );
+
+  //printf("try two : %d\n", op->num_even_sites);
 }
 
 

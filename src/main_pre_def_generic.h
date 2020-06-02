@@ -63,6 +63,9 @@
   
   typedef struct {
     config_PRECISION D, clover, oe_clover;
+#ifdef CUDA_OPT
+    cuda_config_PRECISION clover_gpu;
+#endif
     int oe_offset, self_coupling, num_even_sites, num_odd_sites,
         *index_table, *neighbor_table, *translation_table, table_dim[4],
         *backward_neighbor_table,
@@ -90,6 +93,13 @@
   
   typedef struct {
     vector_PRECISION x, b, r, w, *V, *Z;
+#ifdef CUDA_OPT
+    // assuming LEFT preconditioning always, hence 1 element in Z
+    cuda_vector_PRECISION x_gpu, w_gpu;
+    // <streams> are objects that live on the CPU, and help the CPU to
+    // control the GPU kernels ordering
+    cudaStream_t *streams;
+#endif
     complex_PRECISION **H, *y, *gamma, *c, *s, shift;
     config_PRECISION *D, *clover;
     operator_PRECISION_struct *op;

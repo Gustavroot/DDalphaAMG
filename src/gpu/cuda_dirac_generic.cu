@@ -10,8 +10,20 @@ extern "C"{
 
 #ifdef CUDA_OPT
 
+
 __constant__ cu_cmplx_PRECISION gamma_info_vals_PRECISION[16];
 __constant__ int gamma_info_coo_PRECISION[16];
+
+
+extern "C" void copy_2_cpu_PRECISION_v3( vector_PRECISION out, cuda_vector_PRECISION out_gpu, vector_PRECISION in, cuda_vector_PRECISION in_gpu, level_struct *l){
+  cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
+
+  cuda_vector_PRECISION_copy( (void*)out, (void*)out_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC,
+                              0, streams_gmres );
+  cuda_vector_PRECISION_copy( (void*)in, (void*)in_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC,
+                              0, streams_gmres );
+}
+
 
 __forceinline__ __device__ void
 _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
@@ -215,5 +227,193 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
                                                             dir, _FULL_SYSTEM );
   }
 }
+
+
+void sse_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
+                           int start, int end, level_struct *l, struct Thread *threading );
+
+extern "C" void
+d_plus_clover_PRECISION_CUDA(					cuda_vector_PRECISION eta_gpu, cuda_vector_PRECISION phi_gpu, operator_PRECISION_struct *op,
+				                                level_struct *l, struct Thread *threading ) {
+
+  cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
+
+  vector_PRECISION eta=NULL, phi=NULL;
+  eta = (complex_PRECISION*) malloc( l->inner_vector_size * sizeof(complex_PRECISION) );
+  phi = (complex_PRECISION*) malloc( l->inner_vector_size * sizeof(complex_PRECISION) );
+
+  copy_2_cpu_PRECISION_v3(eta, eta_gpu, phi, phi_gpu, l);
+
+  //PROF_PRECISION_START( _SC, threading );
+  //START_LOCKED_MASTER(threading)
+
+  //coarse_self_couplings_PRECISION( eta, phi, op->clover, l->inner_vector_size, l );
+
+  //coarse_self_couplings_PRECISION_CUDA( y_start*offset, x+start*offset, op->clover_gpu+start*(offset*offset+offset)/2, (end-start)*offset, l, threading );
+  //coarse_self_couplings_PRECISION_CUDA( eta_gpu, phi_gpu, op->clover_gpu, l->inner_vector_size, l, threading );
+
+  //cudaDeviceSynchronize();
+
+  //copy_2_cpu_PRECISION_v2(eta, eta_gpu, phi, phi_gpu, l);
+
+  //END_LOCKED_MASTER(threading)
+  //PROF_PRECISION_STOP( _SC, 1, threading );
+  //PROF_PRECISION_START( _NC, threading );
+  //coarse_hopping_term_PRECISION( eta, phi, op, _FULL_SYSTEM, l, threading );
+  //PROF_PRECISION_STOP( _NC, 1, threading );
+
+  //printf0("WITHIN d_plus_clover_PRECISION(...) !!, depth=%d \n", l->depth);
+
+  //----------------------------
+
+  int n = l->num_inner_lattice_sites, *neighbor = op->neighbor_table, start, end;
+#ifndef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
+  int i, j, *nb_pt;
+  complex_PRECISION pbuf[6];
+  vector_PRECISION phi_pt, eta_pt, end_pt;
+  config_PRECISION D_pt;
+#endif
+
+  compute_core_start_end(0, 12*n, &start, &end, l, threading );
+
+  SYNC_MASTER_TO_ALL(threading)
+
+  if ( g.csw == 0.0 ) {
+    vector_PRECISION_scale( eta, phi, op->shift, start, end, l );
+  } else {
+    clover_PRECISION( eta+start, phi+start, op->clover+((start/12)*42), end-start, l, threading );
+  }
+
+  START_MASTER(threading)
+  PROF_PRECISION_START( _NC );
+  END_MASTER(threading)
+
+#ifdef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
+  complex_PRECISION *prn[4] = { op->prnT, op->prnZ, op->prnY, op->prnX };
+  prp_PRECISION( prn, phi, start, end );
+#else
+  for ( i=start/2, phi_pt=phi+start; i<end/2; i+=6, phi_pt+=12 ) {
+    prp_T_PRECISION( op->prnT+i, phi_pt );
+    prp_Z_PRECISION( op->prnZ+i, phi_pt );
+    prp_Y_PRECISION( op->prnY+i, phi_pt );
+    prp_X_PRECISION( op->prnX+i, phi_pt );
+  }
+#endif
+  // start communication in negative direction
+  START_LOCKED_MASTER(threading)
+  ghost_sendrecv_PRECISION( op->prnT, T, -1, &(op->c), _FULL_SYSTEM, l );
+  ghost_sendrecv_PRECISION( op->prnZ, Z, -1, &(op->c), _FULL_SYSTEM, l );
+  ghost_sendrecv_PRECISION( op->prnY, Y, -1, &(op->c), _FULL_SYSTEM, l );
+  ghost_sendrecv_PRECISION( op->prnX, X, -1, &(op->c), _FULL_SYSTEM, l );
+  END_LOCKED_MASTER(threading)
+
+  // project plus dir and multiply with U dagger
+#ifdef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
+  complex_PRECISION *prp[4] = { op->prpT, op->prpZ, op->prpY, op->prpX };
+  prn_su3_PRECISION( prp, phi, op, neighbor, start, end );
+#else
+  for ( phi_pt=phi+start, end_pt=phi+end, D_pt = op->D+(start*3), nb_pt=neighbor+((start/12)*4); phi_pt<end_pt; phi_pt+=12 ) {
+    // T dir
+    j = 6*(*nb_pt); nb_pt++;
+    prn_T_PRECISION( pbuf, phi_pt );
+    mvmh_PRECISION( op->prpT+j, D_pt, pbuf );
+    mvmh_PRECISION( op->prpT+j+3, D_pt, pbuf+3 ); D_pt += 9;
+    // Z dir
+    j = 6*(*nb_pt); nb_pt++;
+    prn_Z_PRECISION( pbuf, phi_pt );
+    mvmh_PRECISION( op->prpZ+j, D_pt, pbuf );
+    mvmh_PRECISION( op->prpZ+j+3, D_pt, pbuf+3 ); D_pt += 9;
+    // Y dir
+    j = 6*(*nb_pt); nb_pt++;
+    prn_Y_PRECISION( pbuf, phi_pt );
+    mvmh_PRECISION( op->prpY+j, D_pt, pbuf );
+    mvmh_PRECISION( op->prpY+j+3, D_pt, pbuf+3 ); D_pt += 9;
+    // X dir
+    j = 6*(*nb_pt); nb_pt++;
+    prn_X_PRECISION( pbuf, phi_pt );
+    mvmh_PRECISION( op->prpX+j, D_pt, pbuf );
+    mvmh_PRECISION( op->prpX+j+3, D_pt, pbuf+3 ); D_pt += 9;
+  }
+#endif
+
+  // start communication in positive direction
+  START_LOCKED_MASTER(threading)
+  ghost_sendrecv_PRECISION( op->prpT, T, +1, &(op->c), _FULL_SYSTEM, l );
+  ghost_sendrecv_PRECISION( op->prpZ, Z, +1, &(op->c), _FULL_SYSTEM, l );
+  ghost_sendrecv_PRECISION( op->prpY, Y, +1, &(op->c), _FULL_SYSTEM, l );
+  ghost_sendrecv_PRECISION( op->prpX, X, +1, &(op->c), _FULL_SYSTEM, l );
+  // wait for communication in negative direction
+  ghost_wait_PRECISION( op->prnT, T, -1, &(op->c), _FULL_SYSTEM, l );
+  ghost_wait_PRECISION( op->prnZ, Z, -1, &(op->c), _FULL_SYSTEM, l );
+  ghost_wait_PRECISION( op->prnY, Y, -1, &(op->c), _FULL_SYSTEM, l );
+  ghost_wait_PRECISION( op->prnX, X, -1, &(op->c), _FULL_SYSTEM, l );
+  END_LOCKED_MASTER(threading)
+
+  // multiply with U and lift up minus dir
+#ifdef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
+  su3_pbp_PRECISION( eta, prn, op, neighbor, start, end );
+#else
+  for ( eta_pt=eta+start, end_pt=eta+end, D_pt = op->D+start*3, nb_pt=neighbor+(start/12)*4; eta_pt<end_pt; eta_pt+=12 ) {
+    // T dir
+    j = 6*(*nb_pt); nb_pt++;
+    mvm_PRECISION( pbuf, D_pt, op->prnT+j );
+    mvm_PRECISION( pbuf+3, D_pt, op->prnT+j+3 );
+    pbp_su3_T_PRECISION( pbuf, eta_pt ); D_pt += 9;
+    // Z dir
+    j = 6*(*nb_pt); nb_pt++;
+    mvm_PRECISION( pbuf, D_pt, op->prnZ+j );
+    mvm_PRECISION( pbuf+3, D_pt, op->prnZ+j+3 );
+    pbp_su3_Z_PRECISION( pbuf, eta_pt ); D_pt += 9;
+    // Y dir
+    j = 6*(*nb_pt); nb_pt++;
+    mvm_PRECISION( pbuf, D_pt, op->prnY+j );
+    mvm_PRECISION( pbuf+3, D_pt, op->prnY+j+3 );
+    pbp_su3_Y_PRECISION( pbuf, eta_pt ); D_pt += 9;
+    // X dir
+    j = 6*(*nb_pt); nb_pt++;
+    mvm_PRECISION( pbuf, D_pt, op->prnX+j );
+    mvm_PRECISION( pbuf+3, D_pt, op->prnX+j+3 );
+    pbp_su3_X_PRECISION( pbuf, eta_pt ); D_pt += 9;
+  }
+#endif
+
+  // wait for communication in positive direction
+  START_LOCKED_MASTER(threading)
+  ghost_wait_PRECISION( op->prpT, T, +1, &(op->c), _FULL_SYSTEM, l );
+  ghost_wait_PRECISION( op->prpZ, Z, +1, &(op->c), _FULL_SYSTEM, l );
+  ghost_wait_PRECISION( op->prpY, Y, +1, &(op->c), _FULL_SYSTEM, l );
+  ghost_wait_PRECISION( op->prpX, X, +1, &(op->c), _FULL_SYSTEM, l );
+  END_LOCKED_MASTER(threading)
+
+  // lift up plus dir
+#ifdef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
+  pbn_PRECISION( eta, prp, start, end );
+#else
+  for ( i=start/2, eta_pt=eta+start; i<end/2; i+=6, eta_pt+=12 ) {
+    pbn_su3_T_PRECISION( op->prpT+i, eta_pt );
+    pbn_su3_Z_PRECISION( op->prpZ+i, eta_pt );
+    pbn_su3_Y_PRECISION( op->prpY+i, eta_pt );
+    pbn_su3_X_PRECISION( op->prpX+i, eta_pt );
+  }
+#endif
+
+  START_MASTER(threading)
+  PROF_PRECISION_STOP( _NC, 1 );
+  END_MASTER(threading)
+
+  SYNC_MASTER_TO_ALL(threading)
+
+  //----------------------------
+
+  cuda_vector_PRECISION_copy( (void*)eta_gpu, (void*)eta, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC,
+                              threading->core, streams_gmres );
+  cuda_vector_PRECISION_copy( (void*)phi_gpu, (void*)phi, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC,
+                              threading->core, streams_gmres );
+
+  free(eta);
+  free(phi);
+
+}
+
 
 #endif

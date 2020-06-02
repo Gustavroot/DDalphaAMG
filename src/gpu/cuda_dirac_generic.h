@@ -15,4 +15,8 @@
                                                   struct Thread *threading, int stream_id, cudaStream_t *streams, int color,
                                                   int* DD_blocks_to_compute_gpu, int* DD_blocks_to_compute_cpu );
 
+  extern void d_plus_clover_PRECISION_CUDA( cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, operator_PRECISION_struct *op,
+                                            level_struct *l, struct Thread *threading );
+
+
 #endif

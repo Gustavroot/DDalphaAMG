@@ -121,7 +121,7 @@ void coarse_diag_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_PRE
 
 
 void coarse_diag_ee_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
-  
+
   int n1 = op->num_even_sites;
   int start;
   int end;
@@ -352,6 +352,9 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
 
   MALLOC( op->D, complex_PRECISION, 4*nc_size*n );
   MALLOC( op->clover, complex_PRECISION, lu_dec_size*n );
+#ifdef CUDA_OPT
+  CUDA_MALLOC( op->clover_gpu, cu_cmplx_PRECISION, lu_dec_size*n );
+#endif
 #ifdef VECTORIZE_COARSE_OPERATOR_PRECISION
   int column_offset = SIMD_LENGTH_PRECISION*((l->num_lattice_site_var+SIMD_LENGTH_PRECISION-1)/SIMD_LENGTH_PRECISION);
   // 2 is for complex, 4 is for 4 directions
@@ -361,7 +364,17 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
 #endif
 
   coarse_oddeven_setup_PRECISION_set_couplings( in, reorder, l, no_threading );
-    
+#ifdef CUDA_OPT
+  {
+    // immediately after setting the values of l->oe_op_PRECISION->clover, copy to the GPU
+    int clover_size;
+    clover_size = (l->num_lattice_site_var/2)*(l->num_lattice_site_var+1);
+    clover_size *= (op->num_odd_sites + op->num_even_sites);
+    cuda_vector_PRECISION_copy( (void*) op->clover_gpu, (void*) op->clover, 0, clover_size, l, _H2D, _CUDA_SYNC,
+                                0, l->p_PRECISION.streams );
+  }
+#endif
+
   // define data layout
   MALLOC( op->index_table, int, N[T]*N[Z]*N[Y]*N[X] );
   eot = op->index_table;
@@ -424,6 +437,11 @@ void coarse_oddeven_free_PRECISION( level_struct *l ) {
   FREE_HUGEPAGES( l->oe_op_PRECISION.clover_vectorized, OPERATOR_TYPE_PRECISION, 2*l->num_lattice_site_var*column_offset*n );
 #endif
   FREE( l->oe_op_PRECISION.clover, complex_PRECISION, nc_size*n );
+#ifdef CUDA_OPT
+  //if (l->level == 0) {
+  CUDA_FREE( l->oe_op_PRECISION.clover_gpu, cu_cmplx_PRECISION, nc_size*n );
+  //}
+#endif
   FREE( l->oe_op_PRECISION.index_table, int, (ll[T]+1)*(ll[Z]+1)*(ll[Y]+1)*(ll[X]+1) );
   FREE( l->oe_op_PRECISION.neighbor_table, int, 5*(ll[T]+1)*(ll[Z]+1)*(ll[Y]+1)*(ll[X]+1) );
   FREE( l->oe_op_PRECISION.backward_neighbor_table, int, 5*(ll[T]+1)*(ll[Z]+1)*(ll[Y]+1)*(ll[X]+1) );
@@ -1160,7 +1178,19 @@ void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECIS
 
 
 void coarse_apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
-    
+
+  // RE-ENABLE !
+  //printf0("WITHIN SCHUR !!, depth=%d \n", l->depth);
+
+  // this function is supposed to be called from the coarsest-level only
+  if (l->level != 0) error0("coarse_apply_schur_complement_PRECISION(...) is supposed to be called from the coarsest-level. Is odd-even being applied to FGMRES in intermediate levels?");
+
+  // RE-ENABLE CUDA_OPT !!
+
+//#ifdef CUDA_OPT
+//  // TODO : add profiling here (see non-GPU code below)
+//  coarse_apply_schur_complement_PRECISION_CUDA( (cuda_vector_PRECISION)out, (cuda_vector_PRECISION)in, op, l, threading );
+//#else
   // start and end indices for vector functions depending on thread
   int start;
   int end;
@@ -1186,6 +1216,7 @@ void coarse_apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECI
   PROF_PRECISION_START( _NC, threading );
   coarse_n_hopping_term_PRECISION( out, tmp[1], op, _EVEN_SITES, l, threading );
   PROF_PRECISION_STOP( _NC, 1, threading );
+//#endif
 }
 
 
