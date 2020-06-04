@@ -467,10 +467,10 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
     }
 
     if (g.method != 2) {
-      error0("only supporting method=2 for now when -DCUDA_OPT enabled. Check your .ini file.");
+      error0("only supporting method=2 for now when -DCUDA_OPT enabled. Check your .ini file.\n");
     }
     if (g.odd_even != 1) {
-      error0("only supporting odd_even=1 for now when -DCUDA_OPT enabled. Check your .ini file.");
+      error0("only supporting odd_even=1 for now when -DCUDA_OPT enabled. Check your .ini file.\n");
     }
 
     // restrict/recommend the use of ntv%32==0 test vectors at any level
@@ -480,6 +480,33 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
                  i, g.num_eig_vect[i], g.warp_size, g.warp_size);
       }
     }
+
+    // checking some tuning parameters for CUDA runs
+
+    i=0;
+    // TYPE1
+    if( g.CUDA_threads_per_lattice_site_type1[i]==6 ){
+      // in this case, the threads per CUDA block must be a multiple of 96
+      if( g.CUDA_threads_per_CUDA_block_type1[i]%96 != 0 ){
+        error0("'d0 CUDA threads per CUDA block type1' must be a multiple of 96 when using 6 threads per lattice site at level 0\n");
+      }
+    }
+    else if( g.CUDA_threads_per_lattice_site_type1[i]==2 ){
+      // in this case, the threads per CUDA block must be a multiple of 32
+      if( g.CUDA_threads_per_CUDA_block_type1[i]%32 != 0 ){
+        error0("'d0 CUDA threads per CUDA block type1' must be a multiple of 32 when using 2 threads per lattice site at level 0\n");
+      }
+    }
+    else{
+      error0("'d0 CUDA threads per lattice site type1' must be either 2 or 6 at level 0\n");
+    }
+    // TYPE2
+    if( g.CUDA_threads_per_lattice_site_type2[i]!=1 ) error0("'d0 CUDA threads per lattice site type2' can only be 1 at level 0 for now.\n");
+    if( g.CUDA_threads_per_CUDA_block_type2[i]%32 != 0 ) error0("'d0 CUDA threads per CUDA block type2' must be a multiple of 32 at level 0\n");
+
+    //for( i=1; i<g.num_levels; i++ ){
+      // TODO : add restrictions here similar to i=0 (see immediately above of here)
+    //}
 
   }
 #endif
@@ -504,6 +531,13 @@ void method_finalize( level_struct *l ) {
   FREE( g.block_iter, int, ls );
   FREE( g.setup_iter, int, ls );
   FREE( g.num_eig_vect, int, ls );
+#ifdef CUDA_OPT
+  FREE( g.CUDA_threads_per_CUDA_block_type1, int, ls );
+  FREE( g.CUDA_threads_per_lattice_site_type1, int, ls );
+  FREE( g.CUDA_threads_per_CUDA_block_type2, int, ls );
+  FREE( g.CUDA_threads_per_lattice_site_type2, int, ls );
+#endif
+
   cart_free( l );
   var_table_free( &(g.vt) );
   
@@ -863,7 +897,6 @@ void read_geometry_data( FILE *in, int ls ) {
     save_pt = &(g.ncycle[i]); g.ncycle[i] = 1;
     read_parameter( &save_pt, inputstr, "%d", 1, in, _DEFAULT_SET );
     
-    
     sprintf( inputstr, "d%d relaxation factor:", i );
     save_pt = &(g.relax_fac[i]); g.relax_fac[i] = 1.0;
     read_parameter( &save_pt, inputstr, "%lf", 1, in, _DEFAULT_SET );
@@ -879,6 +912,48 @@ void read_geometry_data( FILE *in, int ls ) {
     else if ( i==1 ) g.setup_iter[i] = 3;
     else if ( i>1 ) g.setup_iter[i] = 2;
     read_parameter( &save_pt, inputstr, "%d", 1, in, _DEFAULT_SET );
+
+#ifdef CUDA_OPT
+    sprintf( inputstr, "d%d CUDA threads per CUDA block type1:", i );
+    save_pt = &(g.CUDA_threads_per_CUDA_block_type1[i]);
+    if ( i==0 ){
+      g.CUDA_threads_per_CUDA_block_type1[i] = 96;
+    }
+    else {
+      g.CUDA_threads_per_CUDA_block_type1[i] = 32;
+    }
+    read_parameter( &save_pt, inputstr, "%d", 1, in, _DEFAULT_SET );
+
+    sprintf( inputstr, "d%d CUDA threads per lattice site type1:", i );
+    save_pt = &(g.CUDA_threads_per_lattice_site_type1[i]);
+    if ( i==0 ){
+      g.CUDA_threads_per_lattice_site_type1[i] = 6;
+    }
+    else { 
+      g.CUDA_threads_per_lattice_site_type1[i] = 1;
+    }
+    read_parameter( &save_pt, inputstr, "%d", 1, in, _DEFAULT_SET );
+
+    sprintf( inputstr, "d%d CUDA threads per CUDA block type2:", i );
+    save_pt = &(g.CUDA_threads_per_CUDA_block_type2[i]);
+    if ( i==0 ){
+      g.CUDA_threads_per_CUDA_block_type2[i] = 32;
+    }
+    else {
+      g.CUDA_threads_per_CUDA_block_type2[i] = 32;
+    }
+    read_parameter( &save_pt, inputstr, "%d", 1, in, _DEFAULT_SET );
+
+    sprintf( inputstr, "d%d CUDA threads per lattice site type2:", i );
+    save_pt = &(g.CUDA_threads_per_lattice_site_type2[i]);
+    if ( i==0 ){
+      g.CUDA_threads_per_lattice_site_type2[i] = 1;
+    }
+    else {
+      g.CUDA_threads_per_lattice_site_type2[i] = 1;
+    }
+    read_parameter( &save_pt, inputstr, "%d", 1, in, _DEFAULT_SET );
+#endif
     
     sprintf( inputstr, "d%d test vectors:", i );
     
@@ -1144,6 +1219,12 @@ void allocate_for_global_struct_after_read_global_info( int ls ) {
   MALLOC( g.block_iter, int, ls );
   MALLOC( g.setup_iter, int, ls );
   MALLOC( g.num_eig_vect, int, ls );
+#ifdef CUDA_OPT
+  MALLOC( g.CUDA_threads_per_CUDA_block_type1, int, ls );
+  MALLOC( g.CUDA_threads_per_lattice_site_type1, int, ls );
+  MALLOC( g.CUDA_threads_per_CUDA_block_type2, int, ls );
+  MALLOC( g.CUDA_threads_per_lattice_site_type2, int, ls );
+#endif
   
   for ( i=1; i<ls; i++ ) {
     g.global_lattice[i] = g.global_lattice[0] + i*4;

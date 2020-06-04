@@ -441,6 +441,11 @@
     int warp_size;
     int num_devices;
     int device_id;
+
+    int* CUDA_threads_per_CUDA_block_type1;
+    int* CUDA_threads_per_lattice_site_type1;
+    int* CUDA_threads_per_CUDA_block_type2;
+    int* CUDA_threads_per_lattice_site_type2;
 #endif
            
     // index functions for external usage
