@@ -2925,15 +2925,16 @@ cuda_block_solve_oddeven_PRECISION(				cuda_vector_PRECISION phi, cuda_vector_PR
     tmp2 = tmp[2];
     tmp3 = tmp[3];
 
-    // -*-*-*-*-* COPYING tmp3 <- r
+    // -*-*-*-*-* COPYING tmp3 <- r (tunable! -- type2)
 
     // nr sites per DD block
     nr_threads = (s->num_block_odd_sites > s->num_block_even_sites) ? s->num_block_odd_sites : s->num_block_even_sites;
-    nr_threads = nr_threads*(12/2); // threads per site
+    nr_threads = nr_threads*12; // threads per site
     nr_threads = nr_threads*nr_DD_blocks_to_compute; // nr of DD blocks to compute
     nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
 
-    threads_per_cublock = 96;
+    // it's important to accomodate for the factor of 3 in 4*3=12
+    threads_per_cublock = 3 * g.CUDA_threads_per_CUDA_block_type2[0];
 
     // IMPORTANT: out of the three following options for copying odd-even, we choose the
     //            most efficient one, which in turn is not necessary obvious
@@ -2942,14 +2943,14 @@ cuda_block_solve_oddeven_PRECISION(				cuda_vector_PRECISION phi, cuda_vector_PR
     //cuda_blocks_vector_copy_noncontig_PRECISION_dyn(tmp3, r, nr_DD_blocks_to_compute, s, l,
     // DD_blocks_to_compute_gpu, streams, 0);
 
-    cuda_block_oe_vector_PRECISION_copy_6threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
+    cuda_block_oe_vector_PRECISION_copy_12threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
                                                         0, streams[stream_id]
                                                     >>>
                                                     ( tmp3, r, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
                                                       DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block,
                                                       _FULL_SYSTEM );
 
-    // -*-*-*-*-* INVERSION OF ODD BLOCK DIAGONAL (tunable!)
+    // -*-*-*-*-* INVERSION OF ODD BLOCK DIAGONAL (tunable! -- type1)
 
     // diag_oo inv
     // nr sites per DD block
@@ -3044,7 +3045,7 @@ cuda_block_solve_oddeven_PRECISION(				cuda_vector_PRECISION phi, cuda_vector_PR
                                                               dir, _ODD_SITES );
     }
 
-    // -*-*-*-*-* INVERSION OF ODD BLOCK DIAGONAL (tunable!)
+    // -*-*-*-*-* INVERSION OF ODD BLOCK DIAGONAL (tunable! -- type1)
 
     // diag_oo inv
     // nr sites per DD block

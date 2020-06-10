@@ -77,6 +77,67 @@ __global__ void cuda_block_oe_vector_PRECISION_copy_6threads_opt( cu_cmplx_PRECI
 
 }
 
+
+__global__ void cuda_block_oe_vector_PRECISION_copy_12threads_opt( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
+                                                                  schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
+                                                                  double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
+                                                                  int num_latt_site_var, block_struct* block, int sites_to_copy ){
+
+  int idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;
+
+  idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  // not really a DD block id, but rather a linear counting of a grouping (per DD block) of CUDA threads
+  DD_block_id = idx/nr_threads_per_DD_block;
+
+  // offsetting idx to make it zero at the beginning of the threads living within a DD block
+  idx = idx%nr_threads_per_DD_block;
+
+  // this int will be the ACTUAL DD block ID, in the sense of accessing data from e.g. block_struct* block
+  block_id = DD_blocks_to_compute[DD_block_id];
+
+  cublocks_per_DD_block = nr_threads_per_DD_block/blockDim.x;
+
+  // This serves as a substitute of blockIdx.x, to have a more
+  // local and DD-block treatment more independent of the other DD blocks
+  cu_block_ID = blockIdx.x%cublocks_per_DD_block;
+
+  // this is the DD-block start of the spinors (phi, r, latest_iter and temporary ones)
+  start = block[block_id].start * num_latt_site_var;
+
+  out += start;
+  in += start;
+
+  int nr_block_even_sites, nr_block_odd_sites;
+  nr_block_even_sites = s->num_block_even_sites;
+  nr_block_odd_sites = s->num_block_odd_sites;
+
+  if( sites_to_copy==_EVEN_SITES ){
+    // even
+    if(idx < 12*nr_block_even_sites){
+      ( out + cu_block_ID*blockDim.x + threadIdx.x )[0] = ( in + cu_block_ID*blockDim.x + threadIdx.x )[0];
+    }
+  }
+  else if( sites_to_copy==_ODD_SITES ){
+    // odd
+    if(idx < 12*nr_block_odd_sites){
+      ( out + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0] = ( in + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0];
+    }
+  }
+  else if( sites_to_copy==_FULL_SYSTEM ){
+    // even
+    if(idx < 12*nr_block_even_sites){
+      ( out + cu_block_ID*blockDim.x + threadIdx.x )[0] = ( in + cu_block_ID*blockDim.x + threadIdx.x )[0];
+    }
+    // odd
+    if(idx < 12*nr_block_odd_sites){
+      ( out + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0] = ( in + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0];
+    }
+  }
+
+}
+
+
 __global__ void cuda_block_oe_vector_PRECISION_define_6threads_opt( cu_cmplx_PRECISION* spinor,\
                                                                     schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
                                                                     double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \

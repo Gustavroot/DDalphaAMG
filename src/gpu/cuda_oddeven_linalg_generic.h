@@ -3,9 +3,13 @@
 
   // device functions
 
-  // 6 threads, optimized
+  // 6 and 12 threads, optimized
 
   __global__ void cuda_block_oe_vector_PRECISION_copy_6threads_opt( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, schwarz_PRECISION_struct_on_gpu *s, 
+                                                                  int thread_id, double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, int num_latt_site_var,
+                                                                  block_struct* block, int sites_to_copy );
+
+  __global__ void cuda_block_oe_vector_PRECISION_copy_12threads_opt( cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, schwarz_PRECISION_struct_on_gpu *s,
                                                                   int thread_id, double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, int num_latt_site_var,
                                                                   block_struct* block, int sites_to_copy );
 
