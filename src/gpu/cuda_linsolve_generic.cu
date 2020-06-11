@@ -44,6 +44,8 @@ extern "C" void local_minres_PRECISION_CUDA( cuda_vector_PRECISION phi, cuda_vec
                                                   (r, eta, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute,
                                                    l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
 
+  // -*-*-*-*-* DEFINE lphi <- (0.0,0.0)
+
   //vector_PRECISION_define( lphi, 0, start, end, l );
   nr_threads = (s->num_block_odd_sites > s->num_block_even_sites) ? s->num_block_odd_sites : s->num_block_even_sites; // nr sites per DD block
   nr_threads = nr_threads*(12/2); // threads per site
@@ -55,9 +57,14 @@ extern "C" void local_minres_PRECISION_CUDA( cuda_vector_PRECISION phi, cuda_vec
                                                     l->num_lattice_site_var, (s->cu_s).block, sites_to_solve, make_cu_cmplx_PRECISION(0.0,0.0));
 
   for ( i=0; i<n; i++ ) {
+
     // Dr = blockD*r
     //block_op( Dr, r, start, s, l, no_threading );
+
+    // -*-*-*-*-* SCHUR COMPLEMENT
     cuda_apply_block_schur_complement_PRECISION( Dr, r, s, l, nr_DD_blocks_to_compute, DD_blocks_to_compute, streams, stream_id, _EVEN_SITES );
+
+    // -*-*-*-*-* LOCAL BLOCK SUMMATIONS xy/xx
 
     // To be able to call the current implementation of the dot product,
     // threads_per_cublock has to be a power of 2
@@ -69,6 +76,8 @@ extern "C" void local_minres_PRECISION_CUDA( cuda_vector_PRECISION phi, cuda_vec
     tot_shared_mem = 2*(threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
     cuda_local_xy_over_xx_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock, tot_shared_mem, streams[stream_id] >>>
                                    ( Dr, r, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block, sites_to_solve );
+
+    // -*-*-*-*-* SAXPY
 
     PRECISION prefctr_alpha;
 
@@ -114,6 +123,8 @@ extern "C" void local_minres_PRECISION_CUDA( cuda_vector_PRECISION phi, cuda_vec
                                                     (latest_iter, lphi, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block, DD_blocks_to_compute,
                                                      l->num_lattice_site_var, (s->cu_s).block, sites_to_solve);
   }
+
+  // -*-*-*-*-* PLUS
 
   //vector_PRECISION_plus( phi, phi, lphi, start, end, l );
   if ( phi != NULL ){

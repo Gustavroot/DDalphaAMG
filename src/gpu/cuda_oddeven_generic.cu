@@ -181,6 +181,28 @@ cuda_block_n_hopping_term_PRECISION_minus_2threads_opt(         cu_cmplx_PRECISI
                                                                 double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
                                                                 int num_latt_site_var, block_struct* block, int ext_dir,
                                                                 int amount );
+__forceinline__ __device__ void
+_cuda_block_hopping_term_PRECISION_plus_2threads_opt(           cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
+                                                                int amount, schwarz_PRECISION_struct_on_gpu *s, int idx,
+                                                                cu_cmplx_PRECISION *buf, int ext_dir, cu_cmplx_PRECISION *Dgpu,
+                                                                int* gamma_coo, cu_cmplx_PRECISION* gamma_val );
+__global__ void
+cuda_block_hopping_term_PRECISION_plus_2threads_opt(            cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
+                                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id,
+                                                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
+                                                                int num_latt_site_var, block_struct* block, int ext_dir,
+                                                                int amount );
+__forceinline__ __device__ void
+_cuda_block_hopping_term_PRECISION_minus_2threads_opt(          cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
+                                                                int amount, schwarz_PRECISION_struct_on_gpu *s, int idx,
+                                                                cu_cmplx_PRECISION *buf, int ext_dir, cu_cmplx_PRECISION *Dgpu,
+                                                                int* gamma_coo, cu_cmplx_PRECISION* gamma_val );
+__global__ void
+cuda_block_hopping_term_PRECISION_minus_2threads_opt(           cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
+                                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id,
+                                                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
+                                                                int num_latt_site_var, block_struct* block, int ext_dir,
+                                                                int amount );
 
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -1035,6 +1057,82 @@ _cuda_block_hopping_term_PRECISION_plus_6threads_naive(		cu_cmplx_PRECISION *eta
 
 
 __forceinline__ __device__ void
+_cuda_block_hopping_term_PRECISION_plus_2threads_opt(           cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
+                                                                int amount, schwarz_PRECISION_struct_on_gpu *s, int idx,
+                                                                cu_cmplx_PRECISION *buf, int ext_dir, cu_cmplx_PRECISION *Dgpu,
+                                                                int* gamma_coo, cu_cmplx_PRECISION* gamma_val ){
+
+  //if amount==0 then even sites, if amount==1 then odd sites, else no oddeven split
+  int a1, n1, k, j, i, **index, *ind, *neighbor, loc_ind, spin, w, v, idx_in_cublock;
+  cu_cmplx_PRECISION *buf1, *buf2, *leta, *lphi; //eta and phi are already shifted by 'start'
+
+  _DD_gateway_hopping( s, ext_dir, start, idx, &index, &neighbor,
+                       &loc_ind, &idx_in_cublock, &k, &j, &i, &buf,
+                       &buf1, &buf2, &Dgpu, &ind, 2 );
+
+  if( amount==_EVEN_SITES ){
+    a1=0; n1=s->dir_length_even[ext_dir]; //for the + part
+  }
+  else if( amount==_ODD_SITES ){
+    a1=s->dir_length_even[ext_dir]; n1=a1+s->dir_length_odd[ext_dir];
+  }
+  else{
+    a1 = 0;
+    n1 = s->dir_length[ext_dir];
+  }
+  // less threads in charge of this portion of execution, compute contribution due to even sites
+  if( idx<2*(n1-a1) ){
+    // lattice site indices
+    i = idx/2 + a1;
+    k = ind[i];
+    j = neighbor[4*k+ext_dir];
+    // site spinors
+    lphi = phi + 12*j;
+    leta = eta + 12*k;
+    // sub-site spin
+    spin = loc_ind*2;
+    // prp_T_PRECISION(...)
+
+    for( v=0; v<3; v++ ){
+      buf1[ loc_ind*3+v ] = cu_csub_PRECISION( lphi[ loc_ind*3+v ],
+                                               cu_cmul_PRECISION(
+                                               (gamma_val + ext_dir*4 + spin)[0], lphi[ 3*(gamma_coo + ext_dir*4 + spin)[0] + (loc_ind*3+v)%3 ] )
+                                              );
+    }
+
+  }
+  //__syncthreads();
+  if( idx<2*(n1-a1) ){
+    // mvm_PRECISION(...), twice
+
+    for( v=0; v<3; v++ ){
+      buf2[ loc_ind*3+v ] = make_cu_cmplx_PRECISION(0.0,0.0);
+      for( w=0; w<3; w++ ){
+        buf2[ loc_ind*3+v ] = cu_cadd_PRECISION( buf2[ loc_ind*3+v ],
+                                                 cu_cmul_PRECISION(
+                                                 Dgpu[ ((loc_ind*3+v)*3)%9 + w ], buf1[ ((loc_ind*3+v)/3)*3 + w ] )
+                                                );
+      }
+
+    }
+  }
+  //__syncthreads();
+  if( idx<2*(n1-a1) ){
+    // pbp_su3_T_PRECISION(...)
+
+    for( v=0; v<3; v++ ){
+      leta[ loc_ind*3+v ] = cu_csub_PRECISION( leta[ loc_ind*3+v ], buf2[ loc_ind*3+v ] );
+      leta[ 6 + loc_ind*3+v ] = cu_cadd_PRECISION( leta[ 6 + loc_ind*3+v ],
+                                                   cu_cmul_PRECISION(
+                                                   (gamma_val + ext_dir*4 + spin)[1], buf2[ 3*(gamma_coo + ext_dir*4 + spin)[1] + (loc_ind*3+v)%3 ] )
+                                                 );
+    }
+
+  }
+}
+
+
+__forceinline__ __device__ void
 _cuda_block_hopping_term_PRECISION_plus_6threads_opt(		cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
 								int amount, schwarz_PRECISION_struct_on_gpu *s, int idx,
 								cu_cmplx_PRECISION *buf, int ext_dir, cu_cmplx_PRECISION *Dgpu,
@@ -1176,6 +1274,81 @@ _cuda_block_hopping_term_PRECISION_minus_6threads_naive(	cu_cmplx_PRECISION *eta
     					     cu_cmul_PRECISION(
     					     gamma_val[1], buf2[ 3*gamma_coo[1] + loc_ind%3 ] )
     					    );
+  }
+}
+
+
+__forceinline__ __device__ void
+_cuda_block_hopping_term_PRECISION_minus_2threads_opt(          cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
+                                                                int amount, schwarz_PRECISION_struct_on_gpu *s, int idx,
+                                                                cu_cmplx_PRECISION *buf, int ext_dir, cu_cmplx_PRECISION *Dgpu,
+                                                                int *gamma_coo, cu_cmplx_PRECISION *gamma_val ){
+
+  //if amount==0 then even sites, if amount==1 then odd sites, else no oddeven split
+  int a1, n1, a2, n2, k, j, i, **index, *ind, *neighbor, loc_ind, spin, w, v, idx_in_cublock;
+  cu_cmplx_PRECISION *buf1, *buf2, *leta, *lphi; //eta and phi are already shifted by 'start'
+
+  _DD_gateway_hopping( s, ext_dir, start, idx, &index, &neighbor, &loc_ind, &idx_in_cublock, &k, &j, &i, &buf, &buf1, &buf2, &Dgpu, &ind, 2 );
+
+  if( amount==_EVEN_SITES ){
+    a1=0; n1=s->dir_length_even[ext_dir]; //for the + part
+    a2=n1; n2=a2+s->dir_length_odd[ext_dir]; //for the - part
+  }
+  else if( amount==_ODD_SITES ){
+    a1=s->dir_length_even[ext_dir]; n1=a1+s->dir_length_odd[ext_dir];
+    a2=0; n2=a1;
+  }
+  else{
+    a2 = 0;
+    n2 = s->dir_length[ext_dir];
+  }
+  //and now, compute the contribution due to odd sites
+  if( idx<2*(n2-a2) ){
+    // lattice site indices
+    i = idx/2 + a2;
+    k = ind[i];
+    j = neighbor[4*k+ext_dir];
+    // site spinors
+    lphi = phi + 12*k;
+    leta = eta + 12*j;
+    // sub-site spin
+    spin = loc_ind*2;
+    // prn_T_PRECISION(...)
+
+    for( v=0; v<3; v++ ){
+      buf1[ loc_ind*3+v ] = cu_cadd_PRECISION( lphi[ loc_ind*3+v ],
+                                               cu_cmul_PRECISION(
+                                               (gamma_val+ext_dir*4+spin)[0], lphi[ 3*(gamma_coo+ext_dir*4+spin)[0] + (loc_ind*3+v)%3 ] )
+                                              );
+    }
+  }
+  //__syncthreads();
+  if( idx<2*(n2-a2) ){
+    // mvmh_PRECISION(...), twice
+
+    for( v=0; v<3; v++ ){
+      buf2[ loc_ind*3+v ] = make_cu_cmplx_PRECISION(0.0,0.0);
+      for( w=0; w<3; w++ ){
+        buf2[ loc_ind*3+v ] = cu_cadd_PRECISION( buf2[ loc_ind*3+v ],
+                                                 cu_cmul_PRECISION(
+                                                 cu_conj_PRECISION(Dgpu[ (loc_ind*3+v)%3 + w*3 ]), buf1[ ((loc_ind*3+v)/3)*3 + w ] )
+                                                );
+      }
+
+    }
+  }
+  //__syncthreads();
+  if( idx<2*(n2-a2) ){
+    // pbn_su3_T_PRECISION(...)
+
+    for( v=0; v<3; v++ ){
+      leta[ loc_ind*3+v ] = cu_csub_PRECISION( leta[ loc_ind*3+v ], buf2[ loc_ind*3+v ] );
+      leta[ 6 + loc_ind*3+v ] = cu_csub_PRECISION( leta[ 6 + loc_ind*3+v ],
+                                                   cu_cmul_PRECISION(
+                                                   (gamma_val+ext_dir*4+spin)[1], buf2[ 3*(gamma_coo+ext_dir*4+spin)[1] + (loc_ind*3+v)%3 ] )
+                                                  );
+    }
+
   }
 }
 
@@ -2888,6 +3061,49 @@ cuda_block_hopping_term_PRECISION_plus_6threads_naive(		cu_cmplx_PRECISION* out,
 
 
 __global__ void
+cuda_block_hopping_term_PRECISION_plus_2threads_opt(            cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
+                                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id,
+                                                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
+                                                                int num_latt_site_var, block_struct* block, int ext_dir,
+                                                                int amount ){
+  int idx, i, *gamma_coo, start, int_offset_Dgpu, sites_offset_Dgpu, nr_dumps_Dgpu;
+  cu_cmplx_PRECISION *gamma_val, *Dgpu_local, *tmp_loc, *Dgpu;
+
+  idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  DD_gateway_hopping( s, DD_blocks_to_compute, nr_threads_per_DD_block, num_latt_site_var, &idx, &start, &int_offset_Dgpu,
+                      &sites_offset_Dgpu, &out, &in, &nr_dumps_Dgpu, &gamma_coo, &gamma_val, &tmp_loc, &Dgpu_local, amount,
+                      block, ext_dir, 2 );
+
+  int_offset_Dgpu = ext_dir;
+  // due to computing the _minus_ kernel
+  int_offset_Dgpu += 0*8;
+  if( amount==_EVEN_SITES ){
+    int_offset_Dgpu += 0*4;
+  }
+  else if( amount==_ODD_SITES ){
+    int_offset_Dgpu += 1*4;
+  }
+  else{
+    // TODO
+  }
+
+  // created offset of Dgpu
+  Dgpu = s->op.Dgpu[int_offset_Dgpu] + sites_offset_Dgpu*9;
+
+  for( i=0; i<nr_dumps_Dgpu; i++ ){
+    // not all threads are needed when loading Dgpu
+    if( (i*blockDim.x + idx%blockDim.x) < ((blockDim.x/2)*9) ){
+      Dgpu_local[ i*blockDim.x + threadIdx.x ] = Dgpu[ i*blockDim.x + threadIdx.x ];
+    }
+  }
+  if(blockDim.x>32) __syncthreads();
+  _cuda_block_hopping_term_PRECISION_plus_2threads_opt( out, in, start, amount, s, idx,
+                                                        tmp_loc, ext_dir, Dgpu_local, gamma_coo, gamma_val );
+}
+
+
+__global__ void
 cuda_block_hopping_term_PRECISION_plus_6threads_opt(		cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
                                                                 schwarz_PRECISION_struct_on_gpu *s, int thread_id,
                                                                 double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
@@ -2972,6 +3188,48 @@ cuda_block_hopping_term_PRECISION_minus_6threads_naive(		cu_cmplx_PRECISION* out
     tmp_loc[threadIdx.x + blockDim.x] = make_cu_cmplx_PRECISION(0.0,0.0);
   } //even
   _cuda_block_hopping_term_PRECISION_minus_6threads_naive( out, in, start, amount, s, idx, tmp_loc, ext_dir );
+}
+
+
+__global__ void
+cuda_block_hopping_term_PRECISION_minus_2threads_opt(           cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
+                                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id,
+                                                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
+                                                                int num_latt_site_var, block_struct* block, int ext_dir,
+                                                                int amount ){
+  int idx, i, *gamma_coo, start, int_offset_Dgpu, sites_offset_Dgpu, nr_dumps_Dgpu;
+  cu_cmplx_PRECISION *gamma_val, *Dgpu_local, *tmp_loc, *Dgpu;
+
+  idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  DD_gateway_hopping( s, DD_blocks_to_compute, nr_threads_per_DD_block, num_latt_site_var, &idx, &start, &int_offset_Dgpu,
+                      &sites_offset_Dgpu, &out, &in, &nr_dumps_Dgpu, &gamma_coo, &gamma_val, &tmp_loc, &Dgpu_local, amount,
+                      block, ext_dir, 2 );
+
+  int_offset_Dgpu = ext_dir;
+  // due to computing the _minus_ kernel
+  int_offset_Dgpu += 1*8;
+  if( amount==_EVEN_SITES ){
+    int_offset_Dgpu += 0*4;
+  }
+  else if( amount==_ODD_SITES ){
+    int_offset_Dgpu += 1*4;
+  }
+  else{
+    // TODO
+  }
+
+  // created offset of Dgpu
+  Dgpu = s->op.Dgpu[int_offset_Dgpu] + sites_offset_Dgpu*9;
+  for( i=0; i<nr_dumps_Dgpu; i++ ){
+    // not all threads are needed when loading Dgpu
+    if( (i*blockDim.x + idx%blockDim.x) < ((blockDim.x/2)*9) ){
+      Dgpu_local[ i*blockDim.x + threadIdx.x ] = Dgpu[ i*blockDim.x + threadIdx.x ];
+    }
+  }
+  if(blockDim.x>32) __syncthreads();
+  _cuda_block_hopping_term_PRECISION_minus_2threads_opt( out, in, start, amount, s, idx,
+                                                         tmp_loc, ext_dir, Dgpu_local, gamma_coo, gamma_val );
 }
 
 
@@ -3093,35 +3351,67 @@ cuda_apply_block_schur_complement_PRECISION(			cuda_vector_PRECISION out, cuda_v
                                                       DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block,
                                                       _ODD_SITES, make_cu_cmplx_PRECISION(0.0,0.0) );
 
-  // -*-*-*-*-* HOPPING ( use type1 )
+  // -*-*-*-*-* HOPPING (tunable! -- type1)
 
   //block_hopping_term_PRECISION( tmp[0], in, start, _ODD_SITES, s, l, threading );
-  threads_per_cublock = 96;
-  tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) +
-                   1*9*(threads_per_cublock/6)*sizeof(cu_cmplx_PRECISION);
+
+  threads_per_cublock = g.CUDA_threads_per_CUDA_block_type1[0];
+
+  tot_shared_mem = 1*((12/g.CUDA_threads_per_lattice_site_type1[0])*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) +
+                   1*9*(threads_per_cublock/g.CUDA_threads_per_lattice_site_type1[0])*sizeof(cu_cmplx_PRECISION);
                    //16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int);
-  //tot_shared_mem = (2+1)*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION); // to load in, out and allocate
-  // tmp_loc (this last one to use as buf1 and buf2)
-  //tot_shared_mem += 1*36*(threads_per_cublock/6)*sizeof(cu_config_PRECISION); // to load s->op.D
-  //tot_shared_mem += 16*sizeof(cu_cmplx_PRECISION) + 16*sizeof(int); // to load info related to Gamma matrices
-  //tot_shared_mem += 2*(threads_per_cublock/6)*sizeof(int); // to store indices of sites to compute and neighbors
+
   for( dir=0; dir<4; dir++ ){
+
     nr_threads = (sites_to_solve==_EVEN_SITES)?s->dir_length_even[dir]:s->dir_length_odd[dir];
-    nr_threads = nr_threads*(12/2);
+    nr_threads = nr_threads * g.CUDA_threads_per_lattice_site_type1[0];
     nr_threads = nr_threads*nr_DD_blocks_to_compute;
     nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
-    cuda_block_hopping_term_PRECISION_plus_6threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
-                                                           tot_shared_mem, streams[stream_id]
-                                                       >>>
-                                                       ( tmp0, in, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
-                                                         DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block,
-                                                         dir, _ODD_SITES );
-    cuda_block_hopping_term_PRECISION_minus_6threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
-                                                            tot_shared_mem, streams[stream_id]
-                                                        >>>
-                                                        ( tmp0, in, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
-                                                          DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block,
-                                                          dir, _ODD_SITES );
+
+    if( g.CUDA_threads_per_lattice_site_type1[0]==6 ){
+      cuda_block_hopping_term_PRECISION_plus_6threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
+                                                             tot_shared_mem, streams[stream_id]
+                                                         >>>
+                                                         ( tmp0, in, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
+                                                           DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block,
+                                                           dir, _ODD_SITES );
+    }
+    else if( g.CUDA_threads_per_lattice_site_type1[0]==2 ){
+      cuda_block_hopping_term_PRECISION_plus_2threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
+                                                             tot_shared_mem, streams[stream_id]
+                                                         >>>
+                                                         ( tmp0, in, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
+                                                           DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block,
+                                                           dir, _ODD_SITES );
+    }
+    else {
+      // change the following exit and error output
+      if( g.my_rank==0 ) printf("ERROR : CUDA threads per lattice site can be only 2 or 6 \n");
+      exit(1);
+    }
+
+    if( g.CUDA_threads_per_lattice_site_type1[0]==6 ){
+      cuda_block_hopping_term_PRECISION_minus_6threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
+                                                              tot_shared_mem, streams[stream_id]
+                                                          >>>
+                                                          ( tmp0, in, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
+                                                            DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block,
+                                                            dir, _ODD_SITES );
+    }
+    else if( g.CUDA_threads_per_lattice_site_type1[0]==2 ){
+      cuda_block_hopping_term_PRECISION_minus_2threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
+                                                              tot_shared_mem, streams[stream_id]
+                                                          >>>
+                                                          ( tmp0, in, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
+                                                            DD_blocks_to_compute, l->num_lattice_site_var, (s->cu_s).block,
+                                                            dir, _ODD_SITES );
+    }
+    else {
+      // change the following exit and error output
+      if( g.my_rank==0 ) printf("ERROR : CUDA threads per lattice site can be only 2 or 6 \n");
+      exit(1);
+    }
+
   }
 
   // -*-*-*-*-* INVERSION OF ODD BLOCK DIAGONAL (tunable! -- type1)
