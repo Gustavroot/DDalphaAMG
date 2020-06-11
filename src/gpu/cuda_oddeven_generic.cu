@@ -138,6 +138,11 @@ cuda_block_solve_update_6threads_opt(				cu_cmplx_PRECISION* phi, cu_cmplx_PRECI
 								cu_cmplx_PRECISION* latest_iter, schwarz_PRECISION_struct_on_gpu *s,
 								int thread_id, double csw, int kernel_id, int nr_threads_per_DD_block,
 								int* DD_blocks_to_compute, int num_latt_site_var, block_struct* block );
+__global__ void
+cuda_block_solve_update_12threads_opt(                           cu_cmplx_PRECISION* phi, cu_cmplx_PRECISION* r,
+                                                                 cu_cmplx_PRECISION* latest_iter, schwarz_PRECISION_struct_on_gpu *s,
+                                                                 int thread_id, double csw, int kernel_id, int nr_threads_per_DD_block,
+                                                                 int* DD_blocks_to_compute, int num_latt_site_var, block_struct* block );
 
 // 2 threads, optimized
 
@@ -1414,6 +1419,93 @@ _cuda_block_hopping_term_PRECISION_minus_6threads_opt(		cu_cmplx_PRECISION *eta,
     					     (gamma_val+ext_dir*4+spin)[1], buf2[ 3*(gamma_coo+ext_dir*4+spin)[1] + loc_ind%3 ] )
     					    );
   }
+}
+
+
+__global__ void
+cuda_block_solve_update_12threads_opt(                           cu_cmplx_PRECISION* phi, cu_cmplx_PRECISION* r,
+                                                                 cu_cmplx_PRECISION* latest_iter, schwarz_PRECISION_struct_on_gpu *s,
+                                                                 int thread_id, double csw, int kernel_id, int nr_threads_per_DD_block,
+                                                                 int* DD_blocks_to_compute, int num_latt_site_var, block_struct* block ){
+
+  int idx, DD_block_id, block_id, cublocks_per_DD_block, cu_block_ID, start;
+
+  idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  // not really a DD block id, but rather a linear counting of a grouping (per DD block) of CUDA threads
+  DD_block_id = idx/nr_threads_per_DD_block;
+
+  // offsetting idx to make it zero at the beginning of the threads living within a DD block
+  idx = idx%nr_threads_per_DD_block;
+
+  // this int will be the ACTUAL DD block ID, in the sense of accessing data from e.g. block_struct* block
+  block_id = DD_blocks_to_compute[DD_block_id];
+
+  cublocks_per_DD_block = nr_threads_per_DD_block/blockDim.x;
+
+  // This serves as a substitute of blockIdx.x, to have a more
+  // local and DD-block treatment more independent of the other DD blocks
+  cu_block_ID = blockIdx.x%cublocks_per_DD_block;
+
+  // this is the DD-block start of the spinors (phi, r, latest_iter and temporary ones)
+  start = block[block_id].start * num_latt_site_var;
+
+  cu_cmplx_PRECISION** tmp = s->oe_buf;
+  cu_cmplx_PRECISION* tmp2 = tmp[2];
+  cu_cmplx_PRECISION* tmp3 = tmp[3];
+
+  phi += start;
+  r += start;
+  latest_iter += start;
+  tmp2 += start;
+  tmp3 += start;
+
+  int nr_block_even_sites, nr_block_odd_sites;
+  nr_block_even_sites = s->num_block_even_sites;
+  nr_block_odd_sites = s->num_block_odd_sites;
+
+  // update phi, latest_iter, r
+
+  // even
+  if(idx < 12*nr_block_even_sites){
+
+     ( latest_iter + cu_block_ID*blockDim.x + threadIdx.x )[0] = ( tmp2 + cu_block_ID*blockDim.x + threadIdx.x )[0];
+
+  }
+  // odd
+  if(idx < 12*nr_block_odd_sites){
+
+    ( latest_iter + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0] = ( tmp2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0];
+
+  }
+  // even
+  if(idx < 12*nr_block_even_sites){
+
+    ( phi + cu_block_ID*blockDim.x + threadIdx.x )[0] = cu_cadd_PRECISION( ( phi  + cu_block_ID*blockDim.x + threadIdx.x )[0],
+                                                                           ( tmp2 + cu_block_ID*blockDim.x + threadIdx.x )[0] );
+
+  }
+  // odd
+  if(idx < 12*nr_block_odd_sites){
+
+    ( phi + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0] = \
+                          cu_cadd_PRECISION( ( phi  + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0],
+                                             ( tmp2 + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0] );
+
+  }
+  // even
+  if(idx < 12*nr_block_even_sites){
+
+    ( r + cu_block_ID*blockDim.x + threadIdx.x )[0] = ( tmp3 + cu_block_ID*blockDim.x + threadIdx.x )[0];
+
+  }
+  // odd
+  if(idx < 12*nr_block_odd_sites){
+
+    ( r + 12*nr_block_even_sites + cu_block_ID*blockDim.x + threadIdx.x )[0] = make_cu_cmplx_PRECISION(0.0,0.0);
+
+  }
+
 }
 
 
@@ -3337,14 +3429,16 @@ cuda_apply_block_schur_complement_PRECISION(			cuda_vector_PRECISION out, cuda_v
     exit(1);
   }
 
-  // -*-*-*-*-* DEFINE : vector_PRECISION_define( tmp[0], 0, start + 12*s->num_block_even_sites, start + s->block_vector_size, l ); ( use type2? )
+  // -*-*-*-*-* DEFINE : vector_PRECISION_define( tmp[0], 0, start + 12*s->num_block_even_sites, start + s->block_vector_size, l ); ( use type2? ) (tunable! -- type2)
 
   nr_threads = (s->num_block_odd_sites > s->num_block_even_sites) ? s->num_block_odd_sites : s->num_block_even_sites;
-  nr_threads = nr_threads*(12/2);
+  nr_threads = nr_threads * 12;
   nr_threads = nr_threads*nr_DD_blocks_to_compute;
   nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
-  threads_per_cublock = 96;
-  cuda_block_oe_vector_PRECISION_define_6threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
+
+  threads_per_cublock = 3 * g.CUDA_threads_per_CUDA_block_type2[0];
+
+  cuda_block_oe_vector_PRECISION_define_12threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
                                                         0, streams[stream_id]
                                                     >>>
                                                     ( tmp0, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
@@ -3825,22 +3919,23 @@ cuda_block_solve_oddeven_PRECISION(				cuda_vector_PRECISION phi, cuda_vector_PR
       exit(1);
     }
 
-    // -*-*-*-*-* FINAL UPDATE WITHIN BLOCK_SOLVE ( use type2? )
+    // -*-*-*-*-* FINAL UPDATE WITHIN BLOCK_SOLVE (tunable! -- type2)
 
     // update phi and latest_iter, and r
     // nr sites per DD block
+
     nr_threads = (s->num_block_odd_sites > s->num_block_even_sites) ? s->num_block_odd_sites : s->num_block_even_sites;
-    nr_threads = nr_threads*(12/2); // threads per site
+    nr_threads = nr_threads * 12; // threads per site
     nr_threads = nr_threads*nr_DD_blocks_to_compute; // nr of DD blocks to compute
     nr_threads_per_DD_block = nr_threads/nr_DD_blocks_to_compute;
 
-    threads_per_cublock = 96;
+    threads_per_cublock = 3 * g.CUDA_threads_per_CUDA_block_type2[0];
 
-    cuda_block_solve_update_6threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
-                                            0, streams[stream_id]
-                                        >>>
-                                        ( phi, r, latest_iter, s->s_on_gpu, g.my_rank, g.csw, 0, nr_threads_per_DD_block,
-                                          DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block );
+    cuda_block_solve_update_12threads_opt<<< nr_threads/threads_per_cublock, threads_per_cublock,
+                                             0, streams[stream_id]
+                                         >>>
+                                         ( phi, r, latest_iter, s->s_on_gpu, g.my_rank, g.csw, 0, nr_threads_per_DD_block,
+                                           DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block );
   }
 }
 
