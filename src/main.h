@@ -400,6 +400,8 @@
 
     // next coarser level
     struct level_struct *next_level;
+
+    struct Thread *threading;
     
   } level_struct;
 

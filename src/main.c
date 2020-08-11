@@ -102,6 +102,7 @@ int main( int argc, char **argv ) {
     g.on_solve=0;
 
     struct Thread threading;
+    l.threading = &threading;
     setup_threading(&threading, commonthreaddata, &l);
     setup_no_threading(no_threading, &l);
 

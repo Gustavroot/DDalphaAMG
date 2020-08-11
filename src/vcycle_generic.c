@@ -39,7 +39,15 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
 
 #ifdef CUDA_OPT
     if(l->depth==0){
+      START_LOCKED_MASTER(threading)
       schwarz_PRECISION_CUDA( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
+      END_LOCKED_MASTER(threading)
+
+      SYNC_CORES(threading)
+
+      //START_LOCKED_MASTER(threading)
+      //printf("(%d) right after smoother...\n", g.my_rank);
+      //END_LOCKED_MASTER(threading)
     }
     else{
       //schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
@@ -105,6 +113,8 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
 void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECISION eta,
                        int res, level_struct *l, struct Thread *threading ) {
 
+  int fgmres_ctr = 0;
+
   if ( g.interpolation && l->level>0 ) {
     for ( int i=0; i<l->n_cy; i++ ) {
       if ( i==0 && res == _NO_RES ) {
@@ -122,10 +132,16 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
           g.coarse_time -= MPI_Wtime();
         END_MASTER(threading)
         if ( l->level > 1 ) {
-          if ( g.kcycle )
-            fgmres_PRECISION( &(l->next_level->p_PRECISION), l->next_level, threading );
-          else
+          if ( g.kcycle ){
+            fgmres_ctr = fgmres_PRECISION( &(l->next_level->p_PRECISION), l->next_level, threading );
+            //fgmres_PRECISION( &(l->next_level->p_PRECISION), l->next_level, threading );
+            if(l->depth == 1){
+              printf0("%d, %d -- ", l->level, fgmres_ctr);
+            }
+          }
+          else{
             vcycle_PRECISION( l->next_level->p_PRECISION.x, NULL, l->next_level->p_PRECISION.b, _NO_RES, l->next_level, threading );
+          }
         } else {
           if ( g.odd_even ) {
             if ( g.method == 6 ) {

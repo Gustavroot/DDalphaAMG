@@ -922,57 +922,30 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
                               cudaMemcpyHostToDevice) );
 
   //-------------------------------------------------------------------------------------------------------------------------
-  // copying (s->op.c).boundary_table[inv_mu_dir] ---> for ghost exchanges !
-
-  // TODO: are the following copyings really necessary ?
-
-  int mu_dir, inv_mu_dir, mu, boundary_size;
-
-  for( mu=0; mu<4; mu++ ){
-    //-1
-    dir = -1;
-    mu_dir = 2*mu-MIN(dir,0);
-    inv_mu_dir = 2*mu+1+MIN(dir,0);
-    boundary_size = (s->op.c).num_boundary_sites[mu_dir];
-    cuda_safe_call( cudaMemcpy( (s->op.c).boundary_table_gpu[inv_mu_dir], (s->op.c).boundary_table[inv_mu_dir],
-                                boundary_size*sizeof(int), cudaMemcpyHostToDevice ) );
-    //+1
-    dir = 1;
-    mu_dir = 2*mu-MIN(dir,0);
-    inv_mu_dir = 2*mu+1+MIN(dir,0);
-    boundary_size = (s->op.c).num_boundary_sites[mu_dir];
-    cuda_safe_call( cudaMemcpy( (s->op.c).boundary_table_gpu[inv_mu_dir], (s->op.c).boundary_table[inv_mu_dir],
-                                boundary_size*sizeof(int), cudaMemcpyHostToDevice ) );
-  }
-
-}
-
-
-void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res,
-                             schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
-
-  // TODO-s:
-
-  //	1. move the code for nr_thrDD_blocks_notin_comms[2] (and
-  //	   the others) to schwarz_PRECISION_setup_CUDA(...)
-  //	2. reconsider all the calls to cudaDeviceSynchronize() and
-  //	   SYNC_CORES(threading): reduce synchronizations as much
-  //	   as possible (go over all of the FIXME-s)
-  //	3. add local profiling
-  //	4. fix unknown (minor) memory leakage
-
-  START_NO_HYPERTHREADS(threading)
-
   // Assign a different sub-set of DD blocks to each OpenMP thread
   // Computing the offset of DD-blocks indices and nr of such DD blocks, per color,
   // depending on the nr of OpenMP threads available
-  int nr_thrDD_blocks_notin_comms[2] = { s->nr_DD_blocks_notin_comms[0],
-                                         s->nr_DD_blocks_notin_comms[1]
-                                       },
-      nr_thrDD_blocks_in_comms[2] = { s->nr_DD_blocks_in_comms[0],
-                                      s->nr_DD_blocks_in_comms[1]
-                                    },
-      DD_thr_offset_notin_comms[2]={0,0},DD_thr_offset_in_comms[2]={0,0};
+
+  int *nr_thrDD_blocks_notin_comms = s->nr_thrDD_blocks_notin_comms_;
+  int *nr_thrDD_blocks_in_comms = s->nr_thrDD_blocks_in_comms_;
+  int *DD_thr_offset_notin_comms = s->DD_thr_offset_notin_comms_;
+  int *DD_thr_offset_in_comms = s->DD_thr_offset_in_comms_;  
+
+  nr_thrDD_blocks_notin_comms[0] = s->nr_DD_blocks_notin_comms[0];
+  nr_thrDD_blocks_notin_comms[1] = s->nr_DD_blocks_notin_comms[1];
+  nr_thrDD_blocks_in_comms[0]    = s->nr_DD_blocks_in_comms[0];
+  nr_thrDD_blocks_in_comms[1]    = s->nr_DD_blocks_in_comms[1];
+  DD_thr_offset_notin_comms[0]   = 0;
+  DD_thr_offset_notin_comms[1]   = 0;
+  DD_thr_offset_in_comms[0]      = 0;
+  DD_thr_offset_in_comms[1]      = 0;
+
+  // disabled for now !
+
+  /*
+
+  struct Thread *threading = l->threading;
+
   if( threading->n_core > 1 ){
     int rest_offset=0;
     for( int color=0; color<2; color++ ){
@@ -1009,6 +982,59 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
     }
   }
 
+  */
+
+  //-------------------------------------------------------------------------------------------------------------------------
+  // copying (s->op.c).boundary_table[inv_mu_dir] ---> for ghost exchanges !
+
+  // TODO: are the following copyings really necessary ?
+
+  int mu_dir, inv_mu_dir, mu, boundary_size;
+
+  for( mu=0; mu<4; mu++ ){
+    //-1
+    dir = -1;
+    mu_dir = 2*mu-MIN(dir,0);
+    inv_mu_dir = 2*mu+1+MIN(dir,0);
+    boundary_size = (s->op.c).num_boundary_sites[mu_dir];
+    cuda_safe_call( cudaMemcpy( (s->op.c).boundary_table_gpu[inv_mu_dir], (s->op.c).boundary_table[inv_mu_dir],
+                                boundary_size*sizeof(int), cudaMemcpyHostToDevice ) );
+    //+1
+    dir = 1;
+    mu_dir = 2*mu-MIN(dir,0);
+    inv_mu_dir = 2*mu+1+MIN(dir,0);
+    boundary_size = (s->op.c).num_boundary_sites[mu_dir];
+    cuda_safe_call( cudaMemcpy( (s->op.c).boundary_table_gpu[inv_mu_dir], (s->op.c).boundary_table[inv_mu_dir],
+                                boundary_size*sizeof(int), cudaMemcpyHostToDevice ) );
+  }
+
+}
+
+
+void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vector_PRECISION eta, const int cycles, int res,
+                             schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading ) {
+
+  // TODO-s:
+
+  //	2. reconsider all the calls to cudaDeviceSynchronize() and
+  //	   SYNC_CORES(threading): reduce synchronizations as much
+  //	   as possible (go over all of the FIXME-s)
+  //	3. add local profiling
+  //	4. fix unknown (minor) memory leakage
+
+  //printf("(%d) very beginning of SAP...\n", g.my_rank);
+
+  START_NO_HYPERTHREADS(threading)
+
+  // Assign a different sub-set of DD blocks to each OpenMP thread
+  // Computing the offset of DD-blocks indices and nr of such DD blocks, per color,
+  // depending on the nr of OpenMP threads available
+
+  int *nr_thrDD_blocks_notin_comms = s->nr_thrDD_blocks_notin_comms_;
+  int *nr_thrDD_blocks_in_comms = s->nr_thrDD_blocks_in_comms_;
+  int *DD_thr_offset_notin_comms = s->DD_thr_offset_notin_comms_;
+  int *DD_thr_offset_in_comms = s->DD_thr_offset_in_comms_;  
+
   int color, k, mu, nb = s->num_blocks, init_res = res, i;
 
   // spinors on the GPU to be used on computations
@@ -1016,9 +1042,10 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
                         latest_iter_dev = (s->cu_s).buf2, Dphi_dev = (s->cu_s).buf4,
                         eta_dev = (s->cu_s).buf5, D_phi_dev = (s->cu_s).buf6;
 
-  int nb_thread_start;
-  int nb_thread_end;
-  compute_core_start_end_custom(0, nb, &nb_thread_start, &nb_thread_end, l, threading, 1);
+  // disabling thread splitting for now
+  int nb_thread_start = 0;
+  int nb_thread_end = nb;
+  //compute_core_start_end_custom(0, nb, &nb_thread_start, &nb_thread_end, l, threading, 1);
 
   // Creation of CUDA Events, for time measurement and GPU sync
   cudaEvent_t start_event_copy, stop_event_copy, start_event_comp, stop_event_comp;
@@ -1045,123 +1072,173 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
                                 threading->core, streams_schwarz );
   }
 
-  START_MASTER(threading)
+  //START_MASTER(threading)
   if ( res == _NO_RES ) {
     // setting boundary values to zero
     cuda_vector_PRECISION_define( x_dev, make_cu_cmplx_PRECISION(0,0), l->inner_vector_size,
                                   (l->schwarz_vector_size - l->inner_vector_size), l, _CUDA_SYNC,
                                   threading->core, streams_schwarz );
   }
-  END_MASTER(threading)
+  //END_MASTER(threading)
 
   // FIXME ?
-  cuda_safe_call( cudaDeviceSynchronize() );
-  SYNC_CORES(threading)
+  //cuda_safe_call( cudaDeviceSynchronize() );
+  //SYNC_CORES(threading)
+
+  //printf("(%d) BEFORE!! \n", g.my_rank);
 
   for ( k=0; k<cycles; k++ ) {
     for ( color=0; color<s->num_colors; color++ ) {
       if ( res == _RES ) {
-        START_LOCKED_MASTER(threading)
+        //START_LOCKED_MASTER(threading)
         for ( mu=0; mu<4; mu++ ) {
           cuda_ghost_update_PRECISION( (k==0 && init_res == _RES)?x_dev:latest_iter_dev, mu, +1, &(s->op.c), l );
           cuda_ghost_update_PRECISION( (k==0 && init_res == _RES)?x_dev:latest_iter_dev, mu, -1, &(s->op.c), l );
         }
-        END_LOCKED_MASTER(threading)
+        //END_LOCKED_MASTER(threading)
       } else {
         // we need a barrier between black and white blocks
         // FIXME ?
-        SYNC_CORES(threading)
+        //SYNC_CORES(threading)
         cuda_safe_call( cudaDeviceSynchronize() );
       }
 
       if ( res == _RES ) {
         if ( k==0 && init_res == _RES ) {
-          cuda_block_d_plus_clover_PRECISION( Dphi_dev, x_dev, nr_thrDD_blocks_notin_comms[color], s, l,
-                                              no_threading, threading->core, streams_schwarz, color,
-                                              (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
-                                              s->DD_blocks_notin_comms[color] +DD_thr_offset_notin_comms[color] );
 
-          cuda_block_PRECISION_boundary_op( Dphi_dev, x_dev, nr_thrDD_blocks_notin_comms[color], s, l,
-                                            no_threading, threading->core, streams_schwarz, color,
-                                            (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
-                                            s->DD_blocks_notin_comms[color] +DD_thr_offset_notin_comms[color] );
+          //cuda_block_d_plus_clover_PRECISION( Dphi_dev, x_dev, nr_thrDD_blocks_notin_comms[color], s, l,
+          //                                    no_threading, threading->core, streams_schwarz, color,
+          //                                    (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
+          //                                    s->DD_blocks_notin_comms[color] +DD_thr_offset_notin_comms[color] );
 
-          cuda_block_vector_PRECISION_minus( r_dev, eta_dev, Dphi_dev, nr_thrDD_blocks_notin_comms[color], s, l,
-                                             no_threading, threading->core, streams_schwarz, color,
-                                             (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
-                                             s->DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color] );
+          //cuda_block_PRECISION_boundary_op( Dphi_dev, x_dev, nr_thrDD_blocks_notin_comms[color], s, l,
+          //                                  no_threading, threading->core, streams_schwarz, color,
+          //                                  (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
+          //                                  s->DD_blocks_notin_comms[color] +DD_thr_offset_notin_comms[color] );
+
+          //cuda_block_vector_PRECISION_minus( r_dev, eta_dev, Dphi_dev, nr_thrDD_blocks_notin_comms[color], s, l,
+          //                                   no_threading, threading->core, streams_schwarz, color,
+          //                                   (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
+          //                                   s->DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color] );
+
+          cuda_block_d_plus_clover_PRECISION( Dphi_dev, x_dev, s->nr_DD_blocks_notin_comms[color], s, l,
+                                              no_threading, 0, streams_schwarz, color,
+                                              (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+          cuda_block_PRECISION_boundary_op( Dphi_dev, x_dev, s->nr_DD_blocks_notin_comms[color], s, l,
+                                            no_threading, 0, streams_schwarz, color,
+                                            (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+          cuda_block_vector_PRECISION_minus( r_dev, eta_dev, Dphi_dev, s->nr_DD_blocks_notin_comms[color], s, l,
+                                             no_threading, 0, streams_schwarz, color,
+                                             (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+
         } else {
-          cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, nr_thrDD_blocks_notin_comms[color], s, l,
-                                              no_threading, threading->core, streams_schwarz, color,
-                                              (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
-                                              s->DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color] );
+
+          //cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, nr_thrDD_blocks_notin_comms[color], s, l,
+          //                                    no_threading, threading->core, streams_schwarz, color,
+          //                                    (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
+          //                                    s->DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color] );
+
+          cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, s->nr_DD_blocks_notin_comms[color], s, l,
+                                              no_threading, 0, streams_schwarz, color,
+                                              (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
+
         }
       }
 
       // local minres updates x, r and latest iter
+      //cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_dev, (cuda_vector_PRECISION)r_dev,
+      //                                    (cuda_vector_PRECISION)latest_iter_dev, 0, nr_thrDD_blocks_notin_comms[color],
+      //                                    s, l, no_threading, threading->core, streams_schwarz, 0, color,
+      //                                    (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
+      //                                    s->DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color] );
+
       cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_dev, (cuda_vector_PRECISION)r_dev,
-                                          (cuda_vector_PRECISION)latest_iter_dev, 0, nr_thrDD_blocks_notin_comms[color],
-                                          s, l, no_threading, threading->core, streams_schwarz, 0, color,
-                                          (s->cu_s).DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color],
-                                          s->DD_blocks_notin_comms[color] + DD_thr_offset_notin_comms[color] );
+                                          (cuda_vector_PRECISION)latest_iter_dev, 0, s->nr_DD_blocks_notin_comms[color],
+                                          s, l, no_threading, 0, streams_schwarz, 0, color,
+                                          (s->cu_s).DD_blocks_notin_comms[color], s->DD_blocks_notin_comms[color] );
 
       if ( res == _RES ) {
-        START_LOCKED_MASTER(threading)
+        //START_LOCKED_MASTER(threading)
         for ( mu=0; mu<4; mu++ ) {
           cuda_ghost_update_wait_PRECISION( (k==0 && init_res == _RES)?x_dev:latest_iter_dev, mu, +1, &(s->op.c), l );
           cuda_ghost_update_wait_PRECISION( (k==0 && init_res == _RES)?x_dev:latest_iter_dev, mu, -1, &(s->op.c), l );
-          cuda_safe_call( cudaDeviceSynchronize() );
+          //cuda_safe_call( cudaDeviceSynchronize() );
         }
-        END_LOCKED_MASTER(threading)
+        //END_LOCKED_MASTER(threading)
       } else {
         // we need a barrier between black and white blocks
         // FIXME ?
-        SYNC_CORES(threading)
-        cuda_safe_call( cudaDeviceSynchronize() );
+        //SYNC_CORES(threading)
+        //cuda_safe_call( cudaDeviceSynchronize() );
       }
 
       // FIXME ?
-      SYNC_CORES(threading)
-      cuda_safe_call( cudaDeviceSynchronize() );
+      //SYNC_CORES(threading)
+      //cuda_safe_call( cudaDeviceSynchronize() );
 
       if ( res == _RES ) {
         if ( k==0 && init_res == _RES ) {
-          cuda_block_d_plus_clover_PRECISION( Dphi_dev, x_dev, nr_thrDD_blocks_in_comms[color], s, l, no_threading, threading->core,
-                                              streams_schwarz, color,
-                                              (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
-                                              s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
 
-          cuda_block_PRECISION_boundary_op( Dphi_dev, x_dev, nr_thrDD_blocks_in_comms[color], s, l, no_threading, threading->core,
-                                            streams_schwarz, color,
-                                            (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
-                                            s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
+          //cuda_block_d_plus_clover_PRECISION( Dphi_dev, x_dev, nr_thrDD_blocks_in_comms[color], s, l, no_threading, threading->core,
+          //                                    streams_schwarz, color,
+          //                                    (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
+          //                                    s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
 
-          cuda_block_vector_PRECISION_minus( r_dev, eta_dev, Dphi_dev, nr_thrDD_blocks_in_comms[color], s, l, no_threading, threading->core,
-                                             streams_schwarz, color,
-                                             (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
-                                             s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
+          //cuda_block_PRECISION_boundary_op( Dphi_dev, x_dev, nr_thrDD_blocks_in_comms[color], s, l, no_threading, threading->core,
+          //                                  streams_schwarz, color,
+          //                                  (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
+          //                                  s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
+
+          //cuda_block_vector_PRECISION_minus( r_dev, eta_dev, Dphi_dev, nr_thrDD_blocks_in_comms[color], s, l, no_threading, threading->core,
+          //                                   streams_schwarz, color,
+          //                                   (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
+          //                                   s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
+
+          cuda_block_d_plus_clover_PRECISION( Dphi_dev, x_dev, s->nr_DD_blocks_in_comms[color], s, l, no_threading, 0,
+                                              streams_schwarz, color, (s->cu_s).DD_blocks_in_comms[color],
+                                              s->DD_blocks_in_comms[color] );
+          cuda_block_PRECISION_boundary_op( Dphi_dev, x_dev, s->nr_DD_blocks_in_comms[color], s, l, no_threading, 0,
+                                            streams_schwarz, color, (s->cu_s).DD_blocks_in_comms[color],
+                                            s->DD_blocks_in_comms[color] );
+          cuda_block_vector_PRECISION_minus( r_dev, eta_dev, Dphi_dev, s->nr_DD_blocks_in_comms[color], s, l, no_threading, 0,
+                                             streams_schwarz, color, (s->cu_s).DD_blocks_in_comms[color],
+                                             s->DD_blocks_in_comms[color] );
+
         } else {
-          cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, nr_thrDD_blocks_in_comms[color], s, l, no_threading, threading->core,
-                                              streams_schwarz, color,
-                                              (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
-                                              s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
+
+          //cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, nr_thrDD_blocks_in_comms[color], s, l, no_threading, threading->core,
+          //                                    streams_schwarz, color,
+          //                                    (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
+          //                                    s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
+
+          cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, s->nr_DD_blocks_in_comms[color], s, l, no_threading, 0,
+                                              streams_schwarz, color, (s->cu_s).DD_blocks_in_comms[color],
+                                              s->DD_blocks_in_comms[color] );
+
         }
       }
 
       // local minres updates x, r and latest iter
+      //cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_dev, (cuda_vector_PRECISION)r_dev,
+      //                                    (cuda_vector_PRECISION)latest_iter_dev, 0, nr_thrDD_blocks_in_comms[color],
+      //                                    s, l, no_threading, threading->core, streams_schwarz, 0, color,
+      //                                    (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
+      //                                    s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
+
       cuda_block_solve_oddeven_PRECISION( (cuda_vector_PRECISION)x_dev, (cuda_vector_PRECISION)r_dev,
-                                          (cuda_vector_PRECISION)latest_iter_dev, 0, nr_thrDD_blocks_in_comms[color],
-                                          s, l, no_threading, threading->core, streams_schwarz, 0, color,
-                                          (s->cu_s).DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color],
-                                          s->DD_blocks_in_comms[color] + DD_thr_offset_in_comms[color] );
+                                          (cuda_vector_PRECISION)latest_iter_dev, 0, s->nr_DD_blocks_in_comms[color],
+                                          s, l, no_threading, 0, streams_schwarz, 0, color,
+                                          (s->cu_s).DD_blocks_in_comms[color], s->DD_blocks_in_comms[color] );
 
       res = _RES;
     }
   }
 
+  //printf("(%d) AFTER!! \n", g.my_rank);
+
   // FIXME ?
   cuda_safe_call( cudaDeviceSynchronize() );
-  SYNC_CORES(threading)
+  //SYNC_CORES(threading)
 
   if ( l->relax_fac != 1.0 ){
     cuda_vector_PRECISION_copy( (void*)phi, (void*)x_dev, nb_thread_start*s->block_vector_size,
@@ -1189,32 +1266,42 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
     // 1. for all those DD blocks of color=0 and NOT INVOLVED in comms: n_boundary_op( ... ), vector_PRECISION_minus( ... ),
     // vector_PRECISION_scale( ... )
 
-    cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, nr_thrDD_blocks_notin_comms[0], s, l, no_threading, threading->core,
-                                        streams_schwarz, 0,
-                                        (s->cu_s).DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0],
-                                        s->DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0] );
+    //cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, nr_thrDD_blocks_notin_comms[0], s, l, no_threading, threading->core,
+    //                                    streams_schwarz, 0,
+    //                                    (s->cu_s).DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0],
+    //                                    s->DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0] );
 
-    cuda_block_vector_PRECISION_minus( D_phi_dev, eta_dev, r_dev, nr_thrDD_blocks_notin_comms[0], s, l, no_threading, threading->core,
-                                       streams_schwarz, 0,
-                                       (s->cu_s).DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0],
-                                       s->DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0] );
+    //cuda_block_vector_PRECISION_minus( D_phi_dev, eta_dev, r_dev, nr_thrDD_blocks_notin_comms[0], s, l, no_threading, threading->core,
+    //                                   streams_schwarz, 0,
+    //                                   (s->cu_s).DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0],
+    //                                   s->DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0] );
 
+    //if( l->relax_fac != 1.0 ){
+    //  cuda_block_vector_PRECISION_scale( D_phi_dev, D_phi_dev, make_cu_cmplx_PRECISION( l->relax_fac, 0 ),
+    //                                     nr_thrDD_blocks_notin_comms[0], s, l, no_threading, threading->core,
+    //                                     streams_schwarz, 0,
+    //                                     (s->cu_s).DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0],
+    //                                     s->DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0] );
+    //}
+
+    cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, s->nr_DD_blocks_notin_comms[0], s, l, no_threading, 0,
+                                        streams_schwarz, 0, (s->cu_s).DD_blocks_notin_comms[0], s->DD_blocks_notin_comms[0] );
+    cuda_block_vector_PRECISION_minus( D_phi_dev, eta_dev, r_dev, s->nr_DD_blocks_notin_comms[0], s, l, no_threading, 0,
+                                       streams_schwarz, 0, (s->cu_s).DD_blocks_notin_comms[0], s->DD_blocks_notin_comms[0] );
     if( l->relax_fac != 1.0 ){
       cuda_block_vector_PRECISION_scale( D_phi_dev, D_phi_dev, make_cu_cmplx_PRECISION( l->relax_fac, 0 ),
-                                         nr_thrDD_blocks_notin_comms[0], s, l, no_threading, threading->core,
-                                         streams_schwarz, 0,
-                                         (s->cu_s).DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0],
-                                         s->DD_blocks_notin_comms[0] + DD_thr_offset_notin_comms[0] );
+                                         s->nr_DD_blocks_notin_comms[0], s, l, no_threading, 0,
+                                         streams_schwarz, 0, (s->cu_s).DD_blocks_notin_comms[0], s->DD_blocks_notin_comms[0] );
     }
 
     // FIXME ?
     cuda_safe_call( cudaDeviceSynchronize() );
-    SYNC_CORES(threading)
+    //SYNC_CORES(threading)
 
     // 2. for all those DD blocks of color=1: vector_PRECISION_minus( ... ), vector_PRECISION_scale( ... )
 
-    cuda_safe_call( cudaDeviceSynchronize() );
-    SYNC_CORES(threading)
+    //cuda_safe_call( cudaDeviceSynchronize() );
+    //SYNC_CORES(threading)
 
     cuda_block_vector_PRECISION_minus( D_phi_dev, eta_dev, r_dev, nr_thrDD_blocks_notin_comms[1],
                                        s, l, no_threading, threading->core,
@@ -1249,42 +1336,53 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
       //                                   streams_schwarz, 1, (s->cu_s).DD_blocks[1], s->DD_blocks[1] );
     }
 
-    START_LOCKED_MASTER(threading)
+    //START_LOCKED_MASTER(threading)
     for ( mu=0; mu<4; mu++ ) {
       cuda_ghost_update_wait_PRECISION( latest_iter_dev, mu, +1, &(s->op.c), l );
       cuda_ghost_update_wait_PRECISION( latest_iter_dev, mu, -1, &(s->op.c), l );
     }
-    END_LOCKED_MASTER(threading)
+    //END_LOCKED_MASTER(threading)
 
     // FIXME ?
     cuda_safe_call( cudaDeviceSynchronize() );
-    SYNC_CORES(threading)
+    //SYNC_CORES(threading)
 
     // 3. for all those DD blocks of color=0 and INVOLVED in comms: n_boundary_op( ... ), vector_PRECISION_minus( ... ),
     // vector_PRECISION_scale( ... )
 
-    cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, nr_thrDD_blocks_in_comms[0], s, l, no_threading, threading->core,
-                                        streams_schwarz, 0,
-                                        (s->cu_s).DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0],
-                                        s->DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0] );
+    //cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, nr_thrDD_blocks_in_comms[0], s, l, no_threading, threading->core,
+    //                                    streams_schwarz, 0,
+    //                                    (s->cu_s).DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0],
+    //                                    s->DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0] );
 
-    cuda_block_vector_PRECISION_minus( D_phi_dev, eta_dev, r_dev, nr_thrDD_blocks_in_comms[0], s, l, no_threading, threading->core,
-                                       streams_schwarz, 0,
-                                       (s->cu_s).DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0],
-                                       s->DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0] );
+    //cuda_block_vector_PRECISION_minus( D_phi_dev, eta_dev, r_dev, nr_thrDD_blocks_in_comms[0], s, l, no_threading, threading->core,
+    //                                   streams_schwarz, 0,
+    //                                   (s->cu_s).DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0],
+    //                                   s->DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0] );
 
+    //if( l->relax_fac != 1.0 ){
+    //  cuda_block_vector_PRECISION_scale( D_phi_dev, D_phi_dev, make_cu_cmplx_PRECISION( l->relax_fac, 0 ),
+    //                                     nr_thrDD_blocks_in_comms[0], s, l, no_threading, threading->core,
+    //                                     streams_schwarz, 0,
+    //                                     (s->cu_s).DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0],
+    //                                     s->DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0] );
+    //}
+
+    cuda_n_block_PRECISION_boundary_op( r_dev, latest_iter_dev, s->nr_DD_blocks_in_comms[0], s, l, no_threading, 0,
+                                        streams_schwarz, 0, (s->cu_s).DD_blocks_in_comms[0], s->DD_blocks_in_comms[0] );
+    cuda_block_vector_PRECISION_minus( D_phi_dev, eta_dev, r_dev, s->nr_DD_blocks_in_comms[0], s, l, no_threading, 0, \
+                                       streams_schwarz, 0, (s->cu_s).DD_blocks_in_comms[0], s->DD_blocks_in_comms[0] );
     if( l->relax_fac != 1.0 ){
       cuda_block_vector_PRECISION_scale( D_phi_dev, D_phi_dev, make_cu_cmplx_PRECISION( l->relax_fac, 0 ),
-                                         nr_thrDD_blocks_in_comms[0], s, l, no_threading, threading->core,
-                                         streams_schwarz, 0,
-                                         (s->cu_s).DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0],
-                                         s->DD_blocks_in_comms[0] + DD_thr_offset_in_comms[0] );
+                                         s->nr_DD_blocks_in_comms[0], s, l, no_threading, 0,
+                                         streams_schwarz, 0, (s->cu_s).DD_blocks_in_comms[0], s->DD_blocks_in_comms[0] );
     }
+
   }
 
   // FIXME ?
   cuda_safe_call( cudaDeviceSynchronize() );
-  SYNC_CORES(threading)
+  //SYNC_CORES(threading)
 
   if( D_phi != NULL ){
     cuda_vector_PRECISION_copy( (void*)D_phi, (void*)D_phi_dev, nb_thread_start*s->block_vector_size,
@@ -1294,7 +1392,7 @@ void schwarz_PRECISION_CUDA( vector_PRECISION phi, vector_PRECISION D_phi, vecto
 
   // FIXME ?
   cuda_safe_call( cudaDeviceSynchronize() );
-  SYNC_CORES(threading)
+  //SYNC_CORES(threading)
 
 #ifdef SCHWARZ_RES
   // TODO: portion pending to port to GPU/CUDA

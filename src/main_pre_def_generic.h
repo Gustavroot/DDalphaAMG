@@ -173,6 +173,7 @@
     int **DD_blocks_in_comms, **DD_blocks_notin_comms;
     int *nr_DD_blocks;
     int **DD_blocks;
+    int nr_thrDD_blocks_notin_comms_[2], nr_thrDD_blocks_in_comms_[2], DD_thr_offset_notin_comms_[2], DD_thr_offset_in_comms_[2];
 #endif
   } schwarz_PRECISION_struct;
 

@@ -1163,8 +1163,13 @@ void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECIS
   PROF_PRECISION_START( _NC, threading );
   coarse_n_hopping_term_PRECISION( p->b, p->x, op, _EVEN_SITES, l, threading );
   PROF_PRECISION_STOP( _NC, 0, threading );
+
+  //int fgmres_ctr = 0;
   
+  //fgmres_ctr = fgmres_PRECISION( p, l, threading );
   fgmres_PRECISION( p, l, threading );
+
+  //if( l->level == 0 ){ printf0("%d, %d -- ", l->level, fgmres_ctr); }
   
   // even to odd
   PROF_PRECISION_START( _NC, threading );

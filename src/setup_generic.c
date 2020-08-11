@@ -192,7 +192,7 @@ void coarse_grid_correction_PRECISION_free( level_struct *l ) {
 void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct Thread *threading ) {
   
   int k, i, n = l->num_eig_vect,
-      pc = 0, pi = 1, pn = n*6;
+      pc = 0, pi = 1, pn = n*10;
   vector_PRECISION *buffer = NULL;
   int start = threading->start_index[l->depth];
   int end   = threading->end_index[l->depth];
@@ -219,18 +219,38 @@ void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct T
         vector_PRECISION_define_random( l->is_PRECISION.test_vector[k], 0, l->inner_vector_size, l );
         END_LOCKED_MASTER(threading)
 //       }
+
+      // TODO : explore further error caused here by multiple OpenMP threads when GPU-enabled
+
+      START_LOCKED_MASTER(threading)
+      //printf("(%d) before BLAH1.. \n", g.my_rank);
+      END_LOCKED_MASTER(threading)
       
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
-                          1, _NO_RES, _NO_SHIFT, l, threading );
+                          2, _NO_RES, _NO_SHIFT, l, threading );
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
-      smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
-                          g.method>=4?1:2, _NO_RES, _NO_SHIFT, l, threading );
-      vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
+
+      START_LOCKED_MASTER(threading)
+      //printf("(%d) before BLAH2.. \n", g.my_rank);
+      END_LOCKED_MASTER(threading)
+
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
                           g.method>=4?1:3, _NO_RES, _NO_SHIFT, l, threading );
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
-        
-      pc += 6;
+
+      START_LOCKED_MASTER(threading)
+      //printf("(%d) before BLAH3.. \n", g.my_rank);
+      END_LOCKED_MASTER(threading)
+
+      smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
+                          g.method>=4?1:5, _NO_RES, _NO_SHIFT, l, threading );
+      vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
+
+      START_LOCKED_MASTER(threading)
+      //printf("(%d) after BLAH.. \n", g.my_rank);
+      END_LOCKED_MASTER(threading)
+      
+      pc += 10;
       START_MASTER(threading)
       if ( pc >= 0.2*pi*pn ) { if ( g.print > 0 ) printf0("%4d%% |", 20*pi); if ( g.my_rank == 0 ) fflush(0); pi++; }
       END_MASTER(threading)
