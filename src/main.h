@@ -96,7 +96,7 @@
   
 #ifdef SSE
   #define MALLOC( variable, kind, length ) do{ if ( variable != NULL ) { \
-  printf0("malloc of \"%s\" failed: pointer is not NULL (%s:%d).\n", #variable, __FILE__, __LINE__ ); } \
+  /*printf0("malloc of \"%s\" failed: pointer is not NULL (%s:%d).\n", #variable, __FILE__, __LINE__ );*/ } \
   if ( (length) > 0 ) { variable = (kind*) memalign( 64, sizeof(kind) * (length) ); } \
   if ( variable == NULL && (length) > 0 ) { \
   error0("malloc of \"%s\" failed: no memory allocated (%s:%d), current memory used: %lf GB.\n", \
@@ -105,7 +105,7 @@
   if ( g.cur_storage > g.max_storage ) g.max_storage = g.cur_storage; }while(0)
 #else
   #define MALLOC( variable, kind, length ) do{ if ( variable != NULL ) { \
-  printf0("malloc of \"%s\" failed: pointer is not NULL (%s:%d).\n", #variable, __FILE__, __LINE__ ); } \
+  /*printf0("malloc of \"%s\" failed: pointer is not NULL (%s:%d).\n", #variable, __FILE__, __LINE__ );*/ } \
   if ( (length) > 0 ) { variable = (kind*) malloc( sizeof(kind) * (length) ); } \
   if ( variable == NULL && (length) > 0 ) { \
   error0("malloc of \"%s\" failed: no memory allocated (%s:%d), current memory used: %lf GB.\n", \
@@ -116,7 +116,7 @@
 
 #ifdef CUDA_OPT
   #define CUDA_MALLOC( variable, kind, length ) do{ if ( variable != NULL ) { \
-  printf0("cudaMalloc of \"%s\" failed: pointer is not NULL (%s:%d).\n", #variable, __FILE__, __LINE__ ); } \
+  /*printf0("cudaMalloc of \"%s\" failed: pointer is not NULL (%s:%d).\n", #variable, __FILE__, __LINE__ );*/ } \
   if ( (length) > 0 ) { cuda_safe_call( cudaMalloc( (void**) (&( variable )), length*sizeof(kind) ) ); } \
   if ( variable == NULL && (length) > 0 ) { \
   error0("cudaMalloc of \"%s\" failed: no memory allocated (%s:%d), current memory used: %lf GB.\n", \
@@ -449,6 +449,9 @@
     int* CUDA_threads_per_CUDA_block_type2;
     int* CUDA_threads_per_lattice_site_type2;
 #endif
+
+    int init_phase_iters_tot;
+    int init_phase_iters[3];
            
     // index functions for external usage
     int (*conf_index_fct)(), (*vector_index_fct)();

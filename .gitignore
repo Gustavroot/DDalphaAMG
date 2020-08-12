@@ -10,3 +10,5 @@ conf/*
 !conf/split/
 nohup.out
 sample_devel_*
+mpi-err*
+mpi-out*

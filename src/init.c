@@ -992,7 +992,16 @@ void read_solver_parameters( FILE *in, level_struct *l ) {
     save_pt = &(g.interpolation); g.interpolation = 2;
     read_parameter( &save_pt, "interpolation:", "%d", 1, in, _DEFAULT_SET );
   }
-  
+
+  save_pt = &(g.init_phase_iters_tot); g.init_phase_iters_tot = 6;
+  read_parameter( &save_pt, "init phase iters:", "%d", 1, in, _DEFAULT_SET );
+  if( g.init_phase_iters_tot < 6 ){ error0("The parameter <init phase iters> must be greater than or equal to 6.\n"); }
+  g.init_phase_iters[0] = g.init_phase_iters_tot/2;
+  g.init_phase_iters[1] = g.init_phase_iters_tot/3;
+  g.init_phase_iters[2] = g.init_phase_iters_tot/6;
+  int accum_iters = g.init_phase_iters[0] + g.init_phase_iters[1] + g.init_phase_iters[2];
+  g.init_phase_iters[2] += (g.init_phase_iters_tot - accum_iters);
+
   save_pt = &(g.randomize); g.randomize = 0;
   read_parameter( &save_pt, "randomize test vectors:", "%d", 1, in, _DEFAULT_SET );
   save_pt = &(g.coarse_iter); g.coarse_iter = 25;

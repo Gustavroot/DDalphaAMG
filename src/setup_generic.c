@@ -190,9 +190,9 @@ void coarse_grid_correction_PRECISION_free( level_struct *l ) {
 
 
 void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct Thread *threading ) {
-  
+
   int k, i, n = l->num_eig_vect,
-      pc = 0, pi = 1, pn = n*10;
+      pc = 0, pi = 1, pn = n * g.init_phase_iters_tot;
   vector_PRECISION *buffer = NULL;
   int start = threading->start_index[l->depth];
   int end   = threading->end_index[l->depth];
@@ -227,7 +227,7 @@ void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct T
       END_LOCKED_MASTER(threading)
       
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
-                          2, _NO_RES, _NO_SHIFT, l, threading );
+                          g.init_phase_iters[0], _NO_RES, _NO_SHIFT, l, threading );
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
 
       START_LOCKED_MASTER(threading)
@@ -235,7 +235,7 @@ void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct T
       END_LOCKED_MASTER(threading)
 
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
-                          g.method>=4?1:3, _NO_RES, _NO_SHIFT, l, threading );
+                          g.method>=4?1:g.init_phase_iters[1], _NO_RES, _NO_SHIFT, l, threading );
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
 
       START_LOCKED_MASTER(threading)
@@ -243,14 +243,14 @@ void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct T
       END_LOCKED_MASTER(threading)
 
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
-                          g.method>=4?1:5, _NO_RES, _NO_SHIFT, l, threading );
+                          g.method>=4?1:g.init_phase_iters[2], _NO_RES, _NO_SHIFT, l, threading );
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
 
       START_LOCKED_MASTER(threading)
       //printf("(%d) after BLAH.. \n", g.my_rank);
       END_LOCKED_MASTER(threading)
       
-      pc += 10;
+      pc += g.init_phase_iters_tot;
       START_MASTER(threading)
       if ( pc >= 0.2*pi*pn ) { if ( g.print > 0 ) printf0("%4d%% |", 20*pi); if ( g.my_rank == 0 ) fflush(0); pi++; }
       END_MASTER(threading)

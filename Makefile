@@ -1,8 +1,10 @@
 # --- COMPILER ----------------------------------------
 
 CC = mpicc -std=gnu11 -Wall #-pedantic
-MPI_INCLUDE = /home/ramirez/installs/openmpi/dir/include/
-MPI_LIB = /home/ramirez/installs/openmpi/dir/lib64/
+#MPI_INCLUDE = /home/ramirez/installs/openmpi/dir/include/
+MPI_INCLUDE = /gpfs/software/juwels/stages/2019a/software/MVAPICH2/2.3.3-GCC-8.3.0-GDR/include/
+#MPI_LIB = /home/ramirez/installs/openmpi/dir/lib64/
+MPI_LIB = /gpfs/software/juwels/stages/2019a/software/MVAPICH2/2.3.3-GCC-8.3.0-GDR/lib64/
 
 CPP = cpp
 MAKEDEP = $(CPP) -MM
