@@ -1,11 +1,5 @@
 #include <mpi.h>
 
-#ifdef CUDA_OPT
-  #include <cuComplex.h>
-  #include <cuda.h>
-  #include <cuda_runtime.h>
-#endif
-
 extern "C"{
 
   #define IMPORT_FROM_EXTERN_C

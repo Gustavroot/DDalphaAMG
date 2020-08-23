@@ -126,6 +126,7 @@ __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISI
 }
 
 
+/*
 extern "C" void apply_coarse_operator_PRECISION_CUDA( cuda_vector_PRECISION eta_gpu, cuda_vector_PRECISION phi_gpu,
                                                       operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
 
@@ -163,6 +164,7 @@ extern "C" void apply_coarse_operator_PRECISION_CUDA( cuda_vector_PRECISION eta_
   free(eta);
   free(phi);
 }
+*/
 
 
 #endif

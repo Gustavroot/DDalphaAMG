@@ -19,6 +19,12 @@
  * 
  */
 
+#ifdef CUDA_OPT
+  #include <cuComplex.h>
+  #include <cuda.h>
+  #include <cuda_runtime.h>
+#endif
+
 #include <stdio.h>
 #include <malloc.h>
 #include <stdlib.h>
@@ -32,12 +38,6 @@
 #include <time.h>
 #include <stdarg.h>
 #include <sys/time.h>
-
-#ifdef CUDA_OPT
-  #include <cuComplex.h>
-  #include <cuda.h>
-  #include <cuda_runtime.h>
-#endif
 
 #ifdef JUROPA
 #include <mkl.h>
@@ -76,6 +76,10 @@
   #define MPI_float MPI_FLOAT
   #define MPI_COMPLEX_double MPI_DOUBLE_COMPLEX
   #define MPI_COMPLEX_float MPI_COMPLEX
+
+#ifdef IMPORT_FROM_EXTERN_C
+  // anything to add here ?
+#else
   #define I _Complex_I
   #define conj_double conj
   #define conj_float conjf
@@ -93,6 +97,7 @@
   #define pow_float powf
   #define abs_float fabs
   #define abs_double abs
+#endif
   
 #ifdef SSE
   #define MALLOC( variable, kind, length ) do{ if ( variable != NULL ) { \
@@ -568,8 +573,10 @@
 #include "operator_float.h"
 #include "operator_double.h"
 #include "dirac.h"
-#include "dirac_float.h"
-#include "dirac_double.h"
+#ifndef IMPORT_FROM_EXTERN_C
+  #include "dirac_float.h"
+  #include "dirac_double.h"
+#endif
 #include "oddeven_float.h"
 #include "oddeven_double.h"
 #include "linalg.h"
@@ -580,9 +587,11 @@
 #include "linsolve_float.h"
 #include "linsolve_double.h"
 #include "linsolve.h"
-#include "preconditioner.h"
-#include "vcycle_float.h"
-#include "vcycle_double.h"
+#ifndef IMPORT_FROM_EXTERN_C
+  #include "preconditioner.h"
+  #include "vcycle_float.h"
+  #include "vcycle_double.h"
+#endif
 #include "solver_analysis.h"
 #include "top_level.h"
 #include "ghost.h"
@@ -596,13 +605,17 @@
 #include "coarsening_double.h"
 #include "gathering_float.h"
 #include "gathering_double.h"
-#include "coarse_operator_float.h"
-#include "coarse_operator_double.h"
+#ifndef IMPORT_FROM_EXTERN_C
+  #include "coarse_operator_float.h"
+  #include "coarse_operator_double.h"
+#endif
 #include "coarse_oddeven_float.h"
 #include "coarse_oddeven_double.h"
 #include "var_table.h"
-#include "main_post_def_float.h"
-#include "main_post_def_double.h"
+#ifndef IMPORT_FROM_EXTERN_C
+  #include "main_post_def_float.h"
+  #include "main_post_def_double.h"
+#endif
 #ifdef HAVE_LIME
 #include <lime.h>
 #include <lime_config.h>

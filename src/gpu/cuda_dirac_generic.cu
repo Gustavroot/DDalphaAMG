@@ -229,9 +229,10 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
 }
 
 
-void sse_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
-                           int start, int end, level_struct *l, struct Thread *threading );
+//void sse_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
+//                           int start, int end, level_struct *l, struct Thread *threading );
 
+/*
 extern "C" void
 d_plus_clover_PRECISION_CUDA(					cuda_vector_PRECISION eta_gpu, cuda_vector_PRECISION phi_gpu, operator_PRECISION_struct *op,
 				                                level_struct *l, struct Thread *threading ) {
@@ -414,6 +415,7 @@ d_plus_clover_PRECISION_CUDA(					cuda_vector_PRECISION eta_gpu, cuda_vector_PRE
   free(phi);
 
 }
+*/
 
 
 #endif

@@ -1,13 +1,15 @@
 # --- COMPILER ----------------------------------------
 
-CC = mpicc -std=gnu11 -Wall #-pedantic
-MPI_INCLUDE = /home/ramirez/installs/openmpi/dir/include/
-MPI_LIB = /home/ramirez/installs/openmpi/dir/lib64/
+# if using -std different than gnu11, some changes are needed
+CC = mpicc -std=gnu11 -Wall -pedantic
+#MPI_INCLUDE = /home/ramirez/installs/openmpi/dir/include/
+#MPI_LIB = /home/ramirez/installs/openmpi/dir/lib64/
 
 CPP = cpp
 MAKEDEP = $(CPP) -MM
 
-NVCC = nvcc --std=c++03
+# if using -std different than c++11, some changes are needed
+NVCC = nvcc
 CUDA_INCLUDE = /usr/local/cuda/include/
 CUDA_LIB = /usr/local/cuda/lib64/
 
@@ -114,19 +116,19 @@ include/dd_alpha_amg_parameters.h: src/dd_alpha_amg_parameters.h
 	cp src/dd_alpha_amg_parameters.h $@
 
 $(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
-	$(CC) $(CFLAGS) $(OPT_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -c $< -o $@
+	$(CC) $(CFLAGS) $(OPT_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -c $< -o $@ -lm
 
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
-	$(CC) -g $(CFLAGS) $(DEBUG_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -DDEBUG -c $< -o $@
+	$(CC) -g $(CFLAGS) $(DEBUG_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -DDEBUG -c $< -o $@ -lm
 
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
 $(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
-	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -c $< -o $@
+	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -c $< -o $@ -lm
 endif
 
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
-	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -DDEBUG -c $< -o $@
+	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -DDEBUG -c $< -o $@ -lm
 endif
 
 $(GSRCDIR)/%.h: $(SRCDIR)/%.h $(firstword $(MAKEFILE_LIST))

@@ -22,9 +22,9 @@
 #ifndef MAIN_PRE_DEF_PRECISION_HEADER
   #define MAIN_PRE_DEF_PRECISION_HEADER
 
-  typedef PRECISION complex complex_PRECISION;
-  typedef PRECISION complex *config_PRECISION;
-  typedef PRECISION complex *vector_PRECISION;
+  typedef PRECISION _Complex complex_PRECISION;
+  typedef PRECISION _Complex *config_PRECISION;
+  typedef PRECISION _Complex *vector_PRECISION;
 #ifdef CUDA_OPT
   // CUDA-only typedefs  ---->  cuda vectors
   typedef cu_cmplx_PRECISION* cuda_vector_PRECISION;

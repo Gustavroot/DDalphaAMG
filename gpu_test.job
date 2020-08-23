@@ -1,0 +1,14 @@
+#!/bin/bash -x
+#SBATCH --account=hwu29
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+#SBATCH --cpus-per-task=10
+#SBATCH --output=mpi-out.%j
+#SBATCH --error=mpi-err.%j
+#SBATCH --time=00:59:00
+#SBATCH --gres=gpu:4 --partition=gpus
+
+# export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
+make clean
+make -j 32
+. run -i sample_devel_64x32_gpu_cpy.ini
