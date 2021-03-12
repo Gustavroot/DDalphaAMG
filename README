@@ -1,4 +1,11 @@
 
+
+NOTE : this version of DDalphaAMG contains some critical parts ported to CUDA (MPI, OpenMP and SSE vectorization are still present throughout). For more information on these improvements, contact : g.ramirez@stimulate-ejd.eu
+
+
+
+----------------------
+
 The DDalphaAMG solver library is an inverter for Wilson-Clover fermions from lattice QCD.
 
 INSTALL:
