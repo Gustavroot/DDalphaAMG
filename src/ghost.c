@@ -86,6 +86,7 @@ void cart_define( level_struct *l ) {
 
   cuda_safe_call( cudaGetDeviceCount( &(g.num_devices) ) );
   // Using pragma omp here to raise persistent thread-to-GPU linkage
+
 #pragma omp parallel num_threads(g.num_openmp_processes)
   {
     cuda_safe_call( cudaSetDevice( local_rank % g.num_devices ) );
@@ -108,17 +109,19 @@ void cart_define( level_struct *l ) {
     }
 
     // buffers for test exchange --> this text exchange is necessary to 'eliminate' an initial overhead
-    float *recv_buff, *send_buff;
+    float *recv_buff;
+    float *send_buff;
 
     // 8 is just to make sure we don't go over mem size
-    cuda_safe_call( cudaMalloc( (void**) (&( recv_buff )), 8*sizeof(float) ) );
-    cuda_safe_call( cudaMalloc( (void**) (&( send_buff )), 8*sizeof(float) ) );
-
-    MPI_Irecv( recv_buff, 2, MPI_FLOAT,
-               l->neighbor_rank[mu_dir], mu_dir, g.comm_cart, &(setup_reqs[0]) );
+    cuda_safe_call( cudaMalloc( (void**) (&( recv_buff )), 16*sizeof(float) ) );
+    cuda_safe_call( cudaMalloc( (void**) (&( send_buff )), 16*sizeof(float) ) );
+    cuda_safe_call( cudaMemset(send_buff, 0, 16*sizeof(float)) );
 
     MPI_Isend( send_buff, 2, MPI_FLOAT,
                l->neighbor_rank[inv_mu_dir], mu_dir, g.comm_cart, &(setup_reqs[1]) );
+
+    MPI_Irecv( recv_buff, 2, MPI_FLOAT,
+               l->neighbor_rank[mu_dir], mu_dir, g.comm_cart, &(setup_reqs[0]) );
 
     MPI_Wait( &(setup_reqs[0]), MPI_STATUS_IGNORE );
     MPI_Wait( &(setup_reqs[1]), MPI_STATUS_IGNORE );

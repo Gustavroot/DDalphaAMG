@@ -2,8 +2,8 @@
 
 # if using -std different than gnu11, some changes are needed
 CC = mpicc -std=gnu11 -Wall -pedantic
-#MPI_INCLUDE = /home/ramirez/installs/openmpi/dir/include/
-#MPI_LIB = /home/ramirez/installs/openmpi/dir/lib64/
+MPI_INCLUDE = /home/ramirez/installs/openmpi/dir/include/
+MPI_LIB = /home/ramirez/installs/openmpi/dir/lib64/
 
 CPP = cpp
 MAKEDEP = $(CPP) -MM
