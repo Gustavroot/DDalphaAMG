@@ -99,6 +99,8 @@
     // <streams> are objects that live on the CPU, and help the CPU to
     // control the GPU kernels ordering
     cudaStream_t *streams;
+
+    vector_PRECISION xtmp;
 #endif
     complex_PRECISION **H, *y, *gamma, *c, *s, shift;
     config_PRECISION *D, *clover;

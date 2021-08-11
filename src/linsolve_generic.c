@@ -32,6 +32,9 @@ void fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   p->V = NULL;
   p->H = NULL;
   p->x = NULL;
+#ifdef CUDA_OPT
+  //p->xtmp = NULL;
+#endif
   p->b = NULL;
   p->r = NULL;
   p->w = NULL;
@@ -199,6 +202,10 @@ void fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *l ) 
 /*********************************************************************************
 * Frees the allocated space for the gmres struct p.                            
 *********************************************************************************/ 
+
+#ifdef CUDA_OPT
+  if( l->depth==0 ) cuda_safe_call( cudaFreeHost( l->p_PRECISION.xtmp ) );
+#endif
 
 #ifdef CUDA_OPT
   {

@@ -195,8 +195,13 @@ void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
   if ( g.method == 1 )
     MALLOC( s->buf5, complex_PRECISION, l->schwarz_vector_size );
   
+#ifdef CUDA_OPT
+  cuda_safe_call( cudaMallocHost( (void**)&(l->sbuf_PRECISION[0]),vs*sizeof(complex_PRECISION) ) );
+  cuda_safe_call( cudaMallocHost( (void**)&(l->sbuf_PRECISION[1]),vs*sizeof(complex_PRECISION) ) );
+#else
   MALLOC( l->sbuf_PRECISION[0], complex_PRECISION, 2*vs );
   l->sbuf_PRECISION[1] = l->sbuf_PRECISION[0] + vs;
+#endif
 
 #ifdef EXTERNAL_DD
   if ( l->depth > 0 )
@@ -295,9 +300,14 @@ void schwarz_PRECISION_free( schwarz_PRECISION_struct *s, level_struct *l ) {
     FREE( s->buf5, complex_PRECISION, l->schwarz_vector_size );
   
   operator_PRECISION_free( &(s->op), _SCHWARZ, l );
-  
+
+#ifdef CUDA_OPT
+  cuda_safe_call( cudaFreeHost( l->sbuf_PRECISION[0] ) );
+  cuda_safe_call( cudaFreeHost( l->sbuf_PRECISION[1] ) );
+#else
   FREE( l->sbuf_PRECISION[0], complex_PRECISION, 2*vs );
   l->sbuf_PRECISION[1] = NULL;
+#endif
 
 #ifdef EXTERNAL_DD
   if ( l->depth > 0 )

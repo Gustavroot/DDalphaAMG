@@ -24,6 +24,7 @@
 
 void preconditioner( vector_double phi, vector_double Dphi, vector_double eta,
                       const int res, level_struct *l, struct Thread *threading ) {
+
   if ( g.method == 0 )
     vector_double_copy( phi, eta, threading->start_index[l->depth], threading->end_index[l->depth], l );
   else if ( g.method < 5 || g.method == 6 || !g.odd_even ) {

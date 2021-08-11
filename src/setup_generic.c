@@ -451,15 +451,40 @@ void test_vector_PRECISION_update( int i, level_struct *l, struct Thread *thread
   
   if ( l->level > 1 )
     test_vector_PRECISION_update( i, l->next_level, threading );
-  
+
   if ( !l->idle )
+#ifdef CUDA_OPT
+    if( l->depth==0 ){
+      //printf0("ptr=%p, depth=%d\n", l->p_PRECISION.xtmp, l->depth);
+      vector_PRECISION_real_scale( l->is_PRECISION.test_vector[i], l->p_PRECISION.xtmp,
+                                   1.0/global_norm_PRECISION( l->p_PRECISION.xtmp, 0, l->inner_vector_size, l, threading ),
+                                   threading->start_index[l->depth], threading->end_index[l->depth], l );
+    }
+    else{
+      vector_PRECISION_real_scale( l->is_PRECISION.test_vector[i], l->p_PRECISION.x,
+                                   1.0/global_norm_PRECISION( l->p_PRECISION.x, 0, l->inner_vector_size, l, threading ),
+                                   threading->start_index[l->depth], threading->end_index[l->depth], l );
+    }
+#else
     vector_PRECISION_real_scale( l->is_PRECISION.test_vector[i], l->p_PRECISION.x,
                                  1.0/global_norm_PRECISION( l->p_PRECISION.x, 0, l->inner_vector_size, l, threading ),
                                  threading->start_index[l->depth], threading->end_index[l->depth], l );
+#endif
 }
 
 
 void inv_iter_inv_fcycle_PRECISION( int setup_iter, level_struct *l, struct Thread *threading ) {
+
+#ifdef CUDA_OPT
+  if( l->depth==0 ){
+    START_LOCKED_MASTER(threading)
+    cuda_safe_call( cudaMallocHost( (void**)&(l->p_PRECISION.xtmp), l->inner_vector_size * sizeof(complex_PRECISION) ) );
+    //((complex_PRECISION *)threading->workspace)[0] = l->p_PRECISION.xtmp;
+    //printf0("ptr=%p, depth=%d\n", l->p_PRECISION.xtmp, l->depth);
+    END_LOCKED_MASTER(threading)
+    SYNC_MASTER_TO_ALL(threading)
+  }
+#endif
 
   vector_PRECISION v_buf = NULL;
   complex_PRECISION *buffer = NULL;
@@ -484,10 +509,19 @@ void inv_iter_inv_fcycle_PRECISION( int setup_iter, level_struct *l, struct Thre
       END_LOCKED_MASTER(threading)
       
       gram_schmidt_PRECISION( l->is_PRECISION.test_vector, buffer, 0, l->num_eig_vect, l, threading );
-      
+
       for ( int i=0; i<l->num_eig_vect; i++ ) {
+#ifdef CUDA_OPT
+        if( l->depth==0 ){
+          //printf0("ptr=%p, depth=%d\n", l->p_PRECISION.xtmp, l->depth);
+          vcycle_PRECISION( l->p_PRECISION.xtmp, NULL, l->is_PRECISION.test_vector[i], _NO_RES, l, threading );
+        }
+        else{
+          vcycle_PRECISION( l->p_PRECISION.x, NULL, l->is_PRECISION.test_vector[i], _NO_RES, l, threading );
+        }
+#else
         vcycle_PRECISION( l->p_PRECISION.x, NULL, l->is_PRECISION.test_vector[i], _NO_RES, l, threading );
-        
+#endif
         test_vector_PRECISION_update( i, l, threading );
         
         pc += l->post_smooth_iter;
