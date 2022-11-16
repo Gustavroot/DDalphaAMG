@@ -21,12 +21,10 @@
  
 #include "main.h"
 
-global_struct g;
 #ifdef HAVE_HDF5
 Hdf5_fileinfo h5info;
 #endif
 struct common_thread_data *commonthreaddata;
-struct Thread *no_threading;
 
 int main( int argc, char **argv ) {
     
