@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include <nvtx3/nvToolsExt.h>
 
 #ifdef SSE
 
@@ -123,6 +124,8 @@ void sse_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_
                            int start, int end, level_struct *l, struct Thread *threading );
 void d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                               level_struct *l, struct Thread *threading ) {
+  // for NVTX profiling annotations
+  nvtxRangeId_t nvtxRangeOperator = nvtxRangeStartA("d_plus_clover_PRECISION (SSE)");
 
   // RE-ENABLE !
   //printf0("WITHIN d_plus_clover_PRECISION(...) !!, depth=%d \n", l->depth);
@@ -273,6 +276,7 @@ void d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operat
   
   SYNC_MASTER_TO_ALL(threading)
 //#endif
+  nvtxRangeEnd(nvtxRangeOperator);
 }
 #endif
 
