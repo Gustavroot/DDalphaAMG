@@ -184,16 +184,13 @@ fi
 
 # run programm
 
-#MPIRUN=/usr/lib64/mpi/gcc/openmpi/bin/mpirun
-MPIRUN=/home/ramirez/installs/openmpi/dir/bin/mpirun
+MPIRUN="${MPIRUN:-mpirun}"
+MPI_DEFAULT_HOSTFILE="${MPI_DEFAULT_HOSTFILE:-/etc/openmpi/openmpi-default-hostfile}"
 NVPROF=
 
 if [ ${ipa[0]} = 0  ]
 then
-#   /opt/mpich/ch-p4/bin/mpirun $shareoption -np $np $exec $inputfile
-  #mpirun -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $exec $inputfile
-  $MPIRUN -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $NVPROF ./$exec $inputfile
-  #srun ./$exec $inputfile
+  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $NVPROF ./$exec $inputfile
 else
   cp $inputfile output/${opf}.txt
   echo "" >> output/${opf}.txt
@@ -203,7 +200,5 @@ else
   echo "+----------------------------------------------------------------------------------+" >> ../output/${opf}.txt
   echo "" >> output/${opf}.txt
   echo "" >> output/${opf}.txt
-  #mpirun -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $exec $inputfile >> ../output/${opf}.txt & disown
-  $MPIRUN -default-hostfile /etc/openmpi-default-hostfile $shareoption -np $np $NVPROF ./$exec $inputfile >> ../output/${opf}.txt & disown
-  #srun ./$exec $inputfile >> ../output/${opf}.txt & disown
+  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $NVPROF ./$exec $inputfile >> ../output/${opf}.txt & disown
 fi
