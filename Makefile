@@ -45,6 +45,7 @@ GHEA += $(patsubst %,$(GSRCDIR)/%,$(HEA_CUDA))
 GHEA += $(GHEAFLT) $(GHEAFLT_CUDA) $(GHEADBL) $(GHEADBL_CUDA)
 OBJ = $(patsubst $(GSRCDIR)/%.c,$(BUILDDIR)/%.o,$(GSRC))
 OBJDB = $(patsubst %.o,%_db.o,$(OBJ))
+OBJDB_NO_MAIN = $(filter-out %/main.o,$(OBJDB))
 OBJ_CUDA = $(patsubst $(GSRCDIR)/%.cu,$(BUILDDIR)/%.o,$(GSRC_CUDA))
 OBJ_CUDADB = $(patsubst %.o,%_db.o,$(OBJ_CUDA))
 DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
@@ -192,4 +193,5 @@ clean:
 	rm -f dd_alpha_amg
 	rm -f dd_alpha_amg_db
 
--include $(DEP)
+# -include $(DEP)
+-include test/Makefile
