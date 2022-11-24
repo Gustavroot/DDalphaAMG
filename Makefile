@@ -187,7 +187,7 @@ $(GSRCDIR)/%_double.c: $(SRCDIR_CUDA)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	$(MAKEDEP) $< | sed 's,\(.*\)\.o[ :]*,$(BUILDDIR)/\1.o $@ : ,g' > $@
 	$(MAKEDEP) $< | sed 's,\(.*\)\.o[ :]*,$(BUILDDIR)/\1_db.o $@ : ,g' >> $@
 
-clean:
+clean: clean_test
 	rm -f $(BUILDDIR)/*.o
 	rm -f $(GSRCDIR)/*
 	rm -f dd_alpha_amg
