@@ -1,11 +1,11 @@
 TEST_SRCDIR = test
 TEST_BUILDDIR = $(BUILDDIR)/test
 
--include settings.mk
+-include test/settings.mk
 
 
 # Flags for the C++ compiler during compile time.
-TEST_CFLAGS = $(CFLAGS)  -g -I$(GSRCDIR) -I$(CUDA_INCLUDE) -I$(CRITERION_INCLUDE)
+TEST_CFLAGS = $(CFLAGS)  -g -I$(GSRCDIR) -isystem$(CUDA_INCLUDE) -isystem$(CRITERION_INCLUDE)
 # Flags for the C++ compiler during link time.
 TEST_EXTRA_LDFLAGS = -g -lmpi -L$(MPI_LIB) -lcriterion -L$(CRITERION_LIB)
 

@@ -55,7 +55,7 @@ CUDA_ENABLER = -DCUDA_OPT
 COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING $(CUDA_ENABLER) $(NVTX_DISABLE)
 #COMMON_FLAGS = -DPROFILING
 
-OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -I$(CUDA_INCLUDE)
+OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -isystem$(CUDA_INCLUDE)
 CFLAGS = -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_FLAGS)
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
@@ -68,7 +68,7 @@ OPT_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA) -O3 # what about --ffast-math ?
 DEBUG_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA)
 
 # --- FLAGS FOR CUDA ---------------------------------
-NVCC_EXTRA_COMP_FLAGS = -I$(MPI_INCLUDE) -L$(MPI_LIB)
+NVCC_EXTRA_COMP_FLAGS = -isystem$(MPI_INCLUDE) -L$(MPI_LIB)
 NVCC_EXTRA_COMP_FLAGS += -lmpi
 NVCC_EXTRA_COMP_FLAGS += -arch=sm_70 -rdc=true -lcudadevrt
 NVCC_EXTRA_COMP_FLAGS += -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
