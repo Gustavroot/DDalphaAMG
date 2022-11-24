@@ -44,10 +44,11 @@ GHEA = $(patsubst %,$(GSRCDIR)/%,$(HEA))
 GHEA += $(patsubst %,$(GSRCDIR)/%,$(HEA_CUDA))
 GHEA += $(GHEAFLT) $(GHEAFLT_CUDA) $(GHEADBL) $(GHEADBL_CUDA)
 OBJ = $(patsubst $(GSRCDIR)/%.c,$(BUILDDIR)/%.o,$(GSRC))
+OBJ_NO_MAIN = $(filter-out %/main.o,$(OBJ))
 OBJDB = $(patsubst %.o,%_db.o,$(OBJ))
-OBJDB_NO_MAIN = $(filter-out %/main.o,$(OBJDB))
 OBJ_CUDA = $(patsubst $(GSRCDIR)/%.cu,$(BUILDDIR)/%.o,$(GSRC_CUDA))
 OBJ_CUDADB = $(patsubst %.o,%_db.o,$(OBJ_CUDA))
+OBJ_CUDA_DLINK = $(BUILDDIR)/dd_alpha_amg.dlink.o
 DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 
 # --- FLAGS -------------------------------------------
@@ -55,7 +56,7 @@ CUDA_ENABLER = -DCUDA_OPT
 COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING $(CUDA_ENABLER) $(NVTX_DISABLE)
 #COMMON_FLAGS = -DPROFILING
 
-OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -isystem$(CUDA_INCLUDE)
+OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -isystem $(CUDA_INCLUDE)
 CFLAGS = -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_FLAGS)
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
@@ -68,7 +69,7 @@ OPT_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA) -O3 # what about --ffast-math ?
 DEBUG_VERSION_FLAGS_CUDA = $(OPT_FLAGS_CUDA)
 
 # --- FLAGS FOR CUDA ---------------------------------
-NVCC_EXTRA_COMP_FLAGS = -isystem$(MPI_INCLUDE) -L$(MPI_LIB)
+NVCC_EXTRA_COMP_FLAGS = -I$(MPI_INCLUDE) -L$(MPI_LIB)
 NVCC_EXTRA_COMP_FLAGS += -lmpi
 NVCC_EXTRA_COMP_FLAGS += -arch=sm_70 -rdc=true -lcudadevrt
 NVCC_EXTRA_COMP_FLAGS += -gencode=arch=compute_50,code=sm_50 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_60,code=sm_60 -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
@@ -104,10 +105,23 @@ else
 	$(CC) -g $(DEBUG_VERSION_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(H5LIB) $(LIMELIB) -lm
 endif
 
-lib/libdd_alpha_amg.a: $(OBJ)
-	ar rc $@ $(OBJ)
-	ar d $@ main.o
+ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
+$(OBJ_CUDA_DLINK): $(OBJ_NO_MAIN) $(OBJ_CUDA)
+# to actually use the objects created by NVCC we need an object file
+# on which NVCC did perform device code linking
+# see also: https://stackoverflow.com/questions/22115197/dynamic-parallelism-undefined-reference-to-cudaregisterlinkedbinary-linking
+	$(NVCC) $(NVCC_EXTRA_COMP_FLAGS) -dlink -lcudadevrt -L$(CUDA_LIB) -o $@ $(OBJ_NO_MAIN) $(OBJ_CUDA)
+
+lib/libdd_alpha_amg.a: $(OBJ_CUDA_DLINK) $(OBJ_NO_MAIN) $(OBJ_CUDA)
+# see also https://stackoverflow.com/questions/26893588/creating-a-static-cuda-library-to-be-linked-with-a-c-program
+	ar rc $@ $(OBJ_CUDA_DLINK) $(OBJ_NO_MAIN) $(OBJ_CUDA)
 	ranlib $@
+
+else
+lib/libdd_alpha_amg.a: $(OBJ)
+	ar rc $@ $(OBJ_NO_MAIN)
+	ranlib $@
+endif
 
 doc/user_doc.pdf: doc/user_doc.tex doc/user_doc.bib
 	( cd doc; pdflatex user_doc; bibtex user_doc; pdflatex user_doc; pdflatex user_doc; )
@@ -118,19 +132,19 @@ include/dd_alpha_amg.h: src/dd_alpha_amg.h
 include/dd_alpha_amg_parameters.h: src/dd_alpha_amg_parameters.h
 	cp src/dd_alpha_amg_parameters.h $@
 
-$(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
+$(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(GHEA)
 	$(CC) $(CFLAGS) $(OPT_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -c $< -o $@ -lm
 
-$(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
+$(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(GHEA)
 	$(CC) -g $(CFLAGS) $(DEBUG_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -DDEBUG -c $< -o $@ -lm
 
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
-$(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
+$(BUILDDIR)/%.o: $(GSRCDIR)/%.cu $(GHEA)
 	$(NVCC) $(CFLAGS_CUDA) $(OPT_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -c $< -o $@ -lm
 endif
 
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
-$(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(SRCDIR)/*.h $(SRCDIR_CUDA)/*.h
+$(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(GHEA)
 	$(NVCC) -g $(CFLAGS_CUDA) $(DEBUG_VERSION_FLAGS_CUDA) $(NVCC_EXTRA_COMP_FLAGS) -dc -L$(CUDA_LIB) -DDEBUG -c $< -o $@ -lm
 endif
 
@@ -192,6 +206,7 @@ clean: clean_test
 	rm -f $(GSRCDIR)/*
 	rm -f dd_alpha_amg
 	rm -f dd_alpha_amg_db
+	rm -f lib/*
 
 # -include $(DEP)
 -include test/Makefile
