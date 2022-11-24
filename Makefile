@@ -86,7 +86,10 @@ NVCC_EXTRA_COMP_FLAGS += -lcudart -L$(CUDA_LIB)
 all: wilson library documentation
 wilson: dd_alpha_amg dd_alpha_amg_db
 library: lib/libdd_alpha_amg.a include/dd_alpha_amg_parameters.h include/dd_alpha_amg.h
-documentation: doc/user_doc.pdf
+documentation: doc/user_doc.pdf doc/doxygen
+
+doc/doxygen: src/* src/gpu/*
+	doxygen doxygen.conf
 
 .PHONY: all wilson library
 .SUFFIXES:

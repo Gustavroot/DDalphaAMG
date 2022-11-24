@@ -4,3 +4,4 @@ user_doc.blg
 user_doc.log
 user_doc.out
 !.gitignore
+doxygen
