@@ -109,15 +109,22 @@ int main( int argc, char **argv ) {
 
     // TODO: move this line to a better place !
     g.nr_threads = threading.n_core;
-
+    RangeHandleType rangeHandle;
+    
+    rangeHandle = startProfilingRange("Setup");
     // setup up initial MG hierarchy
     method_setup( NULL, &l, &threading );
+    endProfilingRange(rangeHandle);
 
+    rangeHandle = startProfilingRange("Update");
     // iterative phase
     method_update( l.setup_iter, &l, &threading );
+    endProfilingRange(rangeHandle);
 
+    rangeHandle = startProfilingRange("Solve");
     g.on_solve=1;
     solve_driver( &l, &threading );
+    endProfilingRange(rangeHandle);
   }
 
   finalize_common_thread_data(commonthreaddata);

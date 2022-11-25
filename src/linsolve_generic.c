@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "profiling.h"
 
 
 void fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
@@ -253,7 +254,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
 * Uses FGMRES to solve the system D x = b, where b is taken from p->b and x is 
 * stored in p->x.                                                              
 *********************************************************************************/  
-
+  RangeHandleType profilingRangeResFgmres = startProfilingRange("Restarted FGMRES (PRECISION)");
   // RE-ENABLE !
   //printf0("WITHIN fgmres_PRECISION(...), depth=%d \n", l->depth);
 
@@ -295,6 +296,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
   //printf0("p->num_restart = %d\n", p->num_restart);
 
   for( ol=0; ol<p->num_restart && finish==0; ol++ )  {
+    RangeHandleType profilingRangeFgmres = startProfilingRange("FGMRES (PRECISION)");
 
     // RE-ENABLE !
     ///printf0("for loop of fgmres_PRECISION, iter=%d, depth=%d \n", ol, l->depth);
@@ -434,6 +436,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
     } // end of a single restart
     compute_solution_PRECISION( p->x, (p->preconditioner&&p->kind==_RIGHT)?p->Z:p->V,
                                 p->y, p->gamma, p->H, j, (res==_NO_RES)?ol:1, p, l, threading );
+    endProfilingRange(profilingRangeFgmres);
   } // end of fgmres
   
   START_LOCKED_MASTER(threading)
@@ -536,6 +539,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
     END_MASTER(threading)
   }
   
+  endProfilingRange(profilingRangeResFgmres);
   return iter;
 }
 
@@ -779,6 +783,7 @@ void cgn_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *
 int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRECISION w,
                             complex_PRECISION **H, complex_PRECISION* buffer, int j, void (*prec)(),
                             complex_PRECISION shift, gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+  RangeHandleType profilingRangeStep = startProfilingRange("Arnoldi step (PRECISION)");
 
   //printf("WITHIN ARNOLDI\n");
 
@@ -878,6 +883,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
     
     if ( prec != NULL ) {
       if ( p->kind == _LEFT ) {
+
         printf("SPOT 4\n");
         apply_operator_PRECISION( Z[0], V[j], p, l, threading );
         if ( shift ) vector_PRECISION_saxpy( Z[0], Z[0], V[j], shift, start, end, l );
@@ -1105,6 +1111,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
   if ( cabs_PRECISION( H[j][j+1] ) > 1e-15 )
     vector_PRECISION_real_scale( V[j+1], w, 1/H[j][j+1], start, end, l );
 #endif
+  endProfilingRange(profilingRangeStep);
   return 1;
 }
 
@@ -1157,6 +1164,7 @@ void qr_update_PRECISION( complex_PRECISION **H, complex_PRECISION *s,
 void compute_solution_PRECISION( vector_PRECISION x, vector_PRECISION *V, complex_PRECISION *y,
                                  complex_PRECISION *gamma, complex_PRECISION **H, int j, int ol,
                                  gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+  RangeHandleType profilingRangeSolution = startProfilingRange("compute solution (PRECISION)");
   
   int i, k;
   // start and end indices for vector functions depending on thread
@@ -1193,6 +1201,7 @@ void compute_solution_PRECISION( vector_PRECISION x, vector_PRECISION *V, comple
     for ( i=1; i<=j; i++ )
       vector_PRECISION_saxpy( x, x, V[i], y[i], start, end, l );
   }
+  endProfilingRange(profilingRangeSolution);
 }
 
 
