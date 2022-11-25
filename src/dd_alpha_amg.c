@@ -24,8 +24,7 @@
 
 
 #define NCORE 1
- 
-global_struct g;
+
 static level_struct l;
 static int (*get_global_time)(int t);
 static struct common_thread_data *commonthreaddata;

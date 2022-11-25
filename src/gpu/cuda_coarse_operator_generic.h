@@ -1,6 +1,7 @@
 #ifdef CUDA_OPT
 #ifndef COARSE_OPERATOR_PRECISION_HEADER_CUDA
   #define COARSE_OPERATOR_PRECISION_HEADER_CUDA
+#include "cuda_complex.h"
 
   __global__ void coarse_self_couplings_PRECISION_CUDA_kernel( cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, cuda_config_PRECISION clover, int num_lattice_site_var );
 

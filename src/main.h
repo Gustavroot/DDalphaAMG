@@ -20,7 +20,6 @@
  */
 
 #ifdef CUDA_OPT
-  #include <cuComplex.h>
   #include <cuda.h>
   #include <cuda_runtime.h>
 #endif
@@ -243,38 +242,12 @@
   enum { _SOFT_CHECK, _HARD_CHECK };
 #endif
 
-  typedef struct block_struct {
-    int start, color, no_comm, *bt;
-#ifdef CUDA_OPT
-    int *bt_on_gpu;
-#endif
-  } block_struct;
+#include "block_struct.h"
 
   // CUDA typedefs
 #ifdef CUDA_OPT
-  typedef cuDoubleComplex cu_cmplx_double;
-  typedef cuFloatComplex cu_cmplx_float;
-  typedef cuDoubleComplex cu_config_double;
-  typedef cuFloatComplex cu_config_float;
-
-  // MACROS for the creation of complex numbers
-  #define make_cu_cmplx_double( cur, cui ) make_cuDoubleComplex(cur, cui)
-  #define make_cu_cmplx_float( cur, cui ) make_cuFloatComplex(cur, cui)
-  // MACROS of functions acting ON complex numbers
-  #define cu_creal_double(c_nr) cuCreal(c_nr)
-  #define cu_cimag_double(c_nr) cuCimag(c_nr)
-  #define cu_creal_float(c_nr) cuCrealf(c_nr)
-  #define cu_cimag_float(c_nr) cuCimagf(c_nr)
-  #define cu_cmul_float(c_nr1, c_nr2) cuCmulf(c_nr1, c_nr2)
-  #define cu_cmul_double(c_nr1, c_nr2) cuCmul(c_nr1, c_nr2)
-  #define cu_cdiv_float(c_nr1, c_nr2) cuCdivf(c_nr1, c_nr2)
-  #define cu_cdiv_double(c_nr1, c_nr2) cuCdiv(c_nr1, c_nr2)
-  #define cu_csub_float(c_nr1, c_nr2) cuCsubf(c_nr1, c_nr2)
-  #define cu_csub_double(c_nr1, c_nr2) cuCsub(c_nr1, c_nr2)
-  #define cu_cadd_float(c_nr1, c_nr2) cuCaddf(c_nr1, c_nr2)
-  #define cu_cadd_double(c_nr1, c_nr2) cuCadd(c_nr1, c_nr2)
-  #define cu_conj_float(c_nr) cuConjf(c_nr)
-  #define cu_conj_double(c_nr) cuConj(c_nr)
+//FIXME temporary include
+#include "cuda_complex.h"
 #endif
 
   #include "main_pre_def_float.h"
@@ -410,71 +383,8 @@
     
   } level_struct;
 
-
-  typedef struct global_struct {
-    
-    FILE *logfile;
-    
-    gmres_double_struct p;
-    gmres_MP_struct p_MP;
-    operator_double_struct op_double;
-    operator_float_struct op_float;
-
-    // communication
-    MPI_Comm comm_cart;
-    MPI_Group global_comm_group;
-    MPI_Request sreqs[8], rreqs[8];
-    int num_processes, my_rank, my_coords[4], two_cnfgs, tv_io_single_file, num_openmp_processes;
-    // string buffers
-    char in[STRINGLENGTH], in_clov[STRINGLENGTH], source_list[STRINGLENGTH], tv_io_file_name[STRINGLENGTH];
-    // geometry, method parameters
-    int num_levels, num_desired_levels, process_grid[4], in_format,
-        **global_lattice, **local_lattice, **block_lattice, 
-        *post_smooth_iter, *block_iter, *setup_iter, *ncycle,
-        method, odd_even, anti_pbc, rhs, propagator_coords[4],
-        interpolation, randomize, *num_eig_vect, num_coarse_eig_vect, kcycle, mixed_precision,
-        restart, max_restart, kcycle_restart, kcycle_max_restart, coarse_iter, coarse_restart;
-    double tol, coarse_tol, kcycle_tol, csw, rho, *relax_fac;
-
-    // profiling, analysis, output
-    int coarse_iter_count, iter_count, iterator, print, conf_flag, setup_flag, in_setup;
-    double coarse_time, prec_time, *output_table[8], cur_storage, max_storage, total_time,
-           plaq_hopp, plaq_clov, norm_res, plaq, setup_m0, solve_m0, bicgstab_tol;
-
-#ifdef CUDA_OPT
-    double cur_gpu_storage, max_gpu_storage;
-
-    // some CUDA-specific values
-    int warp_size;
-    int num_devices;
-    int device_id;
-
-    int* CUDA_threads_per_CUDA_block_type1;
-    int* CUDA_threads_per_lattice_site_type1;
-    int* CUDA_threads_per_CUDA_block_type2;
-    int* CUDA_threads_per_lattice_site_type2;
-#endif
-           
-    // index functions for external usage
-    int (*conf_index_fct)(), (*vector_index_fct)();
-    int *odd_even_table;
-    
-    // bc: 0 dirichlet, 1 periodic, 2 anti-periodic
-    int bc; 
-    
-    complex_double **gamma, g5D_shift;
-    var_table vt;
-
-    int on_solve;
-    int nr_threads;
-
-    struct dd_alpha_amg_parameters amg_params;
-    struct dd_alpha_amg_setup_status mg_setup_status;
-    double mass_for_next_solve;
-    
-  } global_struct;
-
-  extern global_struct g;
+  // FIXME temporary include
+  #include "global_struct.h"
   
   static inline void printf0( char* format, ... ) {
     START_MASTER(no_threading)
