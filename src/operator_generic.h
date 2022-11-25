@@ -21,7 +21,7 @@
 
 #ifndef OPERATOR_PRECISION_HEADER
 #define OPERATOR_PRECISION_HEADER
-#include "operator_struct_PRECISION.h"
+#include "algorithm_structs_PRECISION.h"
 
 struct Thread;
 

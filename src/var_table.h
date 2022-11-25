@@ -20,7 +20,36 @@
  */
 
 #ifndef VAR_TABLE_HEADER
-  #define VAR_TABLE_HEADER
+#define VAR_TABLE_HEADER
+
+#include "global_enums.h"
+#include "level_struct.h"
+  typedef struct plot_table_line {
+    
+    double values[_NUM_OPTB];
+    struct plot_table_line *next;
+    
+  } plot_table_line;
+
+  typedef struct var_table_entry {
+    
+    void *pt;
+    char name[STRINGLENGTH];
+    char datatype[20];
+    struct var_table_entry *next;
+    
+  } var_table_entry;
+  
+  typedef struct var_table {
+    
+    int evaluation, multiplicative, shift_update, re_setup,
+        track_error, track_cgn_error, average_over;
+    char scan_var[STRINGLENGTH];
+    double start_val, end_val, step_size, *output_table[6];
+    var_table_entry *entry, *iterator;
+    plot_table_line *p, *p_end;
+    
+  } var_table;
 
   void var_table_init( var_table *t );
   void var_table_insert( var_table *t, var_table_entry e );

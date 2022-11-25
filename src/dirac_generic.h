@@ -25,6 +25,8 @@
 #include "clifford.h"
 #include "complex_types_PRECISION.h"
 #include "level_struct.h"
+#include "global_defs.h"
+#include "global_constants.h"
 
   struct Thread;
   

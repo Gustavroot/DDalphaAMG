@@ -46,57 +46,10 @@
 #include "dd_alpha_amg_setup_status.h"
 
 #ifndef MAIN_HEADER
-  #define MAIN_HEADER
-  
-  #define STRINGLENGTH 500
-  
-  #define _FILE_OFFSET_BITS 64
-  #define EPS_float 1E-6
-  #define EPS_double 1E-14
-  
-  #define FOR2( e ) { e e }
-  #define FOR3( e ) { e e e }
-  #define FOR4( e ) { e e e e }
-  #define FOR10( e ) { e e e e e  e e e e e }
-  #define FOR20( e ) { e e e e e  e e e e e  e e e e e  e e e e e  }
-  #define FOR40( e ) { e e e e e  e e e e e  e e e e e  e e e e e  e e e e e  e e e e e  e e e e e  e e e e e }
-  #define FOR6( e )  { e e e  e e e }
-  #define FOR12( e ) { e e e  e e e  e e e  e e e }
-  #define FOR24( e ) { e e e  e e e  e e e  e e e  e e e  e e e  e e e  e e e }
-  #define FOR36( e ) { FOR12( e ) FOR12( e ) FOR12( e ) }
-  #define FOR42( e ) { FOR36( e ) FOR6( e ) }
-  
-  #define SQUARE( e ) (e)*(e)
-  #define NORM_SQUARE_float( e ) SQUARE(crealf( e ))+SQUARE(cimagf( e ))
-  #define NORM_SQUARE_double( e ) SQUARE(creal( e ))+SQUARE(cimag( e ))
-  #define CSPLIT( e ) creal(e), cimag(e)
-  
-  #define MPI_double MPI_DOUBLE
-  #define MPI_float MPI_FLOAT
-  #define MPI_COMPLEX_double MPI_DOUBLE_COMPLEX
-  #define MPI_COMPLEX_float MPI_COMPLEX
+#define MAIN_HEADER
 
-#ifdef IMPORT_FROM_EXTERN_C
-  // anything to add here ?
-#else
-  #define I _Complex_I
-  #define conj_double conj
-  #define conj_float conjf
-  #define cabs_double cabs
-  #define cabs_float cabsf
-  #define creal_double creal
-  #define creal_float crealf
-  #define cimag_double cimag
-  #define cimag_float cimagf
-  #define csqrt_double csqrt
-  #define csqrt_float csqrtf
-  #define cpow_double cpow
-  #define cpow_float cpowf
-  #define pow_double pow
-  #define pow_float powf
-  #define abs_float fabs
-  #define abs_double abs
-#endif
+#include "global_defs.h"
+#include "global_enums.h"  
   
 #ifdef SSE
   #define MALLOC( variable, kind, length ) do{ if ( variable != NULL ) { \
@@ -216,36 +169,13 @@
   #include "vectorization_control.h"
   #include "threading.h"
 
-  // enumerations
-  enum { _EVEN, _ODD };
-  enum { _NO_DEFAULT_SET, _DEFAULT_SET };
-  enum { _NO_REORDERING, _REORDER };
-  enum { _ADD, _COPY };
-  enum { _ORDINARY, _SCHWARZ };
-  enum { _RES, _NO_RES };
-  enum { _STANDARD, _LIME, _MULTI}; //formats
-  enum { _READ, _WRITE };
-  enum { _NO_SHIFT };
-  enum { _BTWN_ORTH = 20 };
-  enum { _GLOBAL_FGMRES, _K_CYCLE, _COARSE_GMRES, _SMOOTHER };
-  enum { _COARSE_GLOBAL };
-  enum { _FULL_SYSTEM, _EVEN_SITES, _ODD_SITES };
-  enum { _LEFT, _RIGHT, _NOTHING };
-  enum { _GIP, _PIP, _LA2, _LA6, _LA8, _LA, _CPY, _SET, _PR, _SC, _NC, _SM, _OP_COMM, _OP_IDLE, _ALLR, _GD_COMM, _GD_IDLE, _GRAM_SCHMIDT, _GRAM_SCHMIDT_ON_AGGREGATES,
-      _SM1, _SM2, _SM3, _SM4, _SMALL1, _SMALL2, _NUM_PROF }; // _NUM_PROF has always to be the last constant!
-  enum { _VTS = 20 };
-  enum { _TRCKD_VAL, _STP_TIME, _SLV_ITER, _SLV_TIME, _CRS_ITER, _CRS_TIME, _SLV_ERR, _CGNR_ERR, _NUM_OPTB };
-
-#ifdef CUDA_OPT
-  enum { _H2D, _D2H, _D2D };
-  enum { _CUDA_ASYNC, _CUDA_SYNC };
-  enum { _SOFT_CHECK, _HARD_CHECK };
-#endif
+// FIXME temporary include
 
 #include "block_struct.h"
 
 // FIXME temporary include
-#include "complex_types_PRECISION.h"
+// #include "complex_types_double.h"
+
 
   // CUDA typedefs
 #ifdef CUDA_OPT
@@ -255,40 +185,6 @@
 
   #include "main_pre_def_float.h"
   #include "main_pre_def_double.h"
-
-  extern complex_double _COMPLEX_double_ONE;
-  extern complex_double _COMPLEX_double_ZERO;
-  extern complex_double _COMPLEX_double_MINUS_ONE;
-  extern complex_float  _COMPLEX_float_ONE;
-  extern complex_float  _COMPLEX_float_ZERO;
-  extern complex_float  _COMPLEX_float_MINUS_ONE;
-
-  typedef struct plot_table_line {
-    
-    double values[_NUM_OPTB];
-    struct plot_table_line *next;
-    
-  } plot_table_line;
-  
-  typedef struct var_table_entry {
-    
-    void *pt;
-    char name[STRINGLENGTH];
-    char datatype[20];
-    struct var_table_entry *next;
-    
-  } var_table_entry;
-  
-  typedef struct var_table {
-    
-    int evaluation, multiplicative, shift_update, re_setup,
-        track_error, track_cgn_error, average_over;
-    char scan_var[STRINGLENGTH];
-    double start_val, end_val, step_size, *output_table[6];
-    var_table_entry *entry, *iterator;
-    plot_table_line *p, *p_end;
-    
-  } var_table;
   
   typedef struct confbuffer_struct {
     
@@ -296,16 +192,10 @@
     struct confbuffer_struct *next;
     
   } confbuffer_struct;
-  
-  typedef struct {
-    
-    gmres_float_struct sp;
-    gmres_double_struct dp;
-    
-  } gmres_MP_struct;
 
   // FIXME temporary include
   #include "global_struct.h"
+  #include "algorithm_structs.h"
   
   static inline void printf0( char* format, ... ) {
     START_MASTER(no_threading)

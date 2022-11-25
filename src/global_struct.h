@@ -1,6 +1,19 @@
 #ifndef GLOBAL_STRUCT_H
 #define GLOBAL_STRUCT_H
 
+#ifndef IMPORT_FROM_EXTERN_C
+#include <mpi.h>
+#endif
+
+#include <stdio.h>
+#include "global_defs.h"
+#include "algorithm_structs_double.h"
+#include "algorithm_structs_float.h"
+#include "algorithm_structs.h"
+#include "var_table.h"
+#include "dd_alpha_amg_parameters.h"
+#include "dd_alpha_amg_setup_status.h"
+
 typedef struct global_struct
 {
 

@@ -1,6 +1,8 @@
 #ifndef PROFILING_OLD_PRECISION_H
 #define PROFILING_OLD_PRECISION_H
 
+#include "global_enums.h"
+
 typedef struct
 {
     double time[_NUM_PROF];
