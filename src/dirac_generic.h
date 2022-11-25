@@ -20,10 +20,11 @@
  */
 
 #ifndef DIRAC_PRECISION_HEADER
-  #define DIRAC_PRECISION_HEADER
+#define DIRAC_PRECISION_HEADER
 
-#include "main_pre_def_PRECISION.h"
 #include "clifford.h"
+#include "complex_types_PRECISION.h"
+#include "level_struct.h"
 
   struct Thread;
   
