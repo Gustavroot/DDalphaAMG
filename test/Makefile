@@ -4,13 +4,15 @@ TEST_SRCDIR = test
 TEST_BUILDDIR = $(BUILDDIR)/test
 
 # Flags for the C++ compiler during compile time.
-TEST_CFLAGS = $(CFLAGS) -g -I$(GSRCDIR) -isystem$(CUDA_INCLUDE) -isystem$(CRITERION_INCLUDE)
+TEST_CFLAGS = $(CFLAGS) -g -I$(GSRCDIR) -isystem$(CUDA_INCLUDE) -isystem$(CRITERION_INCLUDE) \
+	-fopenmp
 # Flags for the C++ compiler during link time.
-TEST_LDFLAGS = -g -lmpi -L$(MPI_LIB) -lcriterion -L$(CRITERION_LIB)
+TEST_LDFLAGS = -g -lmpi -L$(MPI_LIB) -lcriterion -L$(CRITERION_LIB) -lm -lcudart -lcudadevrt \
+	-L$(CUDA_LIB) -Xcompiler "-fopenmp"
 
 TEST_SRC = $(wildcard $(TEST_SRCDIR)/*.c)
 TEST_OBJ = $(patsubst $(TEST_SRCDIR)/%.c,$(TEST_BUILDDIR)/%.o,$(TEST_SRC))
-TEST_HEA = $(wildcard $(TEST_SRCDIR)/*.h)
+TEST_HEA = $(wildcard $(TEST_SRCDIR)/*.hpp)
 
 .PHONY: test
 
@@ -23,8 +25,10 @@ test: build_test $(TEST_BUILDDIR)
 
 build_test: $(TEST_BUILDDIR)/test_dd_alpha_amg
 
-$(TEST_BUILDDIR)/test_dd_alpha_amg: $(TEST_OBJ) $(TEST_OBJ_OUT) library
-	$(CC) $(TEST_LDFLAGS) -o $@ $(TEST_OBJ) $(TEST_OBJ_OUT) ./lib/libdd_alpha_amg.a
+$(TEST_BUILDDIR)/test_dd_alpha_amg: $(TEST_OBJ) library_db
+# TODO actually NVCC should not be required as a linker, but otherwise we get linker errors
+# relating to relocation of device code.
+	$(NVCC) $(TEST_LDFLAGS) -o $@ $(TEST_OBJ) $(TEST_OBJ_OUT) ./lib/libdd_alpha_amg_db.a
 
 $(TEST_OBJ): $(TEST_BUILDDIR)/%.o: $(TEST_SRCDIR)/%.c $(TEST_HEA) $(GHEA) $(TEST_BUILDDIR)
 	$(CC) $(TEST_CFLAGS) -c $< -o $@

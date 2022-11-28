@@ -46,9 +46,11 @@ GHEA += $(GHEAFLT) $(GHEAFLT_CUDA) $(GHEADBL) $(GHEADBL_CUDA)
 OBJ = $(patsubst $(GSRCDIR)/%.c,$(BUILDDIR)/%.o,$(GSRC))
 OBJ_NO_MAIN = $(filter-out %/main.o,$(OBJ))
 OBJDB = $(patsubst %.o,%_db.o,$(OBJ))
+OBJ_NO_MAINDB = $(filter-out %/main_db.o,$(OBJDB))
 OBJ_CUDA = $(patsubst $(GSRCDIR)/%.cu,$(BUILDDIR)/%.o,$(GSRC_CUDA))
 OBJ_CUDADB = $(patsubst %.o,%_db.o,$(OBJ_CUDA))
 OBJ_CUDA_DLINK = $(BUILDDIR)/dd_alpha_amg.dlink.o
+OBJ_CUDA_DLINKDB = $(BUILDDIR)/dd_alpha_amg_db.dlink.o
 DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 
 # --- FLAGS -------------------------------------------
@@ -83,9 +85,10 @@ NVCC_EXTRA_COMP_FLAGS += -lcudart -L$(CUDA_LIB)
 # LIMEH=-DHAVE_LIME -I$(LIMEDIR)/include
 # LIMELIB= -L$(LIMEDIR)/lib -llime
 
-all: wilson library documentation
+all: wilson library library_db documentation
 wilson: dd_alpha_amg dd_alpha_amg_db
 library: lib/libdd_alpha_amg.a include/dd_alpha_amg_parameters.h include/dd_alpha_amg.h
+library_db: lib/libdd_alpha_amg_db.a include/dd_alpha_amg_parameters.h include/dd_alpha_amg.h
 documentation: doc/user_doc.pdf doc/doxygen
 
 doc/doxygen: src/* src/gpu/*
@@ -120,9 +123,24 @@ lib/libdd_alpha_amg.a: $(OBJ_CUDA_DLINK) $(OBJ_NO_MAIN) $(OBJ_CUDA)
 	ar rc $@ $(OBJ_CUDA_DLINK) $(OBJ_NO_MAIN) $(OBJ_CUDA)
 	ranlib $@
 
+$(OBJ_CUDA_DLINKDB): $(OBJ_NO_MAINDB) $(OBJ_CUDADB)
+# to actually use the objects created by NVCC we need an object file
+# on which NVCC did perform device code linking
+# see also: https://stackoverflow.com/questions/22115197/dynamic-parallelism-undefined-reference-to-cudaregisterlinkedbinary-linking
+	$(NVCC) $(NVCC_EXTRA_COMP_FLAGS) -dlink -lcudadevrt -L$(CUDA_LIB) -o $@ $(OBJ_NO_MAINDB) $(OBJ_CUDADB)
+
+lib/libdd_alpha_amg_db.a: $(OBJ_CUDA_DLINKDB) $(OBJ_NO_MAINDB) $(OBJ_CUDADB)
+# see also https://stackoverflow.com/questions/26893588/creating-a-static-cuda-library-to-be-linked-with-a-c-program
+	ar rc $@ $(OBJ_CUDA_DLINKDB) $(OBJ_NO_MAINDB) $(OBJ_CUDADB)
+	ranlib $@
+
 else
-lib/libdd_alpha_amg.a: $(OBJ)
+lib/libdd_alpha_amg.a: $(OBJ_NO_MAIN)
 	ar rc $@ $(OBJ_NO_MAIN)
+	ranlib $@
+
+lib/libdd_alpha_amg_db.a: $(OBJ_NO_MAINDB)
+	ar rc $@ $(OBJ_NO_MAINDB)
 	ranlib $@
 endif
 
