@@ -1,4 +1,3 @@
-#include <criterion/criterion.h>
 #include "dirac_double.h"
 #include "alloc_control.h"
 #include "complex_types_double.h"
@@ -6,15 +5,10 @@
 #include "ghost.h"
 #include "init.h"
 
-
-Test(dirac, can_include)
-{
-}
-
-Test(dirac, callSize1)
+int main()
 {
     int argc = 2;
-    char ** argv = NULL;
+    char **argv = NULL;
 
     MALLOC(argv, char *, 2);
     MALLOC(argv[0], char, 1);
@@ -27,19 +21,23 @@ Test(dirac, callSize1)
     level_struct l;
     Thread no_threading;
 
-    MALLOC(eta, complex_double, 1);
-    MALLOC(phi, complex_double, 1);
+    MALLOC(eta, complex_double, 12);
+    MALLOC(phi, complex_double, 12);
 
     MPI_Init(&argc, &argv);
     predefine_rank();
-    method_init( &argc, &argv, &l );
+    method_init(&argc, &argv, &l);
     setup_no_threading(&no_threading, &l);
 
-    #pragma omp parallel num_threads(1)
+#pragma omp parallel num_threads(1)
     {
         d_plus_clover_double(eta, phi, &op, &l, &no_threading);
     }
 
     FREE(eta, complex_double, 1);
     FREE(phi, complex_double, 1);
+
+    FREE(argv[0], char, 1);
+    FREE(argv, char *, 2);
+    return 0;
 }
