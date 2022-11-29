@@ -1,6 +1,8 @@
 #ifndef CONSOLE_OUT_H
 #define CONSOLE_OUT_H
 
+#include <stdarg.h>
+
 #include "threading.h"
 #include "global_struct.h"
 
