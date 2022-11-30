@@ -5,6 +5,7 @@
 #include "threading.h"
 #include "ghost.h"
 #include "init.h"
+#include "global_struct.h"
 
 
 Test(dirac, can_include)
@@ -23,7 +24,6 @@ Test(dirac, callSize1)
 
     vector_double eta = NULL;
     vector_double phi = NULL;
-    operator_double_struct op;
     level_struct l;
     Thread no_threading;
 
@@ -35,9 +35,9 @@ Test(dirac, callSize1)
     method_init( &argc, &argv, &l );
     setup_no_threading(&no_threading, &l);
 
-    #pragma omp parallel num_threads(1)
+    #pragma omp parallel num_threads(2)
     {
-        d_plus_clover_double(eta, phi, &op, &l, &no_threading);
+        d_plus_clover_double(eta, phi, &g.op_double, &l, &no_threading);
     }
 
     FREE(eta, complex_double, 1);
