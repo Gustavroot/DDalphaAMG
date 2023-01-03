@@ -78,7 +78,7 @@ library: lib/libdd_alpha_amg.a include/dd_alpha_amg_parameters.h include/dd_alph
 library_db: lib/libdd_alpha_amg_db.a include/dd_alpha_amg_parameters.h include/dd_alpha_amg.h
 documentation: doc/user_doc.pdf doc/doxygen
 
-doc/doxygen: src/* src/gpu/*
+doc/doxygen: src/* src/gpu/* doxygen.conf
 	doxygen doxygen.conf
 
 .PHONY: all wilson library
@@ -212,12 +212,9 @@ $(GSRCDIR)/%_double.c: $(SRCDIR_CUDA)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	$(MAKEDEP) $< | sed 's,\(.*\)\.o[ :]*,$(BUILDDIR)/\1.o $@ : ,g' > $@
 	$(MAKEDEP) $< | sed 's,\(.*\)\.o[ :]*,$(BUILDDIR)/\1_db.o $@ : ,g' >> $@
 
-clean: clean_test
+clean:
 	rm -f $(BUILDDIR)/*.o
 	rm -f $(GSRCDIR)/*
 	rm -f dd_alpha_amg
 	rm -f dd_alpha_amg_db
 	rm -f lib/*
-
-# -include $(DEP)
--include test/Makefile
