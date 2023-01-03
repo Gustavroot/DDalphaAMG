@@ -98,16 +98,19 @@ doc/doxygen: src/* src/gpu/*
 .SUFFIXES:
 .SECONDARY:
 
-dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
+dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
 	$(NVCC) --compiler-options='$(OPT_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJ) $(OBJ_CUDA) $(H5LIB) $(LIMELIB) -lm
 else
+dd_alpha_amg : $(OBJ)
 	$(CC) $(OPT_VERSION_FLAGS) $(LIMEH) -o $@ $(OBJ) $(H5LIB) $(LIMELIB) -lm
 endif
-dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
+
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
+dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
 	$(NVCC) -g --compiler-options='$(DEBUG_VERSION_FLAGS)' $(NVCC_EXTRA_COMP_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(OBJ_CUDADB) $(H5LIB) $(LIMELIB) -lm
 else
+dd_alpha_amg_db : $(OBJDB)
 	$(CC) -g $(DEBUG_VERSION_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(H5LIB) $(LIMELIB) -lm
 endif
 
