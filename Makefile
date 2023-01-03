@@ -1,19 +1,6 @@
-# --- COMPILER ----------------------------------------
+-include MakeSettings.mk
 
-# if using -std different than gnu11, some changes are needed
-CC = mpicc -std=gnu11 -Wall -pedantic
-MPI_INCLUDE = /usr/include/
-MPI_LIB = /usr/lib/
 
-CPP = cpp
-MAKEDEP = $(CPP) -MM
-
-# if using -std different than c++11, some changes are needed
-NVCC = nvcc
-CUDA_INCLUDE = /opt/cuda/include/
-CUDA_LIB = /opt/cuda/lib64/
-# NVTX is used to annotate profiling reports. It can be disabled by setting this variable to -DNVTX_DISABLE .
-NVTX_DISABLE = #-DNVTX_DISABLE
 
 # --- DO NOT CHANGE -----------------------------------
 SRCDIR = src
@@ -54,7 +41,7 @@ OBJ_CUDA_DLINKDB = $(BUILDDIR)/dd_alpha_amg_db.dlink.o
 DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 
 # --- FLAGS -------------------------------------------
-CUDA_ENABLER = -DCUDA_OPT
+
 COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING $(CUDA_ENABLER) $(NVTX_DISABLE)
 #COMMON_FLAGS = -DPROFILING
 

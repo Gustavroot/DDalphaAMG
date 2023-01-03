@@ -1,4 +1,4 @@
--include test/settings.mk
+-include test/MakeSettings.mk
 -include test/mpicases/Makefile
 
 TEST_SRCDIR = test
