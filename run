@@ -190,7 +190,8 @@ NVPROF=
 
 if [ ${ipa[0]} = 0  ]
 then
-  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $NVPROF ./$exec $inputfile
+  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $NVPROF ./$exec $inputfile \
+    || exit $?
 else
   cp $inputfile output/${opf}.txt
   echo "" >> output/${opf}.txt
@@ -200,5 +201,6 @@ else
   echo "+----------------------------------------------------------------------------------+" >> ../output/${opf}.txt
   echo "" >> output/${opf}.txt
   echo "" >> output/${opf}.txt
-  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $NVPROF ./$exec $inputfile >> ../output/${opf}.txt & disown
+  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $NVPROF ./$exec $inputfile \
+    >> ../output/${opf}.txt || exit $?
 fi
