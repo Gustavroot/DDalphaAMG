@@ -57,7 +57,8 @@ static inline void error0(char *format, ...)
         va_end(argpt);
         printf("\x1b[0m");
         fflush(0);
-        MPI_Abort(MPI_COMM_WORLD, 0);
+        // exit non-gracefully
+        MPI_Abort(MPI_COMM_WORLD, 1);
     }
 }
 
