@@ -459,8 +459,10 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
       error0("only supporting 'block lattice _ mu' a multiple of 4 at the finest level for now.\n");
     }
 
-    if (g.method != 2) {
-      error0("only supporting method=2 for now when -DCUDA_OPT enabled. Check your .ini file.\n");
+    if (g.method != 2 && g.method != 0) {
+      // method 0 (GMRES only) mostly falls back to CPU calculations for now.
+      error0("only supporting method=2 and method=0 for now when -DCUDA_OPT enabled. "
+        "Check your .ini file.\n");
     }
     if (g.odd_even != 1) {
       error0("only supporting odd_even=1 for now when -DCUDA_OPT enabled. Check your .ini file.\n");

@@ -3,7 +3,6 @@
 #ifdef CUDA_OPT
 
 void smoother_PRECISION_def_CUDA( level_struct *l ) {
-
   if ( g.method >= 0 )
     schwarz_PRECISION_def_CUDA( &(l->s_PRECISION), &(g.op_double), l );
 }
@@ -260,15 +259,18 @@ void schwarz_PRECISION_free_CUDA( schwarz_PRECISION_struct *s, level_struct *l )
     cuda_safe_call( cudaFree( (s->cu_s).DD_blocks_notin_comms[color] ) );
     CUDA_FREE( (s->cu_s).DD_blocks[color], int, s->nr_DD_blocks[color] );
   }
-  FREE( s->nr_DD_blocks_in_comms, int, s->num_colors );
-  FREE( s->nr_DD_blocks_notin_comms, int, s->num_colors );
-  FREE( s->nr_DD_blocks, int, s->num_colors );
-  FREE( s->DD_blocks_in_comms, int*, s->num_colors );
-  FREE( s->DD_blocks_notin_comms, int*, s->num_colors );
-  FREE( s->DD_blocks, int*, s->num_colors );
-  FREE( (s->cu_s).DD_blocks_in_comms, int*, s->num_colors );
-  FREE( (s->cu_s).DD_blocks_notin_comms, int*, s->num_colors );
-  FREE( (s->cu_s).DD_blocks, int*, s->num_colors );
+  
+  if (s->num_colors > 0) {
+    FREE( s->nr_DD_blocks_in_comms, int, s->num_colors );
+    FREE( s->nr_DD_blocks_notin_comms, int, s->num_colors );
+    FREE( s->nr_DD_blocks, int, s->num_colors );
+    FREE( s->DD_blocks_in_comms, int*, s->num_colors );
+    FREE( s->DD_blocks_notin_comms, int*, s->num_colors );
+    FREE( s->DD_blocks, int*, s->num_colors );
+    FREE( (s->cu_s).DD_blocks_in_comms, int*, s->num_colors );
+    FREE( (s->cu_s).DD_blocks_notin_comms, int*, s->num_colors );
+    FREE( (s->cu_s).DD_blocks, int*, s->num_colors );
+  }
 
   // FIXME: enable and fix the following line --> ??
   //cuda_safe_call( cudaFree( s->block[0].bt_on_gpu ) );
@@ -931,10 +933,12 @@ void schwarz_PRECISION_setup_CUDA( schwarz_PRECISION_struct *s, operator_double_
   int *DD_thr_offset_notin_comms = s->DD_thr_offset_notin_comms_;
   int *DD_thr_offset_in_comms = s->DD_thr_offset_in_comms_;  
 
-  nr_thrDD_blocks_notin_comms[0] = s->nr_DD_blocks_notin_comms[0];
-  nr_thrDD_blocks_notin_comms[1] = s->nr_DD_blocks_notin_comms[1];
-  nr_thrDD_blocks_in_comms[0]    = s->nr_DD_blocks_in_comms[0];
-  nr_thrDD_blocks_in_comms[1]    = s->nr_DD_blocks_in_comms[1];
+  // VALIDATE that these are actually the right variables now.
+  nr_thrDD_blocks_notin_comms[0] = s->nr_thrDD_blocks_notin_comms_[0];
+  nr_thrDD_blocks_notin_comms[1] = s->nr_thrDD_blocks_notin_comms_[1];
+  nr_thrDD_blocks_in_comms[0]    = s->nr_thrDD_blocks_in_comms_[0];
+  nr_thrDD_blocks_in_comms[1]    = s->nr_thrDD_blocks_in_comms_[1];
+
   DD_thr_offset_notin_comms[0]   = 0;
   DD_thr_offset_notin_comms[1]   = 0;
   DD_thr_offset_in_comms[0]      = 0;
