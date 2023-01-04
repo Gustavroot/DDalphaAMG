@@ -20,6 +20,8 @@
  */
 
 #include "main.h"
+#include "dirac_proxy_double.h"
+#include "dirac_proxy_float.h"
 
 
 void next_level_setup( vector_double *V, level_struct *l, struct Thread *threading ) {

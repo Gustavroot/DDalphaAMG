@@ -21,6 +21,8 @@
 
 #include "main.h"
 #include "linsolve.h"
+#include "dirac_proxy_double.h"
+#include "dirac_proxy_float.h"
 
 void fgmres_MP_struct_init( gmres_MP_struct *p ) {
   fgmres_float_struct_init( &(p->sp) );

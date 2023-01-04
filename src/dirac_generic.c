@@ -156,7 +156,7 @@ void block_d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, 
 
 
 #if !defined(OPTIMIZED_NEIGHBOR_COUPLING_PRECISION) && !defined(OPTIMIZED_SELF_COUPLING_PRECISION)
-void d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
+void d_plus_clover_PRECISION_cpu( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
 
   // this function is supposed to be called from the finest level only
   if (l->depth != 0)
@@ -290,7 +290,7 @@ void d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operat
 
 void d_plus_clover_dagger_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {  
   gamma5_PRECISION( l->vbuf_PRECISION[6], phi, l, threading );
-  d_plus_clover_PRECISION( l->vbuf_PRECISION[7], l->vbuf_PRECISION[6], op, l, threading );
+  d_plus_clover_PRECISION_cpu( l->vbuf_PRECISION[7], l->vbuf_PRECISION[6], op, l, threading );
   gamma5_PRECISION( eta, l->vbuf_PRECISION[7], l, threading );
 }
 
@@ -308,7 +308,7 @@ void gamma5_PRECISION( vector_PRECISION eta, vector_PRECISION phi, level_struct 
 
 
 void g5D_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
-  d_plus_clover_PRECISION( eta, phi, op, l, threading );
+  d_plus_clover_PRECISION_cpu( eta, phi, op, l, threading );
   SYNC_CORES(threading)
   gamma5_PRECISION( eta, eta, l, threading );
   SYNC_CORES(threading)
