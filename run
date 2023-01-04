@@ -186,12 +186,15 @@ fi
 
 MPIRUN="${MPIRUN:-mpirun}"
 MPI_DEFAULT_HOSTFILE="${MPI_DEFAULT_HOSTFILE:-/etc/openmpi/openmpi-default-hostfile}"
-NVPROF=
+DBGPROF_LINE=
+# This profiler line will launch all the MPI processes, but will yield a GDB window for each of
+# them. Requires the gnome-terminal and GDB.
+#DBGPROF_LINE="gnome-terminal --wait -- gdb --args"
 
 if [ ${ipa[0]} = 0  ]
 then
-  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $NVPROF ./$exec $inputfile \
-    || exit $?
+  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $DBGPROF_LINE \
+    ./$exec $inputfile || exit $?
 else
   cp $inputfile output/${opf}.txt
   echo "" >> output/${opf}.txt
@@ -201,6 +204,6 @@ else
   echo "+----------------------------------------------------------------------------------+" >> ../output/${opf}.txt
   echo "" >> output/${opf}.txt
   echo "" >> output/${opf}.txt
-  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $NVPROF ./$exec $inputfile \
-    >> ../output/${opf}.txt || exit $?
+  $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np $DBGPROF_LINE \
+    ./$exec $inputfile >> ../output/${opf}.txt || exit $?
 fi
