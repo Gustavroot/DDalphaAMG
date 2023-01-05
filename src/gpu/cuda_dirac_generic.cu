@@ -229,22 +229,21 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
 }
 
 
-//void sse_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
-//                           int start, int end, level_struct *l, struct Thread *threading );
-
+extern "C" void cuda_d_plus_clover_PRECISION(
+  cuda_vector_PRECISION eta_gpu, cuda_vector_PRECISION phi_gpu, operator_PRECISION_struct *op,
+  level_struct *l, struct Thread *threading ) {
 /*
-extern "C" void
-d_plus_clover_PRECISION_CUDA(					cuda_vector_PRECISION eta_gpu, cuda_vector_PRECISION phi_gpu, operator_PRECISION_struct *op,
-				                                level_struct *l, struct Thread *threading ) {
-
   cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
-
+*/
+  printf0("eta_gpu: %u", eta_gpu);
+  printf0("phi_gpu: %u", eta_gpu);
   vector_PRECISION eta=NULL, phi=NULL;
   eta = (complex_PRECISION*) malloc( l->inner_vector_size * sizeof(complex_PRECISION) );
   phi = (complex_PRECISION*) malloc( l->inner_vector_size * sizeof(complex_PRECISION) );
 
   copy_2_cpu_PRECISION_v3(eta, eta_gpu, phi, phi_gpu, l);
 
+/*
   //PROF_PRECISION_START( _SC, threading );
   //START_LOCKED_MASTER(threading)
 
@@ -413,9 +412,7 @@ d_plus_clover_PRECISION_CUDA(					cuda_vector_PRECISION eta_gpu, cuda_vector_PRE
 
   free(eta);
   free(phi);
-
-}
 */
-
+}
 
 #endif
