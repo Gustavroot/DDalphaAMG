@@ -6,6 +6,10 @@
 #include "gpu/cuda_linsolve.h"
 #endif
 
+// STUB
+// STUB
+// STUB
+
 void fgmres_MP_struct_init(gmres_MP_struct *p) {
 #ifdef CUDA_OPT
   cuda_fgmres_MP_struct_init(p);

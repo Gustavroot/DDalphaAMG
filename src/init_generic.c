@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "proxies/linsolve_proxy_PRECISION.h"
 
 void prof_PRECISION_init( level_struct *l ) {
 

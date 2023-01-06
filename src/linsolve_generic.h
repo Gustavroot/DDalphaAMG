@@ -20,14 +20,17 @@
  */
 
 #ifndef LINSOLVE_PRECISION_HEADER
-  #define LINSOLVE_PRECISION_HEADER
+#define LINSOLVE_PRECISION_HEADER
+
+#include "algorithm_structs_PRECISION.h"
+#include "level_struct.h"
 
   struct Thread;
   
-  void fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p );
-  void fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, const int type, const int prec_kind,
+  void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p );
+  void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, const int type, const int prec_kind,
                                       void (*precond)(), void (*eval_op)(), gmres_PRECISION_struct *p, level_struct* l );
-  void fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *l );
+  void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *l );
   
   int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
   void fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l );

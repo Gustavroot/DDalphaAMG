@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "proxies/linsolve_proxy_PRECISION.h"
 
 void inv_iter_2lvl_extension_setup_PRECISION( int setup_iter, level_struct *l, struct Thread *threading );
 void inv_iter_inv_fcycle_PRECISION( int setup_iter, level_struct *l, struct Thread *threading );

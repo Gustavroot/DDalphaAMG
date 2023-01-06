@@ -25,8 +25,8 @@
 #include "proxies/dirac_proxy_float.h"
 
 void cpu_fgmres_MP_struct_init( gmres_MP_struct *p ) {
-  fgmres_float_struct_init( &(p->sp) );
-  fgmres_double_struct_init( &(p->dp) );
+  cpu_fgmres_float_struct_init( &(p->sp) );
+  cpu_fgmres_double_struct_init( &(p->dp) );
 }
 
 
@@ -89,7 +89,7 @@ void cpu_fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int pre
   // s
   p->dp.s = p->dp.H[0] + total; total += m+1;
   // x
-  p->dp.x = p->dp.H[0] + total; total += vl;  //REMINDER HERE!
+  p->dp.x = p->dp.H[0] + total; total += vl;
   // r
   p->dp.r = p->dp.H[0] + total; total += vl;
   // b

@@ -2,17 +2,42 @@
 
 extern "C"{
 
-  #define IMPORT_FROM_EXTERN_C
-  #include "main.h"
-  #undef IMPORT_FROM_EXTERN_C
+#define IMPORT_FROM_EXTERN_C
+#include "main.h"
+#undef IMPORT_FROM_EXTERN_C
 
+void cuda_fgmres_PRECISION_struct_init(gmres_PRECISION_struct* p) {
+  p->xtmp = NULL;
+  p->w_gpu = NULL;
+  p->x_gpu = NULL;
+  p->streams = NULL;
 }
 
-#ifdef CUDA_OPT
+void cuda_fgmres_PRECISION_struct_alloc(int m, int n, int vl, PRECISION tol, const int type,
+                                   const int prec_kind, void (*precond)(), void (*eval_op)(),
+                                   gmres_PRECISION_struct *p, level_struct *l) {
+  CUDA_MALLOC( p->w_gpu, cu_cmplx_PRECISION, vl );
+  CUDA_MALLOC( p->x_gpu, cu_cmplx_PRECISION, vl );
 
+  MALLOC( p->streams, cudaStream_t, g.nr_threads );
+  for(size_t i=0; i<g.nr_threads; i++) {
+    cuda_safe_call( cudaStreamCreate( &(p->streams[i]) ) );
+  }
+}
+
+
+void cuda_fgmres_PRECISION_struct_free(gmres_PRECISION_struct *p, level_struct *l) {
+  if( l->depth==0){
+    cuda_safe_call( cudaFreeHost( l->p_PRECISION.xtmp ) );
+  }
+  int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
+  CUDA_FREE( p->w_gpu, cu_cmplx_PRECISION, vl );
+  CUDA_FREE( p->x_gpu, cu_cmplx_PRECISION, vl );
+  FREE( p->streams, cudaStream_t, g.nr_threads );
+}
 
 // sites_to_solve = {_EVEN_SITES, _ODD_SITES, _FULL_SYSTEM}
-extern "C" void local_minres_PRECISION_CUDA( cuda_vector_PRECISION phi, cuda_vector_PRECISION eta, cuda_vector_PRECISION latest_iter,
+ void local_minres_PRECISION_CUDA( cuda_vector_PRECISION phi, cuda_vector_PRECISION eta, cuda_vector_PRECISION latest_iter,
                                              schwarz_PRECISION_struct *s, level_struct *l, int nr_DD_blocks_to_compute,
                                              int* DD_blocks_to_compute, cudaStream_t *streams, int stream_id, int sites_to_solve ) {
 
@@ -173,4 +198,4 @@ extern "C" void local_minres_PRECISION_CUDA( cuda_vector_PRECISION phi, cuda_vec
 
 }
 
-#endif
+}

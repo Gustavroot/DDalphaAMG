@@ -21,6 +21,7 @@
 
 #include "main.h"
 #include "proxies/dirac_proxy_PRECISION.h"
+#include "proxies/linsolve_proxy_PRECISION.h"
 
 void smoother_PRECISION_def( level_struct *l ) {
   

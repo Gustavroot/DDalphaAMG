@@ -23,7 +23,7 @@
 #include "profiling.h"
 
 
-void fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
+void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
 
 /*********************************************************************************
 * Initializes all declared pointers with NULL.                              
@@ -33,9 +33,6 @@ void fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   p->V = NULL;
   p->H = NULL;
   p->x = NULL;
-#ifdef CUDA_OPT
-  p->xtmp = NULL;
-#endif
   p->b = NULL;
   p->r = NULL;
   p->w = NULL;
@@ -46,15 +43,10 @@ void fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   p->shift = 0;
   p->preconditioner = NULL;
   p->eval_operator = NULL;
-#ifdef CUDA_OPT
-  p->w_gpu = NULL;
-  p->x_gpu = NULL;
-  p->streams = NULL;
-#endif
 }
 
 
-void fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, const int type, const int prec_kind,
+void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, const int type, const int prec_kind,
                                     void (*precond)(), void (*eval_op)(), gmres_PRECISION_struct *p, level_struct *l ) {
 
 /*********************************************************************************
@@ -184,39 +176,14 @@ void fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, const i
   } else {
     ASSERT( type < 3 );
   }
-#ifdef CUDA_OPT
-  {
-    CUDA_MALLOC( p->w_gpu, cu_cmplx_PRECISION, vl );
-    CUDA_MALLOC( p->x_gpu, cu_cmplx_PRECISION, vl );
-  }
-
-  MALLOC( p->streams, cudaStream_t, g.nr_threads );
-  for( i=0; i<g.nr_threads; i++ ){
-    cuda_safe_call( cudaStreamCreate( &(p->streams[i]) ) );
-  }
-#endif
 }
 
 
-void fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *l ) {
+void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *l ) {
 
 /*********************************************************************************
 * Frees the allocated space for the gmres struct p.                            
-*********************************************************************************/ 
-
-#ifdef CUDA_OPT
-  if( l->depth==0) cuda_safe_call( cudaFreeHost( l->p_PRECISION.xtmp ) );
-#endif
-
-#ifdef CUDA_OPT
-  {
-    int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
-    CUDA_FREE( p->w_gpu, cu_cmplx_PRECISION, vl );
-    CUDA_FREE( p->x_gpu, cu_cmplx_PRECISION, vl );
-  }
-  FREE( p->streams, cudaStream_t, g.nr_threads );
-#endif
-  
+*********************************************************************************/   
   int k=0;
   
   if ( p->preconditioner != NULL ) {

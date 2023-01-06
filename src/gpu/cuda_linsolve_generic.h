@@ -1,8 +1,26 @@
 #ifndef LINSOLVE_PRECISION_HEADER_CUDA
-  #define LINSOLVE_PRECISION_HEADER_CUDA
+#define LINSOLVE_PRECISION_HEADER_CUDA
 
-  extern void local_minres_PRECISION_CUDA( cuda_vector_PRECISION phi, cuda_vector_PRECISION eta, cuda_vector_PRECISION latest_iter,
-                                           schwarz_PRECISION_struct *s, level_struct *l, int nr_DD_blocks_to_compute,
-                                           int* DD_blocks_to_compute, cudaStream_t *streams, int stream_id, int sites_to_solve );
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void cuda_fgmres_PRECISION_struct_init(gmres_PRECISION_struct *p);
+
+void cuda_fgmres_PRECISION_struct_alloc(int m, int n, int vl, PRECISION tol, const int type,
+                                   const int prec_kind, void (*precond)(), void (*eval_op)(),
+                                   gmres_PRECISION_struct *p, level_struct *l);
+
+void cuda_fgmres_PRECISION_struct_free(gmres_PRECISION_struct *p, level_struct *l);
+
+void local_minres_PRECISION_CUDA(cuda_vector_PRECISION phi, cuda_vector_PRECISION eta,
+                                 cuda_vector_PRECISION latest_iter, schwarz_PRECISION_struct *s,
+                                 level_struct *l, int nr_DD_blocks_to_compute,
+                                 int *DD_blocks_to_compute, cudaStream_t *streams, int stream_id,
+                                 int sites_to_solve);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1,6 +1,7 @@
 dd_alpha_amg
 dd_alpha_amg_db
 build
+testlogs
 
 # Ignore everything in conf/, except some default code/configs. This allows to add new test configs
 conf/*

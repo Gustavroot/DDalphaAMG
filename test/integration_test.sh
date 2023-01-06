@@ -6,7 +6,7 @@ NC='\033[0m' # No Color
 
 # You must be in the root directory of the DD Alpha AMG project to execute this script.
 
-LOGDIR="output/test"
+LOGDIR="testlogs"
 
 function pass() {
     >&2 echo -e "${GREEN}PASS:${NC} $1"
