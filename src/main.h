@@ -104,7 +104,7 @@
   // CUDA typedefs
 #ifdef CUDA_OPT
 // FIXME temporary include
-#include "cuda_complex.h"
+#include "gpu/cuda_complex.h"
 #endif
 
   #include "main_pre_def_float.h"
@@ -209,22 +209,22 @@
 #endif
 #include "lime_io.h"
 #ifdef CUDA_OPT
-  #include "cuda_dirac_float.h"
-  #include "cuda_dirac_double.h"
-  #include "cuda_oddeven_float.h"
-  #include "cuda_oddeven_double.h"
-  #include "cuda_linalg_float.h"
-  #include "cuda_linalg_double.h"
-  #include "cuda_oddeven_linalg_float.h"
-  #include "cuda_oddeven_linalg_double.h"
-  #include "cuda_linsolve_float.h"
-  #include "cuda_linsolve_double.h"
-  #include "cuda_schwarz_double.h"
-  #include "cuda_schwarz_float.h"
-  #include "cuda_coarse_oddeven_float.h"
-  #include "cuda_coarse_oddeven_double.h"
-  #include "cuda_coarse_operator_float.h"
-  #include "cuda_coarse_operator_double.h"
+  #include "gpu/cuda_dirac_float.h"
+  #include "gpu/cuda_dirac_double.h"
+  #include "gpu/cuda_oddeven_float.h"
+  #include "gpu/cuda_oddeven_double.h"
+  #include "gpu/cuda_linalg_float.h"
+  #include "gpu/cuda_linalg_double.h"
+  #include "gpu/cuda_oddeven_linalg_float.h"
+  #include "gpu/cuda_oddeven_linalg_double.h"
+  #include "gpu/cuda_linsolve_float.h"
+  #include "gpu/cuda_linsolve_double.h"
+  #include "gpu/cuda_schwarz_double.h"
+  #include "gpu/cuda_schwarz_float.h"
+  #include "gpu/cuda_coarse_oddeven_float.h"
+  #include "gpu/cuda_coarse_oddeven_double.h"
+  #include "gpu/cuda_coarse_operator_float.h"
+  #include "gpu/cuda_coarse_operator_double.h"
   #include "miscellaneous.h"
-  #include "cuda_miscellaneous.h"
+  #include "gpu/cuda_miscellaneous.h"
 #endif

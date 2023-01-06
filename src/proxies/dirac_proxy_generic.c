@@ -1,13 +1,11 @@
 #include "dirac_proxy_PRECISION.h"
 
 #ifdef CUDA_OPT
-#include "cuda_dirac_PRECISION.h"
-#else
-// VALIDATE
-// #include "dirac_PRECISION.h" well somehow this is required here, but it is already
-// included everywhere and there seems to be an issue when compiling the clifford header
-// with SSE defined.
+#include "gpu/cuda_dirac_PRECISION.h"
 #endif
+
+#include "dirac_PRECISION.h"
+
 
 void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
                              operator_PRECISION_struct *op, level_struct *l,

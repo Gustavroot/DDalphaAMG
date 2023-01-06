@@ -20,6 +20,9 @@
  */
  
 #include "main.h"
+#include "proxies/dirac_proxy_float.h"
+// used in oddeven_PRECISION_test
+#include "proxies/dirac_proxy_double.h"
 
 void selfcoupling_cholesky_decomposition_PRECISION( const config_PRECISION output, config_double input ) {
   

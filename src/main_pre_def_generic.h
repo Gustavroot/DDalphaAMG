@@ -24,7 +24,7 @@
 
 // FIXME temporary includes
 #ifdef CUDA_OPT
-#include "cuda_dirac_PRECISION.h"
+#include "gpu/cuda_dirac_PRECISION.h"
 #endif
 
 
@@ -34,7 +34,7 @@
 
 #ifdef CUDA_OPT
 //FIXME temporary inlcude
-# include "cuda_schwarz_PRECISION.h"
+# include "gpu/cuda_schwarz_PRECISION.h"
 #endif
   
 #endif

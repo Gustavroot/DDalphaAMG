@@ -4,32 +4,25 @@
 
 # --- DO NOT CHANGE -----------------------------------
 SRCDIR = src
-SRCDIR_CUDA = src/gpu
-SRC = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.c,$(wildcard $(SRCDIR)/*.c)))
-SRC += $(patsubst $(SRCDIR_CUDA)/%,%,$(filter-out %_generic.c,$(wildcard $(SRCDIR_CUDA)/*.c)))
-SRC_CUDA = $(patsubst $(SRCDIR_CUDA)/%,%,$(filter-out %_generic.cu,$(wildcard $(SRCDIR_CUDA)/*.cu)))
+SRC = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.c,$(shell find $(SRCDIR) -name '*.c')))
+SRC_CUDA = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.cu,$(shell find $(SRCDIR) -name '*.cu')))
 BUILDDIR = build
 GSRCDIR = $(BUILDDIR)/gsrc
-SRCGEN = $(patsubst $(SRCDIR)/%,%,$(wildcard $(SRCDIR)/*_generic.c))
-SRCGEN += $(patsubst $(SRCDIR_CUDA)/%,%,$(wildcard $(SRCDIR_CUDA)/*_generic.c))
-SRCGEN_CUDA = $(patsubst $(SRCDIR_CUDA)/%,%,$(wildcard $(SRCDIR_CUDA)/*_generic.cu))
+SRCGEN = $(patsubst $(SRCDIR)/%,%,$(shell find $(SRCDIR) -name '*_generic.c'))
+SRCGEN_CUDA = $(patsubst $(SRCDIR)/%,%,$(shell find $(SRCDIR) -name '*_generic.cu'))
 GSRCFLT = $(patsubst %_generic.c,$(GSRCDIR)/%_float.c,$(SRCGEN))
 GSRCFLT_CUDA = $(patsubst %_generic.cu,$(GSRCDIR)/%_float.cu,$(SRCGEN_CUDA))
 GSRCDBL = $(patsubst %_generic.c,$(GSRCDIR)/%_double.c,$(SRCGEN))
 GSRCDBL_CUDA = $(patsubst %_generic.cu,$(GSRCDIR)/%_double.cu,$(SRCGEN_CUDA))
 GSRC = $(patsubst %,$(GSRCDIR)/%,$(SRC)) $(GSRCFLT) $(GSRCDBL)
 GSRC_CUDA = $(patsubst %,$(GSRCDIR)/%,$(SRC_CUDA)) $(GSRCFLT_CUDA) $(GSRCDBL_CUDA)
-HEA = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.h,$(wildcard $(SRCDIR)/*.h)))
-HEA_CUDA = $(patsubst $(SRCDIR_CUDA)/%,%,$(filter-out %_generic.h,$(wildcard $(SRCDIR_CUDA)/*.h)))
-HEAGEN = $(patsubst $(SRCDIR)/%,%,$(wildcard $(SRCDIR)/*_generic.h))
-HEAGEN_CUDA = $(patsubst $(SRCDIR_CUDA)/%,%,$(wildcard $(SRCDIR_CUDA)/*_generic.h))
+HEA = $(patsubst $(SRCDIR)/%,%,$(filter-out %_generic.h,$(shell find $(SRCDIR) -name '*.h')))
+HEAGEN = $(patsubst $(SRCDIR)/%,%,$(shell find $(SRCDIR) -name '*_generic.h'))
+HEAGEN_CUDA = $(patsubst $(SRCDIR)/%,%,$(shell find $(SRCDIR) -name '*_generic.h'))
 GHEAFLT = $(patsubst %_generic.h,$(GSRCDIR)/%_float.h,$(HEAGEN))
-GHEAFLT_CUDA = $(patsubst %_generic.h,$(GSRCDIR)/%_float.h,$(HEAGEN_CUDA))
 GHEADBL = $(patsubst %_generic.h,$(GSRCDIR)/%_double.h,$(HEAGEN))
-GHEADBL_CUDA = $(patsubst %_generic.h,$(GSRCDIR)/%_double.h,$(HEAGEN_CUDA))
 GHEA = $(patsubst %,$(GSRCDIR)/%,$(HEA))
-GHEA += $(patsubst %,$(GSRCDIR)/%,$(HEA_CUDA))
-GHEA += $(GHEAFLT) $(GHEAFLT_CUDA) $(GHEADBL) $(GHEADBL_CUDA)
+GHEA += $(GHEAFLT) $(GHEADBL)
 OBJ = $(patsubst $(GSRCDIR)/%.c,$(BUILDDIR)/%.o,$(GSRC))
 OBJ_NO_MAIN = $(filter-out %/main.o,$(OBJ))
 OBJDB = $(patsubst %.o,%_db.o,$(OBJ))
@@ -42,11 +35,13 @@ DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 
 # --- FLAGS -------------------------------------------
 
-COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING $(CUDA_ENABLER) $(NVTX_DISABLE)
+COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING $(CUDA_ENABLER) $(NVTX_DISABLE) -I$(GSRCDIR)
 #COMMON_FLAGS = -DPROFILING
 
 OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -isystem $(CUDA_INCLUDE)
 CFLAGS = -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_FLAGS)
+# This is a C only flag as implicit function declaration is forbidden in C++ anyways.
+CFLAGS += -Werror-implicit-function-declaration
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
 OPT_VERSION_FLAGS =$(OPT_FLAGS) -O3 -ffast-math
@@ -144,9 +139,11 @@ include/dd_alpha_amg_parameters.h: src/dd_alpha_amg_parameters.h
 	cp src/dd_alpha_amg_parameters.h $@
 
 $(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(GHEA)
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) $(OPT_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -c $< -o $@ -lm
 
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(GHEA)
+	@mkdir -p $(@D)
 	$(CC) -g $(CFLAGS) $(DEBUG_VERSION_FLAGS) $(H5HEADERS) $(LIMEH) -DDEBUG -c $< -o $@ -lm
 
 ifeq ($(CUDA_ENABLER),-DCUDA_OPT)
@@ -160,48 +157,33 @@ $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.cu $(GHEA)
 endif
 
 $(GSRCDIR)/%.h: $(SRCDIR)/%.h $(firstword $(MAKEFILE_LIST))
-	cp $< $@
-
-$(GSRCDIR)/%.h: $(SRCDIR_CUDA)/%.h $(firstword $(MAKEFILE_LIST))
+	@mkdir -p $(@D)
 	cp $< $@
 
 $(GSRCDIR)/%_float.h: $(SRCDIR)/%_generic.h $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
 
-$(GSRCDIR)/%_float.h: $(SRCDIR_CUDA)/%_generic.h $(firstword $(MAKEFILE_LIST))
-	sed -f float.sed $< > $@
-
 $(GSRCDIR)/%_double.h: $(SRCDIR)/%_generic.h $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
 
-$(GSRCDIR)/%_double.h: $(SRCDIR_CUDA)/%_generic.h $(firstword $(MAKEFILE_LIST))
-	sed -f double.sed $< > $@
-
-$(GSRCDIR)/%.cu: $(SRCDIR_CUDA)/%.cu $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%.cu: $(SRCDIR)/%.cu $(firstword $(MAKEFILE_LIST))
+	@mkdir -p $(@D)
 	cp $< $@
 
 $(GSRCDIR)/%.c: $(SRCDIR)/%.c $(firstword $(MAKEFILE_LIST))
+	@mkdir -p $(@D)
 	cp $< $@
 
-$(GSRCDIR)/%.c: $(SRCDIR_CUDA)/%.c $(firstword $(MAKEFILE_LIST))
-	cp $< $@
-
-$(GSRCDIR)/%_float.cu: $(SRCDIR_CUDA)/%_generic.cu $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%_float.cu: $(SRCDIR)/%_generic.cu $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
 
 $(GSRCDIR)/%_float.c: $(SRCDIR)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	sed -f float.sed $< > $@
 
-$(GSRCDIR)/%_float.c: $(SRCDIR_CUDA)/%_generic.c $(firstword $(MAKEFILE_LIST))
-	sed -f float.sed $< > $@
-
-$(GSRCDIR)/%_double.cu: $(SRCDIR_CUDA)/%_generic.cu $(firstword $(MAKEFILE_LIST))
+$(GSRCDIR)/%_double.cu: $(SRCDIR)/%_generic.cu $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
 
 $(GSRCDIR)/%_double.c: $(SRCDIR)/%_generic.c $(firstword $(MAKEFILE_LIST))
-	sed -f double.sed $< > $@
-
-$(GSRCDIR)/%_double.c: $(SRCDIR_CUDA)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	sed -f double.sed $< > $@
 
 %.dep: %.c $(GHEA)
@@ -213,8 +195,7 @@ $(GSRCDIR)/%_double.c: $(SRCDIR_CUDA)/%_generic.c $(firstword $(MAKEFILE_LIST))
 	$(MAKEDEP) $< | sed 's,\(.*\)\.o[ :]*,$(BUILDDIR)/\1_db.o $@ : ,g' >> $@
 
 clean:
-	rm -f $(BUILDDIR)/*.o
-	rm -f $(GSRCDIR)/*
+	rm -rf $(BUILDDIR)
 	rm -f dd_alpha_amg
 	rm -f dd_alpha_amg_db
 	rm -f lib/*

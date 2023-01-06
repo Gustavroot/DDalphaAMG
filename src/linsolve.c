@@ -21,16 +21,16 @@
 
 #include "main.h"
 #include "linsolve.h"
-#include "dirac_proxy_double.h"
-#include "dirac_proxy_float.h"
+#include "proxies/dirac_proxy_double.h"
+#include "proxies/dirac_proxy_float.h"
 
-void fgmres_MP_struct_init( gmres_MP_struct *p ) {
+void cpu_fgmres_MP_struct_init( gmres_MP_struct *p ) {
   fgmres_float_struct_init( &(p->sp) );
   fgmres_double_struct_init( &(p->dp) );
 }
 
 
-void fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_kind, 
+void cpu_fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_kind, 
                              void (*precond)(), gmres_MP_struct *p, level_struct *l ) {
   long int total=0; 
   int i, k=0;
@@ -89,7 +89,7 @@ void fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_ki
   // s
   p->dp.s = p->dp.H[0] + total; total += m+1;
   // x
-  p->dp.x = p->dp.H[0] + total; total += vl;
+  p->dp.x = p->dp.H[0] + total; total += vl;  //REMINDER HERE!
   // r
   p->dp.r = p->dp.H[0] + total; total += vl;
   // b
@@ -137,7 +137,7 @@ void fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_ki
 }  
    
    
-void fgmres_MP_struct_free( gmres_MP_struct *p ) {
+void cpu_fgmres_MP_struct_free( gmres_MP_struct *p ) {
    
   // single precision
   FREE( p->sp.w, complex_float, p->sp.total_storage );

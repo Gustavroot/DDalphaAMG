@@ -3,8 +3,8 @@
 
 #ifdef CUDA_OPT
 #include <cuda_runtime.h>
-#include "cuda_vectors_PRECISION.h"
-#include "cuda_algorithm_structs_PRECISION.h"
+#include "gpu/cuda_vectors_PRECISION.h"
+#include "gpu/cuda_algorithm_structs_PRECISION.h"
 #endif
 
 #include "block_struct.h"

@@ -189,7 +189,7 @@ MPI_DEFAULT_HOSTFILE="${MPI_DEFAULT_HOSTFILE:-/etc/openmpi/openmpi-default-hostf
 DBGPROF_LINE=
 # This profiler line will launch all the MPI processes, but will yield a GDB window for each of
 # them. Requires the gnome-terminal and GDB.
-#DBGPROF_LINE="gnome-terminal --wait -- gdb --args"
+# DBGPROF_LINE="gnome-terminal --wait -- gdb --args"
 
 if [ ${ipa[0]} = 0  ]
 then
