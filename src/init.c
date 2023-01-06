@@ -1131,6 +1131,11 @@ void validate_parameters( int ls, level_struct *l ) {
     g.interpolation = 0;
   }
 
+  if (g.method == -1 && g.mixed_precision == 2) {
+    error0("Mixed precision 2 is a (F)GMRES option and thus only compatible with methods"
+           ">= 0 (i.e. pure GMRES and FGMRES).");
+  }
+
   ASSERT( ASCENDING( 0, g.rhs, 2 ) );
   ASSERT( ASCENDING( -1, g.method, 5 ) );
   
