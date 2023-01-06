@@ -21,6 +21,8 @@
  
 #ifndef CLIFFORD_HEADER
   #define CLIFFORD_HEADER
+
+#include <complex.h>
   // assertion: gamma5 = (+/-) diag( 1, 1, -1, -1 )
   
   // choose basis:
