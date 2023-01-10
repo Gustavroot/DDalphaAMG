@@ -1,8 +1,6 @@
 #ifndef ALLOC_CONTROL_H
 #define ALLOC_CONTROL_H
 
-#include <stdlib.h>
-
 #include "console_out.h"
 #ifdef CUDA_OPT
 #include "miscellaneous.h"
