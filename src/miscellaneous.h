@@ -1,5 +1,5 @@
 #ifndef MISCELLANEOUS_HEADER
-  #define MISCELLANEOUS_HEADER
+#define MISCELLANEOUS_HEADER
 
   // Specification of file and line nr to throw on error check
   #define cuda_safe_call( err ) __cuda_safe_call( err, __FILE__, __LINE__ )

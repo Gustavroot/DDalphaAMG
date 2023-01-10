@@ -4,6 +4,10 @@
 #include <stdlib.h>
 
 #include "console_out.h"
+#ifdef CUDA_OPT
+#include "miscellaneous.h"
+#endif
+
 
 #ifdef SSE
   #define MALLOC( variable, kind, length ) do{ if ( variable != NULL ) { \

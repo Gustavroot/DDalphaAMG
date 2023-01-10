@@ -20,8 +20,9 @@
  */
 
 #include "main.h"
+#include "operator.h"
 
-void operator_PRECISION_init( operator_PRECISION_struct *op ) {
+void cpu_operator_PRECISION_init( operator_PRECISION_struct *op ) {
   
   op->prnT = NULL;
   op->index_table = NULL;
@@ -30,9 +31,6 @@ void operator_PRECISION_init( operator_PRECISION_struct *op ) {
   op->translation_table = NULL;
   op->D = NULL;
   op->clover = NULL;
-#ifdef CUDA_OPT
-  op->clover_gpu = NULL;
-#endif
   op->oe_clover = NULL;
   op->oe_clover_vectorized = NULL;
   
@@ -73,7 +71,7 @@ void operator_PRECISION_free_projection_buffers( operator_PRECISION_struct *op, 
   }
 }
 
-void operator_PRECISION_alloc( operator_PRECISION_struct *op, const int type, level_struct *l ) {
+void cpu_operator_PRECISION_alloc( operator_PRECISION_struct *op, const int type, level_struct *l ) {
   
 /*********************************************************************************
 * Allocates space for setting up an operator.
@@ -82,15 +80,15 @@ void operator_PRECISION_alloc( operator_PRECISION_struct *op, const int type, le
 * Possible values are: { _ORDINARY, _SCHWARZ }
 *********************************************************************************/
 
-  int mu, nu, its = 1, its_boundary, nls, clover_site_size, coupling_site_size;
+  int mu, nu, its = 1, its_boundary, nls, coupling_site_size;
   
   if ( l->depth == 0 ) {
-    clover_site_size = 42;
     coupling_site_size = 4*9;
   } else {
-    clover_site_size = (l->num_lattice_site_var*(l->num_lattice_site_var+1))/2;
     coupling_site_size = 4*l->num_lattice_site_var*l->num_lattice_site_var;
   }
+
+  unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
   
   if ( type ==_SCHWARZ ) {
     its_boundary = 2;
@@ -103,12 +101,9 @@ void operator_PRECISION_alloc( operator_PRECISION_struct *op, const int type, le
   
   nls = (type==_ORDINARY)?l->num_inner_lattice_sites:2*l->num_lattice_sites-l->num_inner_lattice_sites;
   MALLOC( op->D, complex_PRECISION, coupling_site_size*nls );
-  MALLOC( op->clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
-#ifdef CUDA_OPT
-  CUDA_MALLOC( op->clover_gpu, cu_cmplx_PRECISION, clover_site_size*l->num_inner_lattice_sites );
-#endif
+  MALLOC( op->clover, complex_PRECISION, css*l->num_inner_lattice_sites );
   if ( type == _SCHWARZ && l->depth == 0 && g.odd_even )
-    MALLOC( op->oe_clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
+    MALLOC( op->oe_clover, complex_PRECISION, css*l->num_inner_lattice_sites );
   MALLOC( op->index_table, int, its );
   MALLOC( op->neighbor_table, int, (l->depth==0?4:5)*l->num_inner_lattice_sites );
   MALLOC( op->backward_neighbor_table, int, (l->depth==0?4:5)*l->num_inner_lattice_sites );
@@ -143,17 +138,17 @@ void operator_PRECISION_alloc( operator_PRECISION_struct *op, const int type, le
 }
 
 
-void operator_PRECISION_free( operator_PRECISION_struct *op, const int type, level_struct *l ) {
+void cpu_operator_PRECISION_free( operator_PRECISION_struct *op, const int type, level_struct *l ) {
   
-  int mu, nu, its = 1, clover_site_size, coupling_site_size;
+  int mu, nu, its = 1, coupling_site_size;
 
   if ( l->depth == 0 ) {
-    clover_site_size = 42;
     coupling_site_size = 4*9;
   } else {
-    clover_site_size = (l->num_lattice_site_var*(l->num_lattice_site_var+1))/2;
     coupling_site_size = 4*l->num_lattice_site_var*l->num_lattice_site_var;
   }
+  unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
+  
   
   int its_boundary;
   if ( type ==_SCHWARZ ) {
@@ -167,12 +162,9 @@ void operator_PRECISION_free( operator_PRECISION_struct *op, const int type, lev
   
   int nls = (type==_ORDINARY)?l->num_inner_lattice_sites:2*l->num_lattice_sites-l->num_inner_lattice_sites;
   FREE( op->D, complex_PRECISION, coupling_site_size*nls );
-  FREE( op->clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
-#ifdef CUDA_OPT
-  CUDA_FREE( op->clover_gpu, cu_cmplx_PRECISION, clover_site_size*l->num_inner_lattice_sites );
-#endif
+  FREE( op->clover, complex_PRECISION, css*l->num_inner_lattice_sites );
   if ( type == _SCHWARZ && l->depth == 0 && g.odd_even )
-    FREE( op->oe_clover, complex_PRECISION, clover_site_size*l->num_inner_lattice_sites );
+    FREE( op->oe_clover, complex_PRECISION, css*l->num_inner_lattice_sites );
   FREE( op->index_table, int, its );
   FREE( op->neighbor_table, int, (l->depth==0?4:5)*l->num_inner_lattice_sites );
   FREE( op->backward_neighbor_table, int, (l->depth==0?4:5)*l->num_inner_lattice_sites );

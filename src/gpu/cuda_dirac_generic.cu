@@ -237,11 +237,6 @@ extern "C" void cuda_d_plus_clover_PRECISION(
 */
   printf0("eta_gpu: %u", eta_gpu);
   printf0("phi_gpu: %u", eta_gpu);
-  vector_PRECISION eta=NULL, phi=NULL;
-  eta = (complex_PRECISION*) malloc( l->inner_vector_size * sizeof(complex_PRECISION) );
-  phi = (complex_PRECISION*) malloc( l->inner_vector_size * sizeof(complex_PRECISION) );
-
-  copy_2_cpu_PRECISION_v3(eta, eta_gpu, phi, phi_gpu, l);
 
 /*
   //PROF_PRECISION_START( _SC, threading );
@@ -415,4 +410,20 @@ extern "C" void cuda_d_plus_clover_PRECISION(
 */
 }
 
+extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
+                                         level_struct *l, struct Thread *threading){
+  if (l->level != 0) {
+    // It is not properly tested that this integrates properly with the way memory is allocated
+    // in coarser grids. Also the interactions with the other CUDA AMG code is not yet properly
+    // tested.
+    // error0("cuda_d_plus_clover_PRECISION_vectorwrapper may only be called from the finest level.");
+  }
+  cuda_vector_PRECISION eta_gpu, phi_gpu;
+  eta_gpu = op->w_gpu;
+  phi_gpu = op->x_gpu;
+  cudaStream_t* const streams = l->p_PRECISION.streams;
+  
+  cuda_vector_PRECISION_copy(eta_gpu, eta, 0, l->vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
+  cuda_vector_PRECISION_copy(phi_gpu, phi, 0, l->vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
+}
 #endif

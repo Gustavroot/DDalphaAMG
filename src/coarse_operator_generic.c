@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "proxies/operator_proxy_PRECISION.h"
 
 void coarse_operator_PRECISION_alloc( level_struct *l ) {
   

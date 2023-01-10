@@ -287,41 +287,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
         p->preconditioner( p->w, NULL, p->Z[0], _NO_RES, l, threading );
       } else {
         //printf("SPOT 2\n");
-
-        // RE-DISABLE !
         apply_operator_PRECISION( p->w, p->x, p, l, threading ); // compute w = D*x
-
-#ifdef CUDA_OPT
-        //if (l->depth == 0)
-#endif
-        //{
-        //  apply_operator_PRECISION( p->w, p->x, p, l, threading ); // w = D*Z[j]
-        //}
-#ifdef CUDA_OPT
-        //else
-        // RE-ENABLE !
-        /*
-        {
-          cudaStream_t *streams_gmres = p->streams;
-          int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
-          cuda_vector_PRECISION_copy( (void*)p->w_gpu, (void*)p->w, 0, vl, l, _H2D, _CUDA_SYNC,
-                                      threading->core, streams_gmres );
-          cuda_vector_PRECISION_copy( (void*)p->x_gpu, (void*)p->x, 0, vl, l, _H2D, _CUDA_SYNC,
-                                      threading->core, streams_gmres );
-          apply_operator_PRECISION( (vector_PRECISION)p->w_gpu, (vector_PRECISION)p->x_gpu, p, l, threading );
-          cuda_vector_PRECISION_copy( (void*)p->w, (void*)p->w_gpu, 0, vl, l, _D2H, _CUDA_SYNC,
-                                      threading->core, streams_gmres );
-          cuda_vector_PRECISION_copy( (void*)p->x, (void*)p->x_gpu, 0, vl, l, _D2H, _CUDA_SYNC,
-                                      threading->core, streams_gmres );
-          if ( p->shift ) {
-            int start_, end_;
-            compute_core_start_end_custom(p->v_start, p->v_end, &start_, &end_, l, threading, l->num_lattice_site_var );
-            vector_PRECISION_saxpy( p->w, p->w, p->x, -p->shift, start, end, l );
-          }
-        }
-        */
-        //}
-#endif
 
       }
       vector_PRECISION_minus( p->r, p->b, p->w, start, end, l ); // compute r = b - w

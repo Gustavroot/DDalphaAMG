@@ -64,8 +64,8 @@
     kind signum = (start_val<end_val)?1:-1; \
     vector_double v = NULL; \
     double norm_v = 0.0, tt0, tt1; \
-    vector_double x = (g.mixed_precision==2)?g.p_MP.dp.x:g.p.x; \
-    vector_double b = (g.mixed_precision==2)?g.p_MP.dp.b:g.p.b; \
+    vector_double x = (g.mixed_precision==2)?g.p_MP.double_section.x:g.p.x; \
+    vector_double b = (g.mixed_precision==2)?g.p_MP.double_section.b:g.p.b; \
     tt0 = MPI_Wtime(); \
     \
     if ( g.vt.track_error ) { \

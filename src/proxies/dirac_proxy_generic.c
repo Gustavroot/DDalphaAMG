@@ -12,8 +12,8 @@ void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
                              struct Thread *threading)
 {
 #ifdef CUDA_OPT
-  // cuda_d_plus_clover_PRECISION(eta, phi, op, l, threading);
+  cuda_d_plus_clover_PRECISION_vectorwrapper(eta, phi, op, l, threading);
 #else
-#endif
   d_plus_clover_PRECISION_cpu(eta, phi, op, l, threading);
+#endif
 }

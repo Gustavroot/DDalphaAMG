@@ -25,6 +25,8 @@
 #include "proxies/linsolve_proxy.h"
 #include "proxies/linsolve_proxy_double.h"
 #include "proxies/linsolve_proxy_float.h"
+#include "proxies/operator_proxy_double.h"
+#include "proxies/operator_proxy_float.h"
 
 
 void next_level_setup( vector_double *V, level_struct *l, struct Thread *threading ) {

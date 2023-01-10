@@ -22,14 +22,16 @@
 #ifndef OPERATOR_PRECISION_HEADER
 #define OPERATOR_PRECISION_HEADER
 #include "algorithm_structs_PRECISION.h"
+#include "level_struct.h"
 
 struct Thread;
 
-void operator_PRECISION_init(operator_PRECISION_struct *op);
-void operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type, level_struct *l);
+void cpu_operator_PRECISION_init(operator_PRECISION_struct *op);
+void cpu_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type, level_struct *l);
 void operator_PRECISION_define(operator_PRECISION_struct *op, level_struct *l);
-void operator_PRECISION_free(operator_PRECISION_struct *op, const int type, level_struct *l);
+void cpu_operator_PRECISION_free(operator_PRECISION_struct *op, const int type, level_struct *l);
 
 void operator_PRECISION_test_routine(operator_PRECISION_struct *op, level_struct *l, struct Thread *threading);
+
 
 #endif
