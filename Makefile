@@ -199,3 +199,5 @@ clean:
 	rm -f dd_alpha_amg
 	rm -f dd_alpha_amg_db
 	rm -f lib/*
+	rm -f doc/user_doc.pdf
+	rm -rf doc/doxygen
