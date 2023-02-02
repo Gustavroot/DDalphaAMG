@@ -253,7 +253,8 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
 
-  
+  constexpr size_t blockSize = 256;  // just a guess
+  const size_t gridSize = minGridSizeForN(l->num_inner_lattice_sites, blockSize);
 
   auto shift = to_cuda_cmplx_PRECISION(op->shift);
 
@@ -263,6 +264,8 @@ extern "C" void cuda_d_plus_clover_PRECISION(
     cuda_clover_PRECISION(eta, phi, op->clover_gpu, l->num_inner_lattice_sites, &stream);
   }
   
+  cuda_prp_T_PRECISION<<<gridSize, blockSize>>>(op->prpT_gpu, phi, l->num_inner_lattice_sites);
+  cuda_vector_PRECISION_copy(op->prpT, op->prpT_gpu, 0, l->inner_vector_size/2, l, _D2H, _CUDA_SYNC, 0, streams);
 
 /*
   //PROF_PRECISION_START( _SC, threading );

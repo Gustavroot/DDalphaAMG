@@ -57,7 +57,7 @@ void operator_PRECISION_alloc_projection_buffers( operator_PRECISION_struct *op,
   // when used as preconditioner we usually do not need the projection buffers, unless
   // g.method >= 4: then oddeven_setup_float() is called in init.c, method_setup().
   if ( l->depth == 0 ) {
-    int its = (l->num_lattice_site_var/2)*l->num_lattice_sites;
+    int its = projection_buffer_size(l->num_lattice_site_var, l->num_lattice_sites);
     MALLOC( op->prnT, complex_PRECISION, its*8 );
     op->prnZ = op->prnT + its; op->prnY = op->prnZ + its; op->prnX = op->prnY + its;
     op->prpT = op->prnX + its; op->prpZ = op->prpT + its; op->prpY = op->prpZ + its; op->prpX = op->prpY + its;
