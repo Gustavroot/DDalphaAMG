@@ -7,7 +7,7 @@ struct Thread;
   // device functions
 
   __global__ void
-  cuda_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
+  cuda_block_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
 		                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id,
                   		                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
                                     		                int num_latt_site_var, block_struct* block );

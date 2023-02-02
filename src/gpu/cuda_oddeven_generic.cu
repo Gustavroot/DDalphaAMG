@@ -2089,7 +2089,7 @@ _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu
 
 
 __forceinline__ __device__ void
-_cuda_site_clover_PRECISION(					cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
+_cuda_block_site_clover_PRECISION(					cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
                                                                 schwarz_PRECISION_struct_on_gpu *s, int idx,
                                                                 cu_config_PRECISION *op_clov, double csw ){
   int local_idx = idx%6;
@@ -2226,7 +2226,7 @@ cuda_n_block_PRECISION_boundary_op_minus_naive(			cu_cmplx_PRECISION* out, cu_cm
 
 
 __global__ void
-cuda_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
+cuda_block_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
 			                                        schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
                         		                        double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                             			int num_latt_site_var, block_struct* block ){
@@ -2304,7 +2304,7 @@ cuda_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
 
   i = idx/6;
 
-  _cuda_site_clover_PRECISION(out_o, in_o, start, s, idx, clov_o, csw);
+  _cuda_block_site_clover_PRECISION(out_o, in_o, start, s, idx, clov_o, csw);
 
   __syncthreads();
 

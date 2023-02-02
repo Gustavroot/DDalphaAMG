@@ -1,0 +1,14 @@
+#include "cuda_complex_operators_PRECISION.h"
+
+__host__ __device__ cu_cmplx_PRECISION operator*(cu_cmplx_PRECISION const& lhs, int const& rhs) {
+  return cu_cmul_PRECISION(lhs, make_cu_cmplx_PRECISION(rhs, 0));
+}
+
+__host__ __device__ cu_cmplx_PRECISION operator*(int const& lhs, cu_cmplx_PRECISION const& rhs) {
+  return cu_cmul_PRECISION(make_cu_cmplx_PRECISION(lhs, 0), rhs);
+}
+
+__host__ __device__ cu_cmplx_PRECISION operator-(cu_cmplx_PRECISION const& lhs,
+                                                 cu_cmplx_PRECISION const& rhs) {
+  return cu_csub_PRECISION(lhs, rhs);
+}

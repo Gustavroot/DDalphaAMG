@@ -16,8 +16,8 @@ void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
 void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type, level_struct *l) {
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
   CUDA_MALLOC(op->clover_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
-  CUDA_MALLOC(op->x_gpu, cu_cmplx_PRECISION, l->vector_size);
-  CUDA_MALLOC(op->w_gpu, cu_cmplx_PRECISION, l->vector_size);
+  CUDA_MALLOC(op->x_gpu, cu_cmplx_PRECISION, l->inner_vector_size);
+  CUDA_MALLOC(op->w_gpu, cu_cmplx_PRECISION, l->inner_vector_size);
 }
 
 void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type, level_struct *l) {

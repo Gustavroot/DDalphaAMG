@@ -6,7 +6,11 @@ extern "C"{
   #include "main.h"
   #undef IMPORT_FROM_EXTERN_C
 
+  #include "profiling.h"
 }
+
+#include "cuda_miscellaneous.h"
+#include "cuda_dirac_projkernels_PRECISION.h"
 
 #ifdef CUDA_OPT
 
@@ -199,7 +203,7 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
     tot_shared_mem = 2*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION) +
                      1*42*(threads_per_cublock/6)*sizeof(cu_config_PRECISION);
 
-    cuda_site_clover_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock,
+    cuda_block_site_clover_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock,
                                   tot_shared_mem, streams[stream_id]
                               >>>
                               ( eta, phi, s->s_on_gpu, g.my_rank, g.csw, nr_threads_per_DD_block,
@@ -229,14 +233,36 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
 }
 
 
+
+
+extern "C" void cuda_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
+                                      cuda_config_PRECISION clover,
+                                      int num_sites, cudaStream_t* stream) {
+  constexpr size_t blockSize = 256;
+  const size_t gridSize = minGridSizeForN(num_sites, blockSize);
+  cuda_site_clover_PRECISION<<< gridSize, blockSize, 0, *stream>>>(eta, phi, clover, num_sites);
+}
+
 extern "C" void cuda_d_plus_clover_PRECISION(
-  cuda_vector_PRECISION eta_gpu, cuda_vector_PRECISION phi_gpu, operator_PRECISION_struct *op,
+  cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, operator_PRECISION_struct *op,
   level_struct *l, struct Thread *threading ) {
-/*
-  cudaStream_t *streams_gmres = (l->p_PRECISION).streams;
-*/
-  printf0("eta_gpu: %u", eta_gpu);
-  printf0("phi_gpu: %u", eta_gpu);
+  RangeHandleType profilingRangeOperator = startProfilingRange("d_plus_clover_PRECISION (CUDA)");
+
+  // There is no need to deal with multiple streams, so the default stream (per thread) is used.
+  // It shall be handled as though being an array of streams of size 1.
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  
+
+  auto shift = to_cuda_cmplx_PRECISION(op->shift);
+
+  if ( g.csw == 0.0 ) {
+    cuda_vector_PRECISION_scale(eta, phi, shift, 0, l->inner_vector_size, l, _CUDA_SYNC, 0, streams);
+  } else {
+    cuda_clover_PRECISION(eta, phi, op->clover_gpu, l->num_inner_lattice_sites, &stream);
+  }
+  
 
 /*
   //PROF_PRECISION_START( _SC, threading );
@@ -408,10 +434,13 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   free(eta);
   free(phi);
 */
+  endProfilingRange(profilingRangeOperator);
 }
 
 extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                                          level_struct *l, struct Thread *threading){
+  // Performance is achieved through GPU acceleration and not multi-threading.
+  START_MASTER(threading)
   if (l->level != 0) {
     // It is not properly tested that this integrates properly with the way memory is allocated
     // in coarser grids. Also the interactions with the other CUDA AMG code is not yet properly
@@ -421,9 +450,16 @@ extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta,
   cuda_vector_PRECISION eta_gpu, phi_gpu;
   eta_gpu = op->w_gpu;
   phi_gpu = op->x_gpu;
-  cudaStream_t* const streams = l->p_PRECISION.streams;
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
   
-  cuda_vector_PRECISION_copy(eta_gpu, eta, 0, l->vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
-  cuda_vector_PRECISION_copy(phi_gpu, phi, 0, l->vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
+  cuda_vector_PRECISION_copy(eta_gpu, eta, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
+  cuda_vector_PRECISION_copy(phi_gpu, phi, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
+
+  cuda_d_plus_clover_PRECISION(eta_gpu, phi_gpu, op, l, threading);
+
+  cuda_vector_PRECISION_copy(eta, eta_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC, 0, streams);
+  cuda_vector_PRECISION_copy(phi, phi_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC, 0, streams);
+  END_MASTER(threading)
 }
 #endif
