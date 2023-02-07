@@ -12,6 +12,7 @@ void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
   op->x_gpu = NULL;
   op->w_gpu = NULL;
   op->prpT_gpu = NULL;
+  op->prpZ_gpu = NULL;
 }
 
 void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type, level_struct *l) {
@@ -24,6 +25,7 @@ void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type
   // projection buffers are only used on the finest level.
   if (l->depth == 0) {
     CUDA_MALLOC(op->prpT_gpu, cu_cmplx_PRECISION, pbs);
+    CUDA_MALLOC(op->prpZ_gpu, cu_cmplx_PRECISION, pbs);
   }
   
 }
@@ -38,6 +40,7 @@ void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type,
   // projection buffers are only used on the finest level.
   if (l->depth == 0) {
     CUDA_FREE(op->prpT_gpu, cu_cmplx_PRECISION, pbs);
+    CUDA_FREE(op->prpZ_gpu, cu_cmplx_PRECISION, pbs);
   }
 }
 }

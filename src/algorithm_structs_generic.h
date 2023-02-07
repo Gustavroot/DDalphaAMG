@@ -20,7 +20,7 @@ typedef struct
 
     // Local vectors to apply the operator w = w + Dx on the GPU.
     cuda_vector_PRECISION x_gpu, w_gpu;
-    cuda_vector_PRECISION prpT_gpu;
+    cuda_vector_PRECISION prpT_gpu, prpZ_gpu;
 #endif
     int oe_offset, self_coupling, num_even_sites, num_odd_sites,
         *index_table, *neighbor_table, *translation_table, table_dim[4],
