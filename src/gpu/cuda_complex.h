@@ -26,16 +26,4 @@ typedef cuFloatComplex cu_config_float;
 #define cu_conj_float(c_nr) cuConjf(c_nr)
 #define cu_conj_double(c_nr) cuConj(c_nr)
 
-cu_cmplx_double to_cuda_cmplx_double(double _Complex from);
-cu_cmplx_float to_cuda_cmplx_float(float _Complex from);
-
-#ifdef __cplusplus
-constexpr cu_cmplx_double CU_CMPLX_double_ONE       = { 1.0, 0.0};
-constexpr cu_cmplx_double CU_CMPLX_double_MINUS_ONE = {-1.0, 0.0};
-constexpr cu_cmplx_double CU_CMPLX_double_ZERO      = { 0.0, 0.0};
-constexpr cu_cmplx_float  CU_CMPLX_float_ONE        = { 1.0, 0.0};
-constexpr cu_cmplx_float  CU_CMPLX_float_MINUS_ONE  = {-1.0, 0.0};
-constexpr cu_cmplx_float  CU_CMPLX_float_ZERO       = { 1.0, 0.0};
-#endif
-
 #endif //CUDA_COMPLEX_H

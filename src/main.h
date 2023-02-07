@@ -93,19 +93,7 @@
   #include "vectorization_control.h"
   #include "threading.h"
 
-// FIXME temporary include
-
 #include "block_struct.h"
-
-// FIXME temporary include
-// #include "complex_types_double.h"
-
-
-  // CUDA typedefs
-#ifdef CUDA_OPT
-// FIXME temporary include
-#include "gpu/cuda_complex.h"
-#endif
 
   #include "main_pre_def_float.h"
   #include "main_pre_def_double.h"

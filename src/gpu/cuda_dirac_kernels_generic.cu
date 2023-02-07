@@ -1,8 +1,14 @@
 #include "cuda_complex.h"
+#include "cuda_complex_cxx.h"
 #include "cuda_complex_operators_PRECISION.h"
+#include "cuda_complex_operators.h"
 #include "cuda_vectors_PRECISION.h"
-#include "clifford.h"
 
+// The clifford header uses a C compiler extension version of I that is not compatible with CUDA.
+// CU_OVERWRITE_I replaces that.
+#define CU_OVERWRITE_I
+#include "clifford.h"
+#undef CU_OVERWRITE_I
 
 __global__ void cuda_site_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
                                            cuda_config_PRECISION clover, size_t num_sites) {
@@ -107,4 +113,21 @@ __global__ void cuda_prp_T_PRECISION(cu_cmplx_PRECISION * prpT, cu_cmplx_PRECISI
   prpT[3] = phi[3] -GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO];
   prpT[4] = phi[4] -GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO+1];
   prpT[5] = phi[5] -GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO+2];
+}
+
+__global__ void cuda_prp_Z_PRECISION(cu_cmplx_PRECISION * prpZ, cu_cmplx_PRECISION const * phi,
+                                size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  phi += 12*idx;
+  prpZ += 6*idx;
+  prpZ[0] = phi[0] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN0_VAL)*phi[3*GAMMA_Z_SPIN0_CO];
+  prpZ[1] = phi[1] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN0_VAL)*phi[3*GAMMA_Z_SPIN0_CO+1];
+  prpZ[2] = phi[2] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN0_VAL)*phi[3*GAMMA_Z_SPIN0_CO+2];
+  prpZ[3] = phi[3] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN1_VAL)*phi[3*GAMMA_Z_SPIN1_CO];
+  prpZ[4] = phi[4] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN1_VAL)*phi[3*GAMMA_Z_SPIN1_CO+1];
+  prpZ[5] = phi[5] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN1_VAL)*phi[3*GAMMA_Z_SPIN1_CO+2];
 }
