@@ -98,6 +98,18 @@ __global__ void cuda_site_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vecto
     eta[11] += cu_conj_PRECISION(clover[41])*phi[10];
 }
 
+__global__ void cuda_mvm_PRECISION(const cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const *D,
+                                   cu_cmplx_PRECISION const *phi, size_t num_sites,
+                                   unsigned int vector_stepsize) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  D += 9*idx;
+  phi += vector_stepsize*idx;
+}
+
 __global__ void cuda_prp_T_PRECISION(cu_cmplx_PRECISION * prpT, cu_cmplx_PRECISION const * phi,
                                 size_t num_sites) {
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
@@ -113,6 +125,23 @@ __global__ void cuda_prp_T_PRECISION(cu_cmplx_PRECISION * prpT, cu_cmplx_PRECISI
   prpT[3] = phi[3] -GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO];
   prpT[4] = phi[4] -GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO+1];
   prpT[5] = phi[5] -GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO+2];
+}
+
+__global__ void cuda_prn_T_PRECISION(cu_cmplx_PRECISION* prnT, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  phi += 12*idx;
+  prnT += 6*idx;
+  prnT[0] = phi[0] +GAMMA_T_SPIN0_VAL*phi[3*GAMMA_T_SPIN0_CO];
+  prnT[1] = phi[1] +GAMMA_T_SPIN0_VAL*phi[3*GAMMA_T_SPIN0_CO+1];
+  prnT[2] = phi[2] +GAMMA_T_SPIN0_VAL*phi[3*GAMMA_T_SPIN0_CO+2];
+  prnT[3] = phi[3] +GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO];
+  prnT[4] = phi[4] +GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO+1];
+  prnT[5] = phi[5] +GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO+2];
 }
 
 __global__ void cuda_prp_Z_PRECISION(cu_cmplx_PRECISION * prpZ, cu_cmplx_PRECISION const * phi,
@@ -132,6 +161,23 @@ __global__ void cuda_prp_Z_PRECISION(cu_cmplx_PRECISION * prpZ, cu_cmplx_PRECISI
   prpZ[5] = phi[5] - GAMMA_Z_SPIN1_VAL*phi[3*GAMMA_Z_SPIN1_CO+2];
 }
 
+__global__ void cuda_prn_Z_PRECISION(cu_cmplx_PRECISION* prnZ, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  phi += 12*idx;
+  prnZ += 6*idx;
+  prnZ[0] = phi[0] +GAMMA_Z_SPIN0_VAL*phi[3*GAMMA_Z_SPIN0_CO];
+  prnZ[1] = phi[1] +GAMMA_Z_SPIN0_VAL*phi[3*GAMMA_Z_SPIN0_CO+1];
+  prnZ[2] = phi[2] +GAMMA_Z_SPIN0_VAL*phi[3*GAMMA_Z_SPIN0_CO+2];
+  prnZ[3] = phi[3] +GAMMA_Z_SPIN1_VAL*phi[3*GAMMA_Z_SPIN1_CO];
+  prnZ[4] = phi[4] +GAMMA_Z_SPIN1_VAL*phi[3*GAMMA_Z_SPIN1_CO+1];
+  prnZ[5] = phi[5] +GAMMA_Z_SPIN1_VAL*phi[3*GAMMA_Z_SPIN1_CO+2];
+}
+
 __global__ void cuda_prp_Y_PRECISION(cu_cmplx_PRECISION* prpY, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites) {
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
@@ -149,6 +195,23 @@ __global__ void cuda_prp_Y_PRECISION(cu_cmplx_PRECISION* prpY, cu_cmplx_PRECISIO
   prpY[5] = phi[5] -GAMMA_Y_SPIN1_VAL*phi[3*GAMMA_Y_SPIN1_CO+2];
 }
 
+__global__ void cuda_prn_Y_PRECISION(cu_cmplx_PRECISION* prnY, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  phi += 12*idx;
+  prnY += 6*idx;
+  prnY[0] = phi[0] +GAMMA_Y_SPIN0_VAL*phi[3*GAMMA_Y_SPIN0_CO];
+  prnY[1] = phi[1] +GAMMA_Y_SPIN0_VAL*phi[3*GAMMA_Y_SPIN0_CO+1];
+  prnY[2] = phi[2] +GAMMA_Y_SPIN0_VAL*phi[3*GAMMA_Y_SPIN0_CO+2];
+  prnY[3] = phi[3] +GAMMA_Y_SPIN1_VAL*phi[3*GAMMA_Y_SPIN1_CO];
+  prnY[4] = phi[4] +GAMMA_Y_SPIN1_VAL*phi[3*GAMMA_Y_SPIN1_CO+1];
+  prnY[5] = phi[5] +GAMMA_Y_SPIN1_VAL*phi[3*GAMMA_Y_SPIN1_CO+2];
+}
+
 __global__ void cuda_prp_X_PRECISION(cu_cmplx_PRECISION* prpX, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites) {
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
@@ -164,4 +227,21 @@ __global__ void cuda_prp_X_PRECISION(cu_cmplx_PRECISION* prpX, cu_cmplx_PRECISIO
   prpX[3] = phi[3] -GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO];
   prpX[4] = phi[4] -GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO+1];
   prpX[5] = phi[5] -GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO+2];
+}
+
+__global__ void cuda_prn_X_PRECISION(cu_cmplx_PRECISION* prnX, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  phi += 12*idx;
+  prnX += 6*idx;
+  prnX[0] = phi[0] +GAMMA_X_SPIN0_VAL*phi[3*GAMMA_X_SPIN0_CO];
+  prnX[1] = phi[1] +GAMMA_X_SPIN0_VAL*phi[3*GAMMA_X_SPIN0_CO+1];
+  prnX[2] = phi[2] +GAMMA_X_SPIN0_VAL*phi[3*GAMMA_X_SPIN0_CO+2];
+  prnX[3] = phi[3] +GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO];
+  prnX[4] = phi[4] +GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO+1];
+  prnX[5] = phi[5] +GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO+2];
 }

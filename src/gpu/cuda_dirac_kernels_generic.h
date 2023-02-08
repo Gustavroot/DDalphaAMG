@@ -21,17 +21,32 @@
 __global__ void cuda_site_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
                                            cuda_config_PRECISION clover, size_t num_sites);
 
-// 1 - gamma_T
+__global__ void cuda_mvm_PRECISION(const cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const *D,
+                                   cu_cmplx_PRECISION const *phi, size_t num_sites,
+                                   unsigned int vector_stepsize);
+
 __global__ void cuda_prp_T_PRECISION(cu_cmplx_PRECISION* prpT, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites);
+
+__global__ void cuda_prn_T_PRECISION(cu_cmplx_PRECISION* prnT, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites);
 
 __global__ void cuda_prp_Z_PRECISION(cu_cmplx_PRECISION* prpZ, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites);
 
+__global__ void cuda_prn_Z_PRECISION(cu_cmplx_PRECISION* prnZ, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites);
+
 __global__ void cuda_prp_Y_PRECISION(cu_cmplx_PRECISION* prpY, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites);
 
+__global__ void cuda_prn_Y_PRECISION(cu_cmplx_PRECISION* prnY, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites);
+
 __global__ void cuda_prp_X_PRECISION(cu_cmplx_PRECISION* prpX, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites);
+
+__global__ void cuda_prn_X_PRECISION(cu_cmplx_PRECISION* prnX, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites);
 
 #endif  // CUDA_DIRAC_KERNELS_PRECISION_H
