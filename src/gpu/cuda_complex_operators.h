@@ -3,7 +3,7 @@
 
 #include "cuda_complex.h"
 
-// mixed precision operatoions which need to do type promotion of one of the operands
+// mixed precision operations which need to do type promotion of one of the operands
 
 
 __host__ __device__ cu_cmplx_double operator*(cu_cmplx_double const& lhs,
