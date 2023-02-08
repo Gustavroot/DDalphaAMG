@@ -24,9 +24,8 @@
 
 #include <complex.h>
 #ifdef CU_OVERWRITE_I
-// for inverting the literals
-#include "gpu/cuda_complex_operators_double.h"
-#include "gpu/cuda_complex_operators.h"
+// for CUDA complex literals
+#include "gpu/cuda_complex_operators_float.h"
 #endif
 
   // assertion: gamma5 = (+/-) diag( 1, 1, -1, -1 )
@@ -41,7 +40,7 @@
   enum { T, Z, Y, X };
   #ifdef CU_OVERWRITE_I
   #undef I
-  #define I 1.0_cu_i
+  #define I 1.0_cu_i_float
   #endif
 
   #ifndef I

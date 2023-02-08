@@ -6,7 +6,7 @@
 
 // As the _Complex types are not known in CUDA C++, this may only be a host function.
 constexpr cu_cmplx_double to_cuda_cmplx_double(double _Complex from) {
-  return {creall(from), cimagl(from)};
+  return {creal(from), cimag(from)};
 }
 
 constexpr cu_cmplx_float to_cuda_cmplx_float(float _Complex from) {

@@ -268,7 +268,7 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   cuda_prp_T_PRECISION<<<gridSize, blockSize>>>(op->prpT_gpu, phi, l->num_inner_lattice_sites);
   cuda_prp_Z_PRECISION<<<gridSize, blockSize>>>(op->prpZ_gpu, phi, l->num_inner_lattice_sites);
   cuda_vector_PRECISION_copy(op->prpT, op->prpT_gpu, 0, l->inner_vector_size/2, l, _D2H, _CUDA_SYNC, 0, streams);
-  cuda_vector_PRECISION_copy(op->prpZ, op->prp_gpu, 0, l->inner_vector_size/2, l, _D2H, _CUDA_SYNC, 0, streams);
+  cuda_vector_PRECISION_copy(op->prpZ, op->prpZ_gpu, 0, l->inner_vector_size/2, l, _D2H, _CUDA_SYNC, 0, streams);
   endProfilingRange(profilingRangeOperator);
 }
 

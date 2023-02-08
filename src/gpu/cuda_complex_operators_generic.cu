@@ -29,5 +29,5 @@ __host__ __device__ cu_cmplx_PRECISION operator+=(cu_cmplx_PRECISION const& lhs,
 }
 
 __host__ __device__ cu_cmplx_PRECISION operator-(cu_cmplx_PRECISION const& value) {
-  return make_cu_cmplx_PRECISION(-cu_creal_PRECISION(value), -cu_cimag_PRECISION(value));
+  return {-value.x, -value.y};
 }
