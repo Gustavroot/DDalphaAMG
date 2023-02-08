@@ -1,3 +1,9 @@
+/**
+ * \file algorithm_structs_generic.h
+ * 
+ * \brief Contains structs related to various methods applied throughout the application.
+ */
+
 #ifndef ALGORITHM_STRUCTS_PRECISION_H
 #define ALGORITHM_STRUCTS_PRECISION_H
 
@@ -23,7 +29,23 @@ typedef struct
     cuda_vector_PRECISION prpT_gpu, prpZ_gpu, prpY_gpu, prpX_gpu;
 #endif
     int oe_offset, self_coupling, num_even_sites, num_odd_sites,
-        *index_table, *neighbor_table, *translation_table, table_dim[4],
+        *index_table,
+        /**
+         * \brief Gives the indices of neighboring lattice sites in each dimension.
+         * 
+         * *Disclaimer*: This documentation is from Tilmann Matthaei and added way after this was
+         * initially introduced. So this might be slightly incorrect or not in the spirit of the
+         * original author.
+         * 
+         * The neighbor_table looks something like this: 512, 64, 8, 1, 513, 65, 9, 2...
+         * It gives the indices of the neighboring lattice sites in groups of 4. E.g. in the above
+         * example the lattice site with index 0 has neighbors:
+         * 
+         * T: 512, Z: 64, Y: 8, X: 1
+         * 
+         * That is followed by the neighbors of the lattice site with index 1 in all 4 directions.
+         */
+        *neighbor_table, *translation_table, table_dim[4],
         *backward_neighbor_table,
         table_mod_dim[4], *config_boundary_table[4];
     complex_PRECISION shift;
