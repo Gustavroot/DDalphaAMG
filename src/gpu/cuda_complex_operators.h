@@ -8,6 +8,8 @@
 
 __host__ __device__ cu_cmplx_double operator*(cu_cmplx_double const& lhs,
                                               cu_cmplx_float const& rhs);
+__host__ __device__ cu_cmplx_double operator*(cu_cmplx_float const& lhs,
+                                              cu_cmplx_double const& rhs);
 __host__ __device__ cu_cmplx_double operator-(cu_cmplx_float const& lhs,
                                               cu_cmplx_double const& rhs);
 __host__ __device__ cu_cmplx_double operator-(cu_cmplx_double const& lhs,

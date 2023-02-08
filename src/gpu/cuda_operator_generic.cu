@@ -13,6 +13,8 @@ void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
   op->w_gpu = NULL;
   op->prpT_gpu = NULL;
   op->prpZ_gpu = NULL;
+  op->prpY_gpu = NULL;
+  op->prpX_gpu = NULL;
 }
 
 void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type, level_struct *l) {
@@ -26,6 +28,8 @@ void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type
   if (l->depth == 0) {
     CUDA_MALLOC(op->prpT_gpu, cu_cmplx_PRECISION, pbs);
     CUDA_MALLOC(op->prpZ_gpu, cu_cmplx_PRECISION, pbs);
+    CUDA_MALLOC(op->prpY_gpu, cu_cmplx_PRECISION, pbs);
+    CUDA_MALLOC(op->prpX_gpu, cu_cmplx_PRECISION, pbs);
   }
   
 }
@@ -41,6 +45,8 @@ void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type,
   if (l->depth == 0) {
     CUDA_FREE(op->prpT_gpu, cu_cmplx_PRECISION, pbs);
     CUDA_FREE(op->prpZ_gpu, cu_cmplx_PRECISION, pbs);
+    CUDA_FREE(op->prpY_gpu, cu_cmplx_PRECISION, pbs);
+    CUDA_FREE(op->prpX_gpu, cu_cmplx_PRECISION, pbs);
   }
 }
 }

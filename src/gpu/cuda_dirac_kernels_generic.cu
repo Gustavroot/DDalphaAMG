@@ -124,10 +124,44 @@ __global__ void cuda_prp_Z_PRECISION(cu_cmplx_PRECISION * prpZ, cu_cmplx_PRECISI
   }
   phi += 12*idx;
   prpZ += 6*idx;
-  prpZ[0] = phi[0] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN0_VAL)*phi[3*GAMMA_Z_SPIN0_CO];
-  prpZ[1] = phi[1] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN0_VAL)*phi[3*GAMMA_Z_SPIN0_CO+1];
-  prpZ[2] = phi[2] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN0_VAL)*phi[3*GAMMA_Z_SPIN0_CO+2];
-  prpZ[3] = phi[3] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN1_VAL)*phi[3*GAMMA_Z_SPIN1_CO];
-  prpZ[4] = phi[4] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN1_VAL)*phi[3*GAMMA_Z_SPIN1_CO+1];
-  prpZ[5] = phi[5] - to_cuda_cmplx_PRECISION(GAMMA_Z_SPIN1_VAL)*phi[3*GAMMA_Z_SPIN1_CO+2];
+  prpZ[0] = phi[0] - GAMMA_Z_SPIN0_VAL*phi[3*GAMMA_Z_SPIN0_CO];
+  prpZ[1] = phi[1] - GAMMA_Z_SPIN0_VAL*phi[3*GAMMA_Z_SPIN0_CO+1];
+  prpZ[2] = phi[2] - GAMMA_Z_SPIN0_VAL*phi[3*GAMMA_Z_SPIN0_CO+2];
+  prpZ[3] = phi[3] - GAMMA_Z_SPIN1_VAL*phi[3*GAMMA_Z_SPIN1_CO];
+  prpZ[4] = phi[4] - GAMMA_Z_SPIN1_VAL*phi[3*GAMMA_Z_SPIN1_CO+1];
+  prpZ[5] = phi[5] - GAMMA_Z_SPIN1_VAL*phi[3*GAMMA_Z_SPIN1_CO+2];
+}
+
+__global__ void cuda_prp_Y_PRECISION(cu_cmplx_PRECISION* prpY, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  phi += 12*idx;
+  prpY += 6*idx;
+  prpY[0] = phi[0] -GAMMA_Y_SPIN0_VAL*phi[3*GAMMA_Y_SPIN0_CO];
+  prpY[1] = phi[1] -GAMMA_Y_SPIN0_VAL*phi[3*GAMMA_Y_SPIN0_CO+1];
+  prpY[2] = phi[2] -GAMMA_Y_SPIN0_VAL*phi[3*GAMMA_Y_SPIN0_CO+2];
+  prpY[3] = phi[3] -GAMMA_Y_SPIN1_VAL*phi[3*GAMMA_Y_SPIN1_CO];
+  prpY[4] = phi[4] -GAMMA_Y_SPIN1_VAL*phi[3*GAMMA_Y_SPIN1_CO+1];
+  prpY[5] = phi[5] -GAMMA_Y_SPIN1_VAL*phi[3*GAMMA_Y_SPIN1_CO+2];
+}
+
+__global__ void cuda_prp_X_PRECISION(cu_cmplx_PRECISION* prpX, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  phi += 12*idx;
+  prpX += 6*idx;
+  prpX[0] = phi[0] -GAMMA_X_SPIN0_VAL*phi[3*GAMMA_X_SPIN0_CO];
+  prpX[1] = phi[1] -GAMMA_X_SPIN0_VAL*phi[3*GAMMA_X_SPIN0_CO+1];
+  prpX[2] = phi[2] -GAMMA_X_SPIN0_VAL*phi[3*GAMMA_X_SPIN0_CO+2];
+  prpX[3] = phi[3] -GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO];
+  prpX[4] = phi[4] -GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO+1];
+  prpX[5] = phi[5] -GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO+2];
 }
