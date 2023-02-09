@@ -280,11 +280,11 @@ extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta,
                                          level_struct *l, struct Thread *threading){
   // Performance is achieved through GPU acceleration and not multi-threading.
   START_MASTER(threading)
-  if (l->level != 0) {
+  if (l->depth != 0) {
     // It is not properly tested that this integrates properly with the way memory is allocated
     // in coarser grids. Also the interactions with the other CUDA AMG code is not yet properly
     // tested.
-    // error0("cuda_d_plus_clover_PRECISION_vectorwrapper may only be called from the finest level.");
+    error0("cuda_d_plus_clover_PRECISION_vectorwrapper may only be called from the finest level.");
   }
   cuda_vector_PRECISION eta_gpu, phi_gpu;
   eta_gpu = op->w_gpu;

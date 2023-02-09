@@ -1,4 +1,5 @@
-#include "cuda_mvm_generic.h"
+#include "cuda_mvm_PRECISION.h"
+#include "cuda_complex_operators_PRECISION.h"
 
 __device__ void cuda_mvm_PRECISION(cu_cmplx_PRECISION *y, cu_cmplx_PRECISION const *M,
                                    cu_cmplx_PRECISION const *x) {

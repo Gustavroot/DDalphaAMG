@@ -98,18 +98,6 @@ __global__ void cuda_site_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vecto
     eta[11] += cu_conj_PRECISION(clover[41])*phi[10];
 }
 
-__global__ void cuda_mvm_PRECISION(const cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const *D,
-                                   cu_cmplx_PRECISION const *phi, size_t num_sites,
-                                   unsigned int vector_stepsize) {
-  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= num_sites){
-    // there is no more site for this index
-    return;
-  }
-  D += 9*idx;
-  phi += vector_stepsize*idx;
-}
-
 __global__ void cuda_prp_T_PRECISION(cu_cmplx_PRECISION * prpT, cu_cmplx_PRECISION const * phi,
                                 size_t num_sites) {
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
