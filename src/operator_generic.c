@@ -21,6 +21,7 @@
 
 #include "main.h"
 #include "operator.h"
+#include "proxies/data_layout_proxy_PRECISION.h"
 
 void cpu_operator_PRECISION_init( operator_PRECISION_struct *op ) {
   
@@ -243,7 +244,7 @@ void operator_PRECISION_define( operator_PRECISION_struct *op, level_struct *l )
   // define neighbor table (for the application of the entire operator),
   // negative inner boundary table (for communication),
   // translation table (for translation to lexicographical site ordnering)
-  define_nt_bt_tt( op->neighbor_table, op->backward_neighbor_table, op->c.boundary_table, op->translation_table, it, dt, l );
+  define_nt_bt_tt_PRECISION(op, op->c.boundary_table, dt, l);
 
   //printf("try two : %d\n", op->num_even_sites);
 }

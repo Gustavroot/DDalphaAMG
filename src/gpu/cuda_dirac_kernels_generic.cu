@@ -1,8 +1,10 @@
+#include "global_enums.h"
 #include "cuda_complex.h"
 #include "cuda_complex_cxx.h"
 #include "cuda_complex_operators_PRECISION.h"
 #include "cuda_complex_operators.h"
 #include "cuda_vectors_PRECISION.h"
+#include "cuda_mvm_PRECISION.h"
 
 // The clifford header uses a C compiler extension version of I that is not compatible with CUDA.
 // CU_OVERWRITE_I replaces that.
@@ -232,4 +234,40 @@ __global__ void cuda_prn_X_PRECISION(cu_cmplx_PRECISION* prnX, cu_cmplx_PRECISIO
   prnX[3] = phi[3] +GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO];
   prnX[4] = phi[4] +GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO+1];
   prnX[5] = phi[5] +GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO+2];
+}
+
+__global__ void cuda_prn_mvmh_PRECISION(cu_cmplx_PRECISION* prn_buf, cu_cmplx_PRECISION const* D,
+                                        cu_cmplx_PRECISION* pbuf, int * neighbors,
+                                        LatticeAxis dim, size_t num_sites) {
+  unsigned int neighbor_offset;
+  switch (dim)
+  {
+  case LatticeAxis::T:
+    neighbor_offset = 0;
+    break;
+  case LatticeAxis::Z:
+    neighbor_offset = 1;
+    break;
+  case LatticeAxis::Y:
+    neighbor_offset = 2;
+    break;
+  case LatticeAxis::X:
+    neighbor_offset = 3;
+    break;
+  }
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  const size_t lattice_idx = idx/2;
+  
+  if (lattice_idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  D += 9*(4*lattice_idx+neighbor_offset);
+  neighbors += 4*lattice_idx+neighbor_offset;
+  // We operate in steps of 3 here as the application of D happens as 3x3 matrix vector
+  // multiplications. There will be two mvms per lattice site.
+  pbuf += 3*idx;
+  const size_t j = 6*(*neighbors);
+  prn_buf += j+(idx%2==0?0:3);
+  cuda_mvmh_PRECISION(prn_buf, D, pbuf);
 }

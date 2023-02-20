@@ -239,7 +239,7 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
 extern "C" void cuda_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
                                       cuda_config_PRECISION clover,
                                       int num_sites, cudaStream_t* stream) {
-  constexpr size_t blockSize = 256;
+  constexpr size_t blockSize = 128;
   const size_t gridSize = minGridSizeForN(num_sites, blockSize);
   cuda_site_clover_PRECISION<<< gridSize, blockSize, 0, *stream>>>(eta, phi, clover, num_sites);
 }
@@ -254,7 +254,7 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
 
-  constexpr size_t blockSize = 256;  // just a guess
+  constexpr size_t blockSize = 128;  // just a guess
   const size_t gridSize = minGridSizeForN(l->num_inner_lattice_sites, blockSize);
 
   auto shift = to_cuda_cmplx_PRECISION(op->shift);
@@ -273,6 +273,17 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   cuda_vector_PRECISION_copy(op->prpZ, op->prpZ_gpu, 0, l->inner_vector_size/2, l, _D2H, _CUDA_SYNC, 0, streams);
   cuda_vector_PRECISION_copy(op->prpY, op->prpY_gpu, 0, l->inner_vector_size/2, l, _D2H, _CUDA_SYNC, 0, streams);
   cuda_vector_PRECISION_copy(op->prpX, op->prpX_gpu, 0, l->inner_vector_size/2, l, _D2H, _CUDA_SYNC, 0, streams);
+  cuda_prn_T_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi, l->num_inner_lattice_sites);
+  cuda_prn_mvmh_PRECISION<<<2*gridSize, blockSize>>>(op->prnT_gpu, op->D_gpu, op->pbuf_gpu,
+                                                     op->neighbor_table_gpu, LatticeAxis::T,
+                                                     l->num_inner_lattice_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+  cuda_prn_Z_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi, l->num_inner_lattice_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+  cuda_prn_Y_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi, l->num_inner_lattice_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+  cuda_prn_X_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi, l->num_inner_lattice_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
   endProfilingRange(profilingRangeOperator);
 }
 

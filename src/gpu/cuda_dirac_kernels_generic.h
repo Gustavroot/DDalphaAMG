@@ -7,6 +7,8 @@
 #ifndef CUDA_DIRAC_KERNELS_PRECISION_H
 #define CUDA_DIRAC_KERNELS_PRECISION_H
 
+#include "clifford.h"
+
 /**
  * \brief Apply the Clover term per lattice site.
  * 
@@ -44,5 +46,9 @@ __global__ void cuda_prp_X_PRECISION(cu_cmplx_PRECISION* prpX, cu_cmplx_PRECISIO
 
 __global__ void cuda_prn_X_PRECISION(cu_cmplx_PRECISION* prnX, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites);
+                                     
+__global__ void cuda_prn_mvmh_PRECISION(cu_cmplx_PRECISION* prp_buf, cu_cmplx_PRECISION const* D,
+                                        cu_cmplx_PRECISION* pbuf, int * neighbors,
+                                        LatticeAxis dim, size_t num_sites);
 
 #endif  // CUDA_DIRAC_KERNELS_PRECISION_H

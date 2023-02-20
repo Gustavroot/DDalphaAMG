@@ -22,11 +22,15 @@ typedef struct
 {
     config_PRECISION D, clover, oe_clover;
 #ifdef CUDA_OPT
-    cuda_config_PRECISION clover_gpu;
+    cuda_config_PRECISION clover_gpu, D_gpu;
 
     // Local vectors to apply the operator w = w + Dx on the GPU.
-    cuda_vector_PRECISION x_gpu, w_gpu;
+    cuda_vector_PRECISION x_gpu, w_gpu, pbuf_gpu;
     cuda_vector_PRECISION prpT_gpu, prpZ_gpu, prpY_gpu, prpX_gpu;
+    cuda_vector_PRECISION prnT_gpu, prnZ_gpu, prnY_gpu, prnX_gpu;
+
+    /** \see neighbor_table */
+    int * neighbor_table_gpu;
 #endif
     int oe_offset, self_coupling, num_even_sites, num_odd_sites,
         *index_table,
