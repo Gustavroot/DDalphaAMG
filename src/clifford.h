@@ -20,7 +20,7 @@
  */
  
 #ifndef CLIFFORD_HEADER
-  #define CLIFFORD_HEADER
+#define CLIFFORD_HEADER
 
 #include <complex.h>
 #ifdef CU_OVERWRITE_I
@@ -36,8 +36,7 @@
   // BASIS2: Basis used for QCDSF lattices
   // BASIS3: Basis used in the QOPQDP Code
   #define BASIS0 // change here
-  
-  enum { T, Z, Y, X };
+
   #ifdef CU_OVERWRITE_I
   #undef I
   #define I 1.0_cu_i_float

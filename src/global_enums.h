@@ -2,6 +2,11 @@
 #define CONSTANTS_H
 
 // enumerations
+enum { T, Z, Y, X };
+#ifdef __cplusplus
+// Scoped version of the previous enum.
+enum class LatticeAxis {T=T, Z=Z, Y=Y, X=X};
+#endif
 enum
 {
     _EVEN,
