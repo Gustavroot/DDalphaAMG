@@ -12,8 +12,8 @@
 #include "clifford.h"
 #undef CU_OVERWRITE_I
 
-__global__ void cuda_site_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
-                                           cuda_config_PRECISION clover, size_t num_sites) {
+__global__ void cuda_site_clover_PRECISION(cuda_vector_PRECISION eta, cu_cmplx_PRECISION const* phi,
+                                           cu_cmplx_PRECISION const* clover, size_t num_sites) {
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= num_sites){
     // there is no more site for this index
@@ -237,7 +237,7 @@ __global__ void cuda_prn_X_PRECISION(cu_cmplx_PRECISION* prnX, cu_cmplx_PRECISIO
 }
 
 __global__ void cuda_prn_mvmh_PRECISION(cu_cmplx_PRECISION* prn_buf, cu_cmplx_PRECISION const* D,
-                                        cu_cmplx_PRECISION* pbuf, int * neighbors,
+                                        cu_cmplx_PRECISION const* pbuf, int const* neighbors,
                                         LatticeAxis dim, size_t num_sites) {
   unsigned int neighbor_offset;
   switch (dim)

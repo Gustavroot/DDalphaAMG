@@ -20,8 +20,8 @@
  *                          than needed for the number of lattice sites will have the remaining
  *                          threads idle/return.
  */
-__global__ void cuda_site_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
-                                           cuda_config_PRECISION clover, size_t num_sites);
+__global__ void cuda_site_clover_PRECISION(cuda_vector_PRECISION eta, cu_cmplx_PRECISION const* phi,
+                                           cu_cmplx_PRECISION const* clover, size_t num_sites);
 
 __global__ void cuda_prp_T_PRECISION(cu_cmplx_PRECISION* prpT, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites);
@@ -48,7 +48,7 @@ __global__ void cuda_prn_X_PRECISION(cu_cmplx_PRECISION* prnX, cu_cmplx_PRECISIO
                                      size_t num_sites);
                                      
 __global__ void cuda_prn_mvmh_PRECISION(cu_cmplx_PRECISION* prp_buf, cu_cmplx_PRECISION const* D,
-                                        cu_cmplx_PRECISION* pbuf, int * neighbors,
+                                        cu_cmplx_PRECISION const * pbuf, int const * neighbors,
                                         LatticeAxis dim, size_t num_sites);
 
 #endif  // CUDA_DIRAC_KERNELS_PRECISION_H
