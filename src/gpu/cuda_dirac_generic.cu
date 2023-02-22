@@ -320,7 +320,22 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   ghost_wait_PRECISION( op->prnY, Y, -1, &(op->c), _FULL_SYSTEM, l );
   ghost_wait_PRECISION( op->prnX, X, -1, &(op->c), _FULL_SYSTEM, l );
 
-  // TODO
+  cuda_pbp_su3_mvm_PRECISION<<<2*gridSize, blockSize>>>(op->pbuf_gpu, op->D_gpu, op->prnT_gpu,
+                                                        op->neighbor_table_gpu, LatticeAxis::T,
+                                                        l->num_inner_lattice_sites);
+  cuda_pbp_su3_T_PRECISION<<<gridSize, blockSize>>>(eta, op->pbuf_gpu, l->num_inner_lattice_sites);
+  cuda_pbp_su3_mvm_PRECISION<<<2*gridSize, blockSize>>>(op->pbuf_gpu, op->D_gpu, op->prnZ_gpu,
+                                                        op->neighbor_table_gpu, LatticeAxis::Z,
+                                                        l->num_inner_lattice_sites);
+  cuda_pbp_su3_Z_PRECISION<<<gridSize, blockSize>>>(eta, op->pbuf_gpu, l->num_inner_lattice_sites);
+  cuda_pbp_su3_mvm_PRECISION<<<2*gridSize, blockSize>>>(op->pbuf_gpu, op->D_gpu, op->prnY_gpu,
+                                                        op->neighbor_table_gpu, LatticeAxis::Y,
+                                                        l->num_inner_lattice_sites);
+  cuda_pbp_su3_Y_PRECISION<<<gridSize, blockSize>>>(eta, op->pbuf_gpu, l->num_inner_lattice_sites);
+  cuda_pbp_su3_mvm_PRECISION<<<2*gridSize, blockSize>>>(op->pbuf_gpu, op->D_gpu, op->prnX_gpu,
+                                                        op->neighbor_table_gpu, LatticeAxis::X,
+                                                        l->num_inner_lattice_sites);
+  cuda_pbp_su3_X_PRECISION<<<gridSize, blockSize>>>(eta, op->pbuf_gpu, l->num_inner_lattice_sites);
 
   // wait for communication in positive direction
   ghost_wait_PRECISION( op->prpT, T, +1, &(op->c), _FULL_SYSTEM, l );
@@ -328,6 +343,12 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   ghost_wait_PRECISION( op->prpY, Y, +1, &(op->c), _FULL_SYSTEM, l );
   ghost_wait_PRECISION( op->prpX, X, +1, &(op->c), _FULL_SYSTEM, l );
 
+  cuda_pbn_su3_T_PRECISION<<<gridSize, blockSize>>>(eta, op->prpT_gpu, l->num_inner_lattice_sites);
+  cuda_pbn_su3_Z_PRECISION<<<gridSize, blockSize>>>(eta, op->prpZ_gpu, l->num_inner_lattice_sites);
+  cuda_pbn_su3_Y_PRECISION<<<gridSize, blockSize>>>(eta, op->prpY_gpu, l->num_inner_lattice_sites);
+  cuda_pbn_su3_X_PRECISION<<<gridSize, blockSize>>>(eta, op->prpX_gpu, l->num_inner_lattice_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+  
   endProfilingRange(profilingRangeOperator);
 }
 

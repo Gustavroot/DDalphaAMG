@@ -51,4 +51,32 @@ __global__ void cuda_prn_mvmh_PRECISION(cu_cmplx_PRECISION* prp_buf, cu_cmplx_PR
                                         cu_cmplx_PRECISION const * pbuf, int const * neighbors,
                                         LatticeAxis dim, size_t num_sites);
 
+__global__ void cuda_pbp_su3_mvm_PRECISION(cu_cmplx_PRECISION* pbuf, cu_cmplx_PRECISION const * D,
+                                           cu_cmplx_PRECISION const * prn_buf, int const *neighbors,
+                                           LatticeAxis dim, size_t num_sites);
+
+__global__ void cuda_pbp_su3_T_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * pbuf,
+                                         size_t num_sites);
+
+__global__ void cuda_pbp_su3_Z_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * pbuf,
+                                         size_t num_sites);
+
+__global__ void cuda_pbp_su3_Y_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * pbuf,
+                                         size_t num_sites);
+
+__global__ void cuda_pbp_su3_X_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * pbuf,
+                                         size_t num_sites);
+
+__global__ void cuda_pbn_su3_T_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * prpT,
+                                         size_t num_sites);
+
+__global__ void cuda_pbn_su3_Z_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * prpZ,
+                                         size_t num_sites);
+
+__global__ void cuda_pbn_su3_Y_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * prpY,
+                                         size_t num_sites);
+
+__global__ void cuda_pbn_su3_X_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * prpX,
+                                         size_t num_sites);
+
 #endif  // CUDA_DIRAC_KERNELS_PRECISION_H

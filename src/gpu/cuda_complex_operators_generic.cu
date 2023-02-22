@@ -28,6 +28,11 @@ __host__ __device__ cu_cmplx_PRECISION operator+=(cu_cmplx_PRECISION const& lhs,
   return cu_cadd_PRECISION(lhs, rhs);
 }
 
+__host__ __device__ cu_cmplx_PRECISION operator-=(cu_cmplx_PRECISION const& lhs,
+                                                  cu_cmplx_PRECISION const& rhs) {
+  return cu_csub_PRECISION(lhs, rhs);
+}
+
 __host__ __device__ cu_cmplx_PRECISION operator-(cu_cmplx_PRECISION const& value) {
   return {-value.x, -value.y};
 }

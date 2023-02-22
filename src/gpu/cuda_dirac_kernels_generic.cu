@@ -271,3 +271,223 @@ __global__ void cuda_prn_mvmh_PRECISION(cu_cmplx_PRECISION* prn_buf, cu_cmplx_PR
   prn_buf += j+(idx%2==0?0:3);
   cuda_mvmh_PRECISION(prn_buf, D, pbuf);
 }
+
+__global__ void cuda_pbp_su3_mvm_PRECISION(cu_cmplx_PRECISION* pbuf, cu_cmplx_PRECISION const* D,
+                                           cu_cmplx_PRECISION const* prn_buf, int const * neighbors,
+                                           LatticeAxis dim, size_t num_sites) {
+  unsigned int neighbor_offset;
+  switch (dim)
+  {
+  case LatticeAxis::T:
+    neighbor_offset = 0;
+    break;
+  case LatticeAxis::Z:
+    neighbor_offset = 1;
+    break;
+  case LatticeAxis::Y:
+    neighbor_offset = 2;
+    break;
+  case LatticeAxis::X:
+    neighbor_offset = 3;
+    break;
+  }
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  const size_t lattice_idx = idx/2;
+  
+  if (lattice_idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  D += 9*(4*lattice_idx+neighbor_offset);
+  neighbors += 4*lattice_idx+neighbor_offset;
+  // We operate in steps of 3 here as the application of D happens as 3x3 matrix vector
+  // multiplications. There will be two mvms per lattice site.
+  pbuf += 3*idx;
+  const size_t j = 6*(*neighbors);
+  prn_buf += j+(idx%2==0?0:3);
+  cuda_mvm_PRECISION(pbuf, D, prn_buf);
+}
+
+__global__ void cuda_pbp_su3_T_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * pbuf,
+                                    size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  eta += 12*idx;
+  pbuf += 6*idx;
+  eta[ 0] -= pbuf[0];
+  eta[ 1] -= pbuf[1];
+  eta[ 2] -= pbuf[2];
+  eta[ 3] -= pbuf[3];
+  eta[ 4] -= pbuf[4];
+  eta[ 5] -= pbuf[5];
+  eta[ 6] += GAMMA_T_SPIN2_VAL*pbuf[3*GAMMA_T_SPIN2_CO];
+  eta[ 7] += GAMMA_T_SPIN2_VAL*pbuf[3*GAMMA_T_SPIN2_CO+1];
+  eta[ 8] += GAMMA_T_SPIN2_VAL*pbuf[3*GAMMA_T_SPIN2_CO+2];
+  eta[ 9] += GAMMA_T_SPIN3_VAL*pbuf[3*GAMMA_T_SPIN3_CO];
+  eta[10] += GAMMA_T_SPIN3_VAL*pbuf[3*GAMMA_T_SPIN3_CO+1];
+  eta[11] += GAMMA_T_SPIN3_VAL*pbuf[3*GAMMA_T_SPIN3_CO+2];
+}
+
+__global__ void cuda_pbp_su3_Z_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * pbuf,
+                                    size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  eta += 12*idx;
+  pbuf += 6*idx;
+  eta[ 0] -= pbuf[0];
+  eta[ 1] -= pbuf[1];
+  eta[ 2] -= pbuf[2];
+  eta[ 3] -= pbuf[3];
+  eta[ 4] -= pbuf[4];
+  eta[ 5] -= pbuf[5];
+  eta[ 6] += GAMMA_Z_SPIN2_VAL*pbuf[3*GAMMA_Z_SPIN2_CO];
+  eta[ 7] += GAMMA_Z_SPIN2_VAL*pbuf[3*GAMMA_Z_SPIN2_CO+1];
+  eta[ 8] += GAMMA_Z_SPIN2_VAL*pbuf[3*GAMMA_Z_SPIN2_CO+2];
+  eta[ 9] += GAMMA_Z_SPIN3_VAL*pbuf[3*GAMMA_Z_SPIN3_CO];
+  eta[10] += GAMMA_Z_SPIN3_VAL*pbuf[3*GAMMA_Z_SPIN3_CO+1];
+  eta[11] += GAMMA_Z_SPIN3_VAL*pbuf[3*GAMMA_Z_SPIN3_CO+2];
+}
+
+__global__ void cuda_pbp_su3_Y_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * pbuf,
+                                    size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  eta += 12*idx;
+  pbuf += 6*idx;
+  eta[ 0] -= pbuf[0];
+  eta[ 1] -= pbuf[1];
+  eta[ 2] -= pbuf[2];
+  eta[ 3] -= pbuf[3];
+  eta[ 4] -= pbuf[4];
+  eta[ 5] -= pbuf[5];
+  eta[ 6] += GAMMA_Y_SPIN2_VAL*pbuf[3*GAMMA_Y_SPIN2_CO];
+  eta[ 7] += GAMMA_Y_SPIN2_VAL*pbuf[3*GAMMA_Y_SPIN2_CO+1];
+  eta[ 8] += GAMMA_Y_SPIN2_VAL*pbuf[3*GAMMA_Y_SPIN2_CO+2];
+  eta[ 9] += GAMMA_Y_SPIN3_VAL*pbuf[3*GAMMA_Y_SPIN3_CO];
+  eta[10] += GAMMA_Y_SPIN3_VAL*pbuf[3*GAMMA_Y_SPIN3_CO+1];
+  eta[11] += GAMMA_Y_SPIN3_VAL*pbuf[3*GAMMA_Y_SPIN3_CO+2];
+}
+
+__global__ void cuda_pbp_su3_X_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * pbuf,
+                                    size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  eta += 12*idx;
+  pbuf += 6*idx;
+  eta[ 0] -= pbuf[0];
+  eta[ 1] -= pbuf[1];
+  eta[ 2] -= pbuf[2];
+  eta[ 3] -= pbuf[3];
+  eta[ 4] -= pbuf[4];
+  eta[ 5] -= pbuf[5];
+  eta[ 6] += GAMMA_X_SPIN2_VAL*pbuf[3*GAMMA_X_SPIN2_CO];
+  eta[ 7] += GAMMA_X_SPIN2_VAL*pbuf[3*GAMMA_X_SPIN2_CO+1];
+  eta[ 8] += GAMMA_X_SPIN2_VAL*pbuf[3*GAMMA_X_SPIN2_CO+2];
+  eta[ 9] += GAMMA_X_SPIN3_VAL*pbuf[3*GAMMA_X_SPIN3_CO];
+  eta[10] += GAMMA_X_SPIN3_VAL*pbuf[3*GAMMA_X_SPIN3_CO+1];
+  eta[11] += GAMMA_X_SPIN3_VAL*pbuf[3*GAMMA_X_SPIN3_CO+2];
+}
+
+__global__ void cuda_pbn_su3_T_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * prpT,
+                                         size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  eta += 12*idx;
+  prpT += 6*idx;
+  eta[ 0] -= prpT[0];
+  eta[ 1] -= prpT[1];
+  eta[ 2] -= prpT[2];
+  eta[ 3] -= prpT[3];
+  eta[ 4] -= prpT[4];
+  eta[ 5] -= prpT[5];
+  eta[ 6] -= GAMMA_T_SPIN2_VAL*prpT[3*GAMMA_T_SPIN2_CO];
+  eta[ 7] -= GAMMA_T_SPIN2_VAL*prpT[3*GAMMA_T_SPIN2_CO+1];
+  eta[ 8] -= GAMMA_T_SPIN2_VAL*prpT[3*GAMMA_T_SPIN2_CO+2];
+  eta[ 9] -= GAMMA_T_SPIN3_VAL*prpT[3*GAMMA_T_SPIN3_CO];
+  eta[10] -= GAMMA_T_SPIN3_VAL*prpT[3*GAMMA_T_SPIN3_CO+1];
+  eta[11] -= GAMMA_T_SPIN3_VAL*prpT[3*GAMMA_T_SPIN3_CO+2];
+}
+
+__global__ void cuda_pbn_su3_Z_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * prpZ,
+                                         size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  eta += 12*idx;
+  prpZ += 6*idx;
+  eta[ 0] -= prpZ[0];
+  eta[ 1] -= prpZ[1];
+  eta[ 2] -= prpZ[2];
+  eta[ 3] -= prpZ[3];
+  eta[ 4] -= prpZ[4];
+  eta[ 5] -= prpZ[5];
+  eta[ 6] -= GAMMA_Z_SPIN2_VAL*prpZ[3*GAMMA_Z_SPIN2_CO];
+  eta[ 7] -= GAMMA_Z_SPIN2_VAL*prpZ[3*GAMMA_Z_SPIN2_CO+1];
+  eta[ 8] -= GAMMA_Z_SPIN2_VAL*prpZ[3*GAMMA_Z_SPIN2_CO+2];
+  eta[ 9] -= GAMMA_Z_SPIN3_VAL*prpZ[3*GAMMA_Z_SPIN3_CO];
+  eta[10] -= GAMMA_Z_SPIN3_VAL*prpZ[3*GAMMA_Z_SPIN3_CO+1];
+  eta[11] -= GAMMA_Z_SPIN3_VAL*prpZ[3*GAMMA_Z_SPIN3_CO+2];
+}
+
+__global__ void cuda_pbn_su3_Y_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * prpY,
+                                         size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  eta += 12*idx;
+  prpY += 6*idx;
+  eta[ 0] -= prpY[0];
+  eta[ 1] -= prpY[1];
+  eta[ 2] -= prpY[2];
+  eta[ 3] -= prpY[3];
+  eta[ 4] -= prpY[4];
+  eta[ 5] -= prpY[5];
+  eta[ 6] -= GAMMA_Y_SPIN2_VAL*prpY[3*GAMMA_Y_SPIN2_CO];
+  eta[ 7] -= GAMMA_Y_SPIN2_VAL*prpY[3*GAMMA_Y_SPIN2_CO+1];
+  eta[ 8] -= GAMMA_Y_SPIN2_VAL*prpY[3*GAMMA_Y_SPIN2_CO+2];
+  eta[ 9] -= GAMMA_Y_SPIN3_VAL*prpY[3*GAMMA_Y_SPIN3_CO];
+  eta[10] -= GAMMA_Y_SPIN3_VAL*prpY[3*GAMMA_Y_SPIN3_CO+1];
+  eta[11] -= GAMMA_Y_SPIN3_VAL*prpY[3*GAMMA_Y_SPIN3_CO+2];
+}
+
+__global__ void cuda_pbn_su3_X_PRECISION(cu_cmplx_PRECISION* eta, cu_cmplx_PRECISION const * prpX,
+                                         size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites){
+    // there is no more site for this index
+    return;
+  }
+  eta += 12*idx;
+  prpX += 6*idx;
+  eta[ 0] -= prpX[0];
+  eta[ 1] -= prpX[1];
+  eta[ 2] -= prpX[2];
+  eta[ 3] -= prpX[3];
+  eta[ 4] -= prpX[4];
+  eta[ 5] -= prpX[5];
+  eta[ 6] -= GAMMA_X_SPIN2_VAL*prpX[3*GAMMA_X_SPIN2_CO];
+  eta[ 7] -= GAMMA_X_SPIN2_VAL*prpX[3*GAMMA_X_SPIN2_CO+1];
+  eta[ 8] -= GAMMA_X_SPIN2_VAL*prpX[3*GAMMA_X_SPIN2_CO+2];
+  eta[ 9] -= GAMMA_X_SPIN3_VAL*prpX[3*GAMMA_X_SPIN3_CO];
+  eta[10] -= GAMMA_X_SPIN3_VAL*prpX[3*GAMMA_X_SPIN3_CO+1];
+  eta[11] -= GAMMA_X_SPIN3_VAL*prpX[3*GAMMA_X_SPIN3_CO+2];
+}
