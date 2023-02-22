@@ -23,7 +23,7 @@ extern void cuda_d_plus_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_
                                          struct Thread *threading);
 
 extern void cuda_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
-                                  cuda_config_PRECISION clover, int length, cudaStream_t* stream);
+                                  cuda_config_PRECISION clover, int length);
 
 extern void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta, vector_PRECISION phi,
                                                        operator_PRECISION_struct *op,

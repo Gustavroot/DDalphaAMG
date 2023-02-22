@@ -239,11 +239,10 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
 
 
 extern "C" void cuda_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
-                                      cuda_config_PRECISION clover,
-                                      int num_sites, cudaStream_t* stream) {
+                                      cuda_config_PRECISION clover, int num_sites) {
   constexpr size_t blockSize = 128;
   const size_t gridSize = minGridSizeForN(num_sites, blockSize);
-  cuda_site_clover_PRECISION<<< gridSize, blockSize, 0, *stream>>>(eta, phi, clover, num_sites);
+  cuda_site_clover_PRECISION<<< gridSize, blockSize>>>(eta, phi, clover, num_sites);
 }
 
 extern "C" void cuda_d_plus_clover_PRECISION(
@@ -265,7 +264,7 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   if ( g.csw == 0.0 ) {
     cuda_vector_PRECISION_scale(eta, phi, shift, 0, l->inner_vector_size, l, _CUDA_SYNC, 0, streams);
   } else {
-    cuda_clover_PRECISION(eta, phi, op->clover_gpu, l->num_inner_lattice_sites, &stream);
+    cuda_clover_PRECISION(eta, phi, op->clover_gpu, l->num_inner_lattice_sites);
   }
   
   // Project in positive directions
