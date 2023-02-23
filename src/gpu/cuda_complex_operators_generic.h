@@ -39,9 +39,9 @@ __host__ __device__ cu_cmplx_PRECISION operator-(cu_cmplx_PRECISION const& lhs,
                                                  cu_cmplx_PRECISION const& rhs);
 __host__ __device__ cu_cmplx_PRECISION operator+(cu_cmplx_PRECISION const& lhs,
                                                  cu_cmplx_PRECISION const& rhs);
-__host__ __device__ cu_cmplx_PRECISION operator+=(cu_cmplx_PRECISION const& lhs,
+__host__ __device__ cu_cmplx_PRECISION & operator+=(cu_cmplx_PRECISION & lhs,
                                                   cu_cmplx_PRECISION const& rhs);
-__host__ __device__ cu_cmplx_PRECISION operator-=(cu_cmplx_PRECISION const& lhs,
+__host__ __device__ cu_cmplx_PRECISION & operator-=(cu_cmplx_PRECISION & lhs,
                                                   cu_cmplx_PRECISION const& rhs);
 __host__ __device__ cu_cmplx_PRECISION operator-(cu_cmplx_PRECISION const& value);
 
