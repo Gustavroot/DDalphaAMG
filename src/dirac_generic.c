@@ -156,7 +156,7 @@ void block_d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, 
 
 
 #if !defined(OPTIMIZED_NEIGHBOR_COUPLING_PRECISION) && !defined(OPTIMIZED_SELF_COUPLING_PRECISION)
-void d_plus_clover_PRECISION_cpu( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
+void d_plus_clover_PRECISION_cpu( vector_PRECISION eta, complex_PRECISION const * phi, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
 
   // this function is supposed to be called from the finest level only
   if (l->depth != 0)

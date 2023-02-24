@@ -359,10 +359,10 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   endProfilingRange(profilingRangeOperator);
 }
 
-extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
+extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta, complex_PRECISION const *phi, operator_PRECISION_struct *op,
                                          level_struct *l, struct Thread *threading){
   // Performance is achieved through GPU acceleration and not multi-threading.
-  START_MASTER(threading)
+  START_UNTHREADED_FUNCTION(threading)
   if (l->depth != 0) {
     // It is not properly tested that this integrates properly with the way memory is allocated
     // in coarser grids. Also the interactions with the other CUDA AMG code is not yet properly
@@ -374,18 +374,17 @@ extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta,
   phi_gpu = op->x_gpu;
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
+  const size_t css = clover_site_size(l->num_lattice_site_var, l->depth);
   
   // TODO this needs to go
-  cuda_vector_PRECISION_copy(op->clover_gpu, op->clover, 0,
-                             clover_site_size(l->num_lattice_site_var, l->depth),
-                             l, _H2D, _CUDA_SYNC, 0, streams);
-  cuda_vector_PRECISION_copy(eta_gpu, eta, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
+  cuda_vector_PRECISION_copy(op->clover_gpu, op->clover, 0, l->num_inner_lattice_sites * css, l,
+                             _H2D, _CUDA_SYNC, 0, streams);
   cuda_vector_PRECISION_copy(phi_gpu, phi, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
+  cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_d_plus_clover_PRECISION(eta_gpu, phi_gpu, op, l, threading);
 
   cuda_vector_PRECISION_copy(eta, eta_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC, 0, streams);
-  cuda_vector_PRECISION_copy(phi, phi_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC, 0, streams);
-  END_MASTER(threading)
+  END_UNTHREADED_FUNCTION(threading)
 }
 #endif
