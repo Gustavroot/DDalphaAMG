@@ -7,7 +7,7 @@
 #include "dirac_PRECISION.h"
 
 
-void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
+void d_plus_clover_PRECISION(vector_PRECISION eta, complex_PRECISION const * phi,
                              operator_PRECISION_struct *op, level_struct *l,
                              struct Thread *threading)
 {
