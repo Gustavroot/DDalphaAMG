@@ -22,6 +22,9 @@ typedef struct
 {
     config_PRECISION D, clover, oe_clover;
 #ifdef CUDA_OPT
+    // TODO remove
+    vector_PRECISION w_test;
+
     cuda_config_PRECISION clover_gpu, D_gpu;
 
     // Local vectors to apply the operator w = w + Dx on the GPU.

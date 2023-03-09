@@ -6,6 +6,7 @@ extern "C" {
 #include "operator.h"
 
 void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
+  op->w_test = NULL;
   op->clover_gpu = NULL;
   op->D_gpu = NULL;
   op->x_gpu = NULL;
@@ -26,6 +27,7 @@ void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type
   if (l->depth != 0) {
     error0("cuda_operator_PRECISION_alloc is a finest level only function.");
   }
+  MALLOC(op->w_test, complex_PRECISION, l->inner_vector_size);
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
   size_t pbs = projection_buffer_size(l->num_lattice_site_var, l->num_lattice_sites);
   CUDA_MALLOC(op->clover_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
@@ -34,7 +36,7 @@ void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type
 
   CUDA_MALLOC(op->D_gpu, cu_cmplx_PRECISION, 4 * 9 * l->num_inner_lattice_sites);
   cuda_safe_call(cudaMemcpy(op->D_gpu, op->D,
-                            4 * 9 * l->num_inner_lattice_sites * sizeof(PRECISION),
+                            4 * 9 * l->num_inner_lattice_sites * sizeof(cu_cmplx_PRECISION),
                             cudaMemcpyHostToDevice));
 
   CUDA_MALLOC(op->neighbor_table_gpu, int, 4 * l->num_inner_lattice_sites);
@@ -54,6 +56,7 @@ void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type,
   if (l->depth != 0) {
     error0("cuda_operator_PRECISION_alloc is a finest level only function.");
   }
+  FREE(op->w_test, complex_PRECISION, l->inner_vector_size);
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
   size_t pbs = projection_buffer_size(l->num_lattice_site_var, l->num_lattice_sites);
   CUDA_FREE(op->clover_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);

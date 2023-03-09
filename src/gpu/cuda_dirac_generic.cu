@@ -381,6 +381,8 @@ extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta,
   cuda_vector_PRECISION_copy(op->clover_gpu, op->clover, 0, l->num_inner_lattice_sites * css, l,
                              _H2D, _CUDA_SYNC, 0, streams);
   cuda_vector_PRECISION_copy(phi_gpu, phi, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
+  cuda_vector_PRECISION_copy(op->D_gpu, op->D, 0, 4 * 9 * l->num_inner_lattice_sites, l, _H2D,
+                             _CUDA_SYNC, 0, streams);
   cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_d_plus_clover_PRECISION(eta_gpu, phi_gpu, op, l, threading);
