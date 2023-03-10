@@ -25,7 +25,7 @@ typedef void * RangeHandleType;
  * 
  *  \param label A label to be given to that range.
  *  \returns A handle which can be used to close the range.
- *      Must be closed using \ref endProfilingRange.
+ *      Must be closed using endProfilingRange.
  */
 RangeHandleType startProfilingRange(char const * label);
 
@@ -34,7 +34,7 @@ RangeHandleType startProfilingRange(char const * label);
  * This ends a range in the underlying implementation of NVTX
  * if CUDA is enabled and does nothing otherwise.
  * 
- * \param handle A handle obtained from \ref startProfilingRange.
+ * \param handle A handle obtained from startProfilingRange.
  */
 void endProfilingRange(RangeHandleType handle);
 

@@ -236,7 +236,7 @@ __global__ void cuda_prn_X_PRECISION(cu_cmplx_PRECISION* prnX, cu_cmplx_PRECISIO
   prnX[5] = phi[5] +GAMMA_X_SPIN1_VAL*phi[3*GAMMA_X_SPIN1_CO+2];
 }
 
-__global__ void cuda_prn_mvmh_PRECISION(cu_cmplx_PRECISION* prn_buf, cu_cmplx_PRECISION const* D,
+__global__ void cuda_prn_mvmh_PRECISION(cu_cmplx_PRECISION* prp_buf, cu_cmplx_PRECISION const* D,
                                         cu_cmplx_PRECISION const* pbuf, int const* neighbors,
                                         LatticeAxis dim, size_t num_sites) {
   unsigned int neighbor_offset;
@@ -268,8 +268,8 @@ __global__ void cuda_prn_mvmh_PRECISION(cu_cmplx_PRECISION* prn_buf, cu_cmplx_PR
   // multiplications. There will be two mvms per lattice site.
   pbuf += 3*idx;
   const size_t j = 6*(*neighbors);
-  prn_buf += j+(idx%2==0?0:3);
-  cuda_mvmh_PRECISION(prn_buf, D, pbuf);
+  prp_buf += j+(idx%2==0?0:3);
+  cuda_mvmh_PRECISION(prp_buf, D, pbuf);
 }
 
 __global__ void cuda_pbp_su3_mvm_PRECISION(cu_cmplx_PRECISION* pbuf, cu_cmplx_PRECISION const* D,
