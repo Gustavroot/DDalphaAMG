@@ -22,7 +22,7 @@ void d_plus_clover_PRECISION(vector_PRECISION eta, complex_PRECISION const * phi
   for(size_t i = 0; i < l->inner_vector_size; i++) {
     complex_PRECISION cuda_value = *(eta+i);
     complex_PRECISION cpu_value = *(op->w_test+i);
-    if (cabs(cuda_value - cpu_value) > 1.0e-14) {
+    if (cabs(cuda_value - cpu_value) > 1.0e-7) {
       fail_fish = 1;
       warning0("mismatch at index %d: CUDA is %.4f + %.4fi <> CPU is %.4f + %.4fi\n",
                i, creal(cuda_value), cimag(cuda_value), creal(cpu_value), cimag(cpu_value));

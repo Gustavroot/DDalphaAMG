@@ -25,7 +25,7 @@ void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
 
 void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type, level_struct *l) {
   if (l->depth != 0) {
-    error0("cuda_operator_PRECISION_alloc is a finest level only function.");
+    return;
   }
   MALLOC(op->w_test, complex_PRECISION, l->inner_vector_size);
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
@@ -54,7 +54,7 @@ void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type
 
 void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type, level_struct *l) {
   if (l->depth != 0) {
-    error0("cuda_operator_PRECISION_alloc is a finest level only function.");
+    return;
   }
   FREE(op->w_test, complex_PRECISION, l->inner_vector_size);
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);

@@ -1,7 +1,7 @@
 #include "cuda_data_layout_PRECISION.h"
 #include "miscellaneous.h"
 
-void cuda_define_nt_bt_tt_PRECISION(operator_PRECISION_struct *op, int **bt, int *dt,
+extern "C" void cuda_define_nt_bt_tt_PRECISION(operator_PRECISION_struct *op, int **bt, int *dt,
                                     level_struct *l) {
   if(l->depth != 0){
     // nothing to do
