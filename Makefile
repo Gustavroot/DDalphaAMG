@@ -37,7 +37,7 @@ DEP = $(patsubst %.c,%.dep,$(GSRC)) $(patsubst %.cu,%.dep,$(GSRC_CUDA))
 COMMON_FLAGS = -DCUDA_ERROR_CHECK -DPROFILING $(CUDA_ENABLER) $(NVTX_DISABLE) -I$(GSRCDIR)
 #COMMON_FLAGS = -DPROFILING
 
-OPT_FLAGS = -fopenmp -DOPENMP -DSSE -msse4.2 -isystem $(CUDA_INCLUDE)
+OPT_FLAGS = $(SSE_ENABLER) -fopenmp -DOPENMP -isystem $(CUDA_INCLUDE)
 CFLAGS = -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_FLAGS)
 # This is a C only flag as implicit function declaration is forbidden in C++ anyways.
 CFLAGS += -Werror-implicit-function-declaration
