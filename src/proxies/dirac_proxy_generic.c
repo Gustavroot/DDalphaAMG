@@ -16,7 +16,10 @@ void d_plus_clover_PRECISION(vector_PRECISION eta, complex_PRECISION const * phi
 {
 #ifdef CUDA_OPT
   cuda_d_plus_clover_PRECISION_vectorwrapper(eta, phi, op, l, threading);
-  d_plus_clover_PRECISION_cpu(op->w_test, phi, op, l, threading);
+#else
+  d_plus_clover_PRECISION_cpu(eta, phi, op, l, threading);
+#endif
+#if 0
   START_LOCKED_MASTER(threading)
   int fail_fish = 0;
   for(size_t i = 0; i < l->inner_vector_size; i++) {
