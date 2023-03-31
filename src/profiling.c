@@ -1,7 +1,7 @@
 #include "profiling.h"
 #include <stddef.h>
 
-#if CUDA_OPT
+#ifndef NVTX_DISABLE
 #include <nvtx3/nvToolsExt.h>
 
 RangeHandleType startProfilingRange(char const * label) {
@@ -22,4 +22,4 @@ RangeHandleType startProfilingRange(char const * label) {
 void endProfilingRange(RangeHandleType handle){
     return;
 }
-#endif //CUDA_OPT
+#endif  // NVTX_DISABLE

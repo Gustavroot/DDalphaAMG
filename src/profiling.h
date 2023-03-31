@@ -11,7 +11,7 @@
 #define PROFILING_H
 
 /** nvtxRangeId_t if compiling with NVTX, a stub otherwise.*/
-#ifdef CUDA_OPT
+#ifndef NVTX_DISABLE
 #include <nvtx3/nvToolsExt.h>
 typedef nvtxRangeId_t RangeHandleType;
 #else
