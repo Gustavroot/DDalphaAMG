@@ -65,10 +65,13 @@ void prof_init( level_struct *l ) {
 double prof_print( level_struct *l ) {
   double flop = 0;
 #ifdef PROFILING
-  
+  double resolution = MPI_Wtick();
   if ( l != NULL && g.print > 0 ) {
     if ( l->depth == 0 ) printf0("\n+----------------------------------------------------------+\n");
-    if ( l->depth == 0 ) printf0("| solver profiling                                         |\n");
+    if ( l->depth == 0 ) {
+      printf0("| solver profiling  (time resolution %3.3lf ns)             |\n",
+              resolution*1024*1024*1024);
+    }
     printf0("+----------------------------------------------------------+\n");
     printf0("| depth: %3d / level: %3d                time    ( count ) |\n", l->depth, l->level );
     printf0("+----------------------------------------------------------+\n");
