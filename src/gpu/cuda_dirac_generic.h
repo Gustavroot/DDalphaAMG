@@ -22,9 +22,6 @@ extern void cuda_d_plus_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_
                                          operator_PRECISION_struct *op, level_struct *l,
                                          struct Thread *threading);
 
-extern void cuda_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
-                                  cuda_config_PRECISION clover, int length);
-
 extern void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta,
                                                        complex_PRECISION const *phi,
                                                        operator_PRECISION_struct *op,

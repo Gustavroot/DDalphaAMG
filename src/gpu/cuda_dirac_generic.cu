@@ -238,11 +238,16 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
 
 
 
-extern "C" void cuda_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
-                                      cuda_config_PRECISION clover, int num_sites) {
+extern "C" void _cuda_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
+                                       cuda_config_PRECISION clover, int num_sites,
+                                       level_struct *l) {
   constexpr size_t blockSize = 128;
+
+  PROF_PRECISION_START_UNTHREADED( _NC );
   const size_t gridSize = minGridSizeForN(num_sites, blockSize);
   cuda_site_clover_PRECISION<<< gridSize, blockSize>>>(eta, phi, clover, num_sites);
+  cudaDeviceSynchronize();
+  PROF_PRECISION_STOP_UNTHREADED( _NC, 1);
 }
 
 extern "C" void cuda_d_plus_clover_PRECISION(
@@ -265,9 +270,11 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   if ( g.csw == 0.0 ) {
     cuda_vector_PRECISION_scale(eta, phi, shift, 0, l->inner_vector_size, l, _CUDA_SYNC, 0, streams);
   } else {
-    cuda_clover_PRECISION(eta, phi, op->clover_gpu, l->num_inner_lattice_sites);
+    _cuda_clover_PRECISION(eta, phi, op->clover_gpu, l->num_inner_lattice_sites, l);
   }
   
+  PROF_PRECISION_START_UNTHREADED( _NC );
+
   // Project in positive directions
   cuda_prp_T_PRECISION<<<gridSize, blockSize>>>(op->prnT_gpu, phi, l->num_inner_lattice_sites);
   cuda_prp_Z_PRECISION<<<gridSize, blockSize>>>(op->prnZ_gpu, phi, l->num_inner_lattice_sites);
@@ -357,6 +364,7 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   cuda_pbn_su3_X_PRECISION<<<gridSize, blockSize>>>(eta, op->prpX_gpu, l->num_inner_lattice_sites);
   cuda_safe_call(cudaDeviceSynchronize());
   
+  PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
   endProfilingRange(profilingRangeOperator);
 }
 
