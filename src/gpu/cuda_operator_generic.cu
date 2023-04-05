@@ -35,10 +35,6 @@ void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type
   CUDA_MALLOC(op->w_gpu, cu_cmplx_PRECISION, l->inner_vector_size);
 
   CUDA_MALLOC(op->D_gpu, cu_cmplx_PRECISION, 4 * 9 * l->num_inner_lattice_sites);
-  cuda_safe_call(cudaMemcpy(op->D_gpu, op->D,
-                            4 * 9 * l->num_inner_lattice_sites * sizeof(cu_cmplx_PRECISION),
-                            cudaMemcpyHostToDevice));
-
   CUDA_MALLOC(op->neighbor_table_gpu, int, 4 * l->num_inner_lattice_sites);
 
   CUDA_MALLOC(op->pbuf_gpu, cu_cmplx_PRECISION, pbs);
@@ -63,7 +59,7 @@ void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type,
   CUDA_FREE(op->D_gpu, cu_cmplx_PRECISION, 4 * 9 * l->num_inner_lattice_sites);
   CUDA_FREE(op->x_gpu, cu_cmplx_PRECISION, l->inner_vector_size);
   CUDA_FREE(op->w_gpu, cu_cmplx_PRECISION, l->inner_vector_size);
-  CUDA_FREE(op->pbuf_gpu, cu_cmplx_PRECISION, l->inner_vector_size);
+  CUDA_FREE(op->pbuf_gpu, cu_cmplx_PRECISION, pbs);
 
   CUDA_FREE(op->neighbor_table_gpu, int, 4 * l->num_inner_lattice_sites);
   CUDA_FREE(op->prpT_gpu, cu_cmplx_PRECISION, pbs);
