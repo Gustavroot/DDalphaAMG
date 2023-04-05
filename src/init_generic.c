@@ -88,9 +88,9 @@ double prof_PRECISION_print( level_struct *l ) {
   for ( int i=0; i<_NUM_PROF; i++ )
     if ( l->prof_PRECISION.count[i] > 0 ) {
       if ( l->prof_PRECISION.count[i] > 9999999 )
-        printf0("| %33.33s: %.6le(%7.1le) |\n", l->prof_PRECISION.name[i], l->prof_PRECISION.time[i], l->prof_PRECISION.count[i] );
+        printf0("| %33.33s: %12.6f(%7.0f) |\n", l->prof_PRECISION.name[i], l->prof_PRECISION.time[i], l->prof_PRECISION.count[i] );
       else
-        printf0("| %33.33s: %.6le(%7d) |\n", l->prof_PRECISION.name[i], l->prof_PRECISION.time[i], (int)l->prof_PRECISION.count[i] );
+        printf0("| %30.30s: %12.6f(%10.0f) |\n", l->prof_PRECISION.name[i], l->prof_PRECISION.time[i], l->prof_PRECISION.count[i] );
       flop += (double)l->prof_PRECISION.count[i] * l->prof_PRECISION.flop[i];
     }
   return flop;
