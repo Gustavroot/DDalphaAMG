@@ -117,8 +117,6 @@ void ghost_alloc_PRECISION( int buffer_size, comm_PRECISION_struct *c, level_str
           buffer_size *= l->local_lattice[nu];
         }
       }
-      c->length[2*mu] = buffer_size;
-      c->length[2*mu+1] = buffer_size;
       c->max_length[mu] = factor*buffer_size;
       MALLOC( c->buffer[2*mu], complex_PRECISION, factor*buffer_size );
       MALLOC( c->buffer[2*mu+1], complex_PRECISION, factor*buffer_size );

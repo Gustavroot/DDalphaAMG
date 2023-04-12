@@ -10,7 +10,7 @@
 
 typedef struct
 {
-    int length[8], *boundary_table[8], max_length[4],
+    int *boundary_table[8], max_length[4],
         comm_start[8], in_use[8], offset, comm,
         num_even_boundary_sites[8], num_odd_boundary_sites[8],
         num_boundary_sites[8];

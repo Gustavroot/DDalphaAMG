@@ -61,8 +61,6 @@ void cuda_ghost_alloc_PRECISION( int buffer_size, cuda_comm_PRECISION_struct *c,
           buffer_size *= l->local_lattice[nu];
         }
       }
-      c->length[2*mu] = buffer_size;
-      c->length[2*mu+1] = buffer_size;
       c->max_length[mu] = factor*buffer_size;
       CUDA_MALLOC( c->buffer_gpu[2*mu], cu_cmplx_PRECISION, factor*buffer_size );
       CUDA_MALLOC( c->buffer_gpu[2*mu+1], cu_cmplx_PRECISION, factor*buffer_size );
