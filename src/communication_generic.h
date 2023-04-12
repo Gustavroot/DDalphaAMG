@@ -4,6 +4,9 @@
 #include <mpi.h>
 #endif
 #include "complex_types_PRECISION.h"
+#ifdef CUDA_OPT
+#include "gpu/cuda_vectors_PRECISION.h"
+#endif
 
 typedef struct
 {
