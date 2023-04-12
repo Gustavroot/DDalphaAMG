@@ -35,9 +35,6 @@ void cpu_operator_PRECISION_init( operator_PRECISION_struct *op ) {
   op->oe_clover = NULL;
   op->oe_clover_vectorized = NULL;
   
-  for ( int mu=0; mu<4; mu++ )
-    op->config_boundary_table[mu] = NULL;
-  
   for ( int i=0; i<8; i++ ) {
     op->c.boundary_table[i] = NULL;
     op->c.buffer[i] = NULL;
@@ -131,7 +128,6 @@ void cpu_operator_PRECISION_alloc( operator_PRECISION_struct *op, const int type
     MALLOC( op->c.boundary_table[2*mu], int, its );
     if ( type == _SCHWARZ ) {
       MALLOC( op->c.boundary_table[2*mu+1], int, its );
-      MALLOC( op->config_boundary_table[mu], int, its );
     } else {
       op->c.boundary_table[2*mu+1] = op->c.boundary_table[2*mu];
     }
@@ -191,7 +187,6 @@ void cpu_operator_PRECISION_free( operator_PRECISION_struct *op, const int type,
     FREE( op->c.boundary_table[2*mu], int, its );
     if ( type == _SCHWARZ ) {
       FREE( op->c.boundary_table[2*mu+1], int, its );
-      FREE( op->config_boundary_table[mu], int, its );
     } else {
       op->c.boundary_table[2*mu+1] = NULL;
     }

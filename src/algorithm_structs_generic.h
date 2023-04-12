@@ -11,6 +11,7 @@
 #include <cuda_runtime.h>
 #include "gpu/cuda_vectors_PRECISION.h"
 #include "gpu/cuda_algorithm_structs_PRECISION.h"
+#include "gpu/cuda_communication_PRECISION.h"
 #endif
 
 #include "block_struct.h"
@@ -54,10 +55,13 @@ typedef struct
          */
         *neighbor_table, *translation_table, table_dim[4],
         *backward_neighbor_table,
-        table_mod_dim[4], *config_boundary_table[4];
+        table_mod_dim[4];
     complex_PRECISION shift;
     vector_PRECISION *buffer, prnT, prnZ, prnY, prnX, prpT, prpZ, prpY, prpX;
     comm_PRECISION_struct c;
+#ifdef CUDA_OPT
+    cuda_comm_PRECISION_struct cuda_c;
+#endif
     OPERATOR_TYPE_PRECISION *D_vectorized;
     OPERATOR_TYPE_PRECISION *D_transformed_vectorized;
     OPERATOR_TYPE_PRECISION *clover_vectorized;

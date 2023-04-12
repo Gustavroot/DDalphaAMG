@@ -1,5 +1,6 @@
 #include "alloc_control.h"
 #include "miscellaneous.h"
+#include "cuda_ghost_PRECISION.h"
 
 extern "C" {
 
@@ -21,6 +22,14 @@ void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
   op->prnY_gpu = NULL;
   op->prnX_gpu = NULL;
   op->neighbor_table_gpu = NULL;
+
+  // Communication stuff
+  for ( int i=0; i<8; i++ ) {
+    op->cuda_c.boundary_table_gpu[i] = NULL;
+    op->cuda_c.buffer_gpu[i] = NULL;
+    op->cuda_c.in_use[i] = 0;
+  }
+  op->cuda_c.comm = 1;
 }
 
 void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type, level_struct *l) {
@@ -46,6 +55,27 @@ void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type
   CUDA_MALLOC(op->prnZ_gpu, cu_cmplx_PRECISION, pbs);
   CUDA_MALLOC(op->prnY_gpu, cu_cmplx_PRECISION, pbs);
   CUDA_MALLOC(op->prnX_gpu, cu_cmplx_PRECISION, pbs);
+
+
+  // Communication stuff
+  cuda_ghost_alloc_PRECISION( 0, &(op->cuda_c), l );
+  
+  for ( int mu=0; mu<4; mu++ ) {
+    int its = 1;
+    for ( int nu=0; nu<4; nu++ ) {
+      if ( mu != nu ) {
+        its *= l->local_lattice[nu];
+      }
+    }
+    op->cuda_c.num_boundary_sites[2*mu] = its;
+    op->cuda_c.num_boundary_sites[2*mu+1] = its;
+    CUDA_MALLOC( op->cuda_c.boundary_table_gpu[2*mu], int, its );
+    if ( type == _SCHWARZ ) {
+      CUDA_MALLOC( op->cuda_c.boundary_table_gpu[2*mu+1], int, its );
+    } else {
+      op->cuda_c.boundary_table_gpu[2*mu+1] = op->cuda_c.boundary_table_gpu[2*mu];
+    }
+  }
 }
 
 void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type, level_struct *l) {
@@ -70,5 +100,24 @@ void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type,
   CUDA_FREE(op->prnZ_gpu, cu_cmplx_PRECISION, pbs);
   CUDA_FREE(op->prnY_gpu, cu_cmplx_PRECISION, pbs);
   CUDA_FREE(op->prnX_gpu, cu_cmplx_PRECISION, pbs);
+
+  // Communication stuff
+  cuda_ghost_free_PRECISION( &(op->cuda_c), l );
+  
+  for ( int mu=0; mu<4; mu++ ) {
+    int its = 1;
+    for ( int nu=0; nu<4; nu++ ) {
+      if ( mu != nu ) {
+        its *= l->local_lattice[nu];
+      }
+    }
+    
+    CUDA_FREE( op->cuda_c.boundary_table_gpu[2*mu], int, its );
+    if ( type == _SCHWARZ ) {
+      CUDA_FREE( op->cuda_c.boundary_table_gpu[2*mu+1], int, its );
+    } else {
+      op->cuda_c.boundary_table_gpu[2*mu+1] = NULL;
+    }
+  }
 }
 }
