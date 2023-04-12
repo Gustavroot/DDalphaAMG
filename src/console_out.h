@@ -6,7 +6,7 @@
 #include "threading.h"
 #include "global_struct.h"
 
-static inline void printf0(char *format, ...)
+static inline void printf0(char const *format, ...)
 {
     START_MASTER(no_threading)
     if (g.my_rank == 0 && g.print >= 0)
@@ -24,7 +24,7 @@ static inline void printf0(char *format, ...)
     END_MASTER(no_threading)
 }
 
-static inline void warning0(char *format, ...)
+static inline void warning0(char const *format, ...)
 {
     if (g.my_rank == 0 && g.print >= 0)
     {
@@ -42,7 +42,7 @@ static inline void warning0(char *format, ...)
     }
 }
 
-static inline void error0(char *format, ...)
+static inline void error0(char const *format, ...)
 {
     if (g.my_rank == 0)
     {
@@ -62,7 +62,7 @@ static inline void error0(char *format, ...)
     }
 }
 
-static inline void printf00(char *format, ...)
+static inline void printf00(char const *format, ...)
 {
     if (g.my_rank == 0 && g.print >= 0)
     {
