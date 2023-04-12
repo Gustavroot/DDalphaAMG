@@ -25,7 +25,6 @@ void cuda_fgmres_PRECISION_struct_free(gmres_PRECISION_struct *p, level_struct *
   if( l->depth==0){
     cuda_safe_call( cudaFreeHost( l->p_PRECISION.xtmp ) );
   }
-  int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
   FREE( p->streams, cudaStream_t, g.nr_threads );
 }
 
