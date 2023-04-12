@@ -1,6 +1,10 @@
 #ifndef UTIL_MACROS_H
 #define UTIL_MACROS_H
 
+#define ASSERT( expression ) do{ if ( !(expression) ) { \
+  error0("assertion \"%s\" failed (%s:%d)\n       bad choice of input parameters (please read the user manual in /doc).\n", \
+  #expression, __FILE__, __LINE__ ); } }while(0)
+
 #define IMPLIES( A, B ) !( A ) || ( B )
 #define XOR( A, B ) (( A ) && !( B )) || (!( A ) && ( B ))
 #define NAND( A, B ) !( (A) && (B) )

@@ -60,11 +60,6 @@
   #else
     #define DPRINTF0( ARGS, ... )
   #endif
-  
-  
-  #define ASSERT( expression ) do{ if ( !(expression) ) { \
-  error0("assertion \"%s\" failed (%s:%d)\n       bad choice of input parameters (please read the user manual in /doc).\n", \
-  #expression, __FILE__, __LINE__ ); } }while(0)
 
   #include "util_macros.h"
   
