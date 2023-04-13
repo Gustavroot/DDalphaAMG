@@ -53,10 +53,6 @@ struct Thread;
         	                                                int* DD_blocks_to_compute_gpu, int* DD_blocks_to_compute_cpu );
 
   extern void
-  cuda_boundary_comms_copy_PRECISION(				cuda_vector_PRECISION out, cuda_vector_PRECISION in, int *bound_table,
-                                                                int num_sites, level_struct *l );
-
-  extern void
   cuda_apply_block_schur_complement_PRECISION(			cuda_vector_PRECISION out, cuda_vector_PRECISION in,
                                                                 schwarz_PRECISION_struct *s, level_struct *l, int nr_DD_blocks_to_compute,
                                                                 int* DD_blocks_to_compute, cudaStream_t *streams, int stream_id,

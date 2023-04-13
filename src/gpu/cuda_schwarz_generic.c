@@ -1,4 +1,5 @@
 #include "main.h"
+#include "cuda_ghost_PRECISION.h"
 
 #ifdef CUDA_OPT
 
