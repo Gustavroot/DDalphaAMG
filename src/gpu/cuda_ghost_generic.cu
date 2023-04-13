@@ -8,34 +8,6 @@ extern "C" {
 #include "cuda_miscellaneous.h"
 }
 
-// TODO:
-//		1. use shared memory to have better global memory accesses
-//		2. switch to an stream different from <default> ... ?
-__global__ void _cuda_boundary_comms_copykernel_PRECISION(cu_cmplx_PRECISION *out,
-                                                           cu_cmplx_PRECISION *in, int *bound_table,
-                                                           int site_size) {
-  int j, idx, site_id;
-  cu_cmplx_PRECISION *in_pt;
-
-  idx = threadIdx.x + blockDim.x * blockIdx.x;
-  j = idx / 12;
-
-  site_id = bound_table[j];
-
-  in_pt = in + site_id * site_size;
-  in_pt += idx % 12;
-
-  out[idx] = in_pt[0];
-}
-
-void _cuda_boundary_comms_copy_PRECISION(cuda_vector_PRECISION out, cuda_vector_PRECISION in,
-                                         int *bound_table, int num_sites, level_struct *l) {
-  int nr_threads = num_sites * l->num_lattice_site_var, threads_per_cublock = 32;
-
-  _cuda_boundary_comms_copykernel_PRECISION<<<nr_threads / threads_per_cublock,
-                                              threads_per_cublock>>>(out, in, bound_table,
-                                                                     l->num_lattice_site_var);
-}
 
 __global__ void _boundary2buffer(cu_cmplx_PRECISION const *phi, cu_cmplx_PRECISION *buffer,
                                  int const *table, size_t offset, size_t num_boundary_sites) {
@@ -280,7 +252,7 @@ void cuda_ghost_wait_PRECISION(cuda_vector_PRECISION phi, const int mu, const in
 }
 
 extern "C" void cuda_ghost_update_PRECISION(cuda_vector_PRECISION phi, const int mu, const int dir,
-                                 comm_PRECISION_struct *c, level_struct *l) {
+                                            comm_PRECISION_struct *c, level_struct *l) {
   if (l->global_splitting[mu] > 1) {
     int mu_dir = 2 * mu - MIN(dir, 0), nu, inv_mu_dir = 2 * mu + 1 + MIN(dir, 0), length,
         comm_start, num_boundary_sites;
@@ -308,9 +280,11 @@ extern "C" void cuda_ghost_update_PRECISION(cuda_vector_PRECISION phi, const int
                 g.comm_cart, &(c->rreqs[mu_dir]));
       PROF_PRECISION_STOP(_OP_COMM, 1);
     }
-
-    _cuda_boundary_comms_copy_PRECISION(buffer, phi, c->boundary_table_gpu[inv_mu_dir],
-                                        num_boundary_sites, l);
+    constexpr size_t blockSize = 128;
+    constexpr size_t offset = 12;
+    const size_t gridSize = minGridSizeForN(num_boundary_sites * offset, blockSize);
+    _boundary2buffer<<<gridSize, blockSize>>>(phi, buffer, c->boundary_table_gpu[inv_mu_dir],
+                                              offset, num_boundary_sites);
     cuda_safe_call(cudaDeviceSynchronize());
 
     if (length > 0) {
@@ -322,8 +296,9 @@ extern "C" void cuda_ghost_update_PRECISION(cuda_vector_PRECISION phi, const int
   }
 }
 
-extern "C" void cuda_ghost_update_wait_PRECISION(cuda_vector_PRECISION phi, const int mu, const int dir,
-                                      comm_PRECISION_struct *c, level_struct *l) {
+extern "C" void cuda_ghost_update_wait_PRECISION(cuda_vector_PRECISION phi, const int mu,
+                                                 const int dir, comm_PRECISION_struct *c,
+                                                 level_struct *l) {
   if (l->global_splitting[mu] > 1) {
     int mu_dir = 2 * mu - MIN(dir, 0),
         length = c->num_boundary_sites[mu_dir] * l->num_lattice_site_var;
