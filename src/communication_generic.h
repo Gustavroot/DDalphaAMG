@@ -1,3 +1,7 @@
+/** \file communication_generic.h
+ *  \brief Defines structs for MPI communication.
+ */
+
 #ifndef COMMUNICATION_PRECISION_H
 #define COMMUNICATION_PRECISION_H
 #ifndef IMPORT_FROM_EXTERN_C
