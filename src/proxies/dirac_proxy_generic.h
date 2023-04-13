@@ -2,7 +2,7 @@
  * \file dirac_proxy_generic.h
  * \brief Mediates application of Dirac operator between CPU and GPU compilation options.
  *
- * The purpose of this file is that other parts of the code may stay agnostic to the implementation
+ * The purpose of this file is that other parts of the code may stay ignorant to the implementation
  * details of the Wilson-Dirac operator. A GPU or CPU implementation of the operator will be used
  * depending on compilation options.
  */
