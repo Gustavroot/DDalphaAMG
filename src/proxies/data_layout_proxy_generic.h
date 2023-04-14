@@ -1,3 +1,7 @@
+/** \file data_layout_proxy_generic.h
+ *  \brief Mediates execution between data_layout_generic.h and cuda_data_layout_generic.h
+ */
+
 #ifndef DATA_LAYOUT_PROXY_PRECISION_H
 #define DATA_LAYOUT_PROXY_PRECISION_H
 
