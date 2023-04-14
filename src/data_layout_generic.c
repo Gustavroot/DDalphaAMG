@@ -3,17 +3,6 @@
 #include "main.h"
 
 void define_nt_bt_tt_PRECISION_cpu(operator_PRECISION_struct *op, int **bt, int *dt, level_struct *l ) {
-
-/*********************************************************************************
-* Defines neighbor table (for the application of the entire operator), negative 
-* inner boundary table (for communication) and translation table (for translation 
-* to lexicographical site ordnering).
-* - int *nt: neighbor table
-* - int **bt: boundary table
-* - int *tt: translation table
-* - int *it: index table
-* - int *dt: dimension table
-*********************************************************************************/
   int *nt = op->neighbor_table,
       *backward_nt = op->backward_neighbor_table,
       *tt = op->translation_table,
