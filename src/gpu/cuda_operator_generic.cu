@@ -7,7 +7,6 @@ extern "C" {
 #include "operator.h"
 
 void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
-  op->w_test = NULL;
   op->clover_gpu = NULL;
   op->D_gpu = NULL;
   op->x_gpu = NULL;
@@ -36,7 +35,6 @@ void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type
   if (l->depth != 0) {
     return;
   }
-  MALLOC(op->w_test, complex_PRECISION, l->inner_vector_size);
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
   size_t pbs = projection_buffer_size(l->num_lattice_site_var, l->num_lattice_sites);
   CUDA_MALLOC(op->clover_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
@@ -82,7 +80,6 @@ void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type,
   if (l->depth != 0) {
     return;
   }
-  FREE(op->w_test, complex_PRECISION, l->inner_vector_size);
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
   size_t pbs = projection_buffer_size(l->num_lattice_site_var, l->num_lattice_sites);
   CUDA_FREE(op->clover_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
