@@ -13,7 +13,7 @@ NVCC = nvcc
 CUDA_INCLUDE = /opt/cuda/include/
 CUDA_LIB = /opt/cuda/lib64/
 # NVTX is used to annotate profiling reports. It can be disabled by setting this variable to -DNVTX_DISABLE .
-NVTX_DISABLE = #-DNVTX_DISABLE
+NVTX_DISABLE = # -DNVTX_DISABLE
 
 
 # --- CUDA Support --------------------------------------
