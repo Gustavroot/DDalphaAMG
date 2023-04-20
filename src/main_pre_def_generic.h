@@ -20,20 +20,16 @@
  */
 
 #ifndef MAIN_PRE_DEF_PRECISION_HEADER
-  #define MAIN_PRE_DEF_PRECISION_HEADER
+#define MAIN_PRE_DEF_PRECISION_HEADER
 
-// FIXME temporary includes
 #ifdef CUDA_OPT
 #include "gpu/cuda_dirac_PRECISION.h"
 #endif
 
-
-// FIXME temporary includes
 #include "communication_PRECISION.h"
 #include "profiling_old_PRECISION.h"
 
 #ifdef CUDA_OPT
-//FIXME temporary inlcude
 # include "gpu/cuda_schwarz_PRECISION.h"
 #endif
   

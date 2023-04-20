@@ -94,7 +94,6 @@
     
   } confbuffer_struct;
 
-  // FIXME temporary include
   #include "global_struct.h"
   #include "algorithm_structs.h"
   
