@@ -11,7 +11,10 @@ void cuda_dirac_setup(config_double hopp, config_double clover, level_struct* l)
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
   const size_t css = clover_site_size(l->num_lattice_site_var, l->depth);
-  // Float clover term does not seem to get filled (possibly because on lower levels, there)
+  // Float clover and Dirac data does not seem to get filled
+  // (possibly because on lower levels, there are different methods handling that)
   cuda_vector_double_copy(g.op_double.clover_gpu, g.op_double.clover, 0,
                           l->num_inner_lattice_sites * css, l, _H2D, _CUDA_SYNC, 0, streams);
+  cuda_vector_double_copy(g.op_double.D_gpu, g.op_double.D, 0, 4 * 9 * l->num_inner_lattice_sites,
+                          l, _H2D, _CUDA_SYNC, 0, streams);
 }
