@@ -22,6 +22,7 @@
 #include "main.h"
 #include "dd_alpha_amg.h"
 #include "proxies/operator_proxy_double.h"
+#include "proxies/dirac_proxy.h"
 
 
 #define NCORE 1

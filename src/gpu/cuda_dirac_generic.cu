@@ -7,7 +7,6 @@ extern "C"{
   #undef IMPORT_FROM_EXTERN_C
 
   #include "profiling.h"
-  // TODO this needs to go
   #include "operator.h"
 }
 
@@ -482,11 +481,8 @@ extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta,
   phi_gpu = op->x_gpu;
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
-  const size_t css = clover_site_size(l->num_lattice_site_var, l->depth);
   
   // TODO this needs to go
-  cuda_vector_PRECISION_copy(op->clover_gpu, op->clover, 0, l->num_inner_lattice_sites * css, l,
-                             _H2D, _CUDA_SYNC, 0, streams);
   cuda_vector_PRECISION_copy(phi_gpu, phi, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
   cuda_vector_PRECISION_copy(op->D_gpu, op->D, 0, 4 * 9 * l->num_inner_lattice_sites, l, _H2D,
                              _CUDA_SYNC, 0, streams);

@@ -22,6 +22,7 @@
 #include "main.h"
 
 #include "profiling.h"
+#include "proxies/dirac_proxy.h"
 
 #ifdef HAVE_HDF5
 Hdf5_fileinfo h5info;
