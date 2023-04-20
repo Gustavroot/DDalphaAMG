@@ -70,7 +70,7 @@ double prof_print( level_struct *l ) {
     if ( l->depth == 0 ) printf0("\n+----------------------------------------------------------+\n");
     if ( l->depth == 0 ) {
       printf0("| solver profiling  (time resolution %3.3lf ns)             |\n",
-              resolution*1024*1024*1024);
+              resolution*1000*1000*1000);
     }
     printf0("+----------------------------------------------------------+\n");
     printf0("| depth: %3d / level: %3d                time    ( count ) |\n", l->depth, l->level );
