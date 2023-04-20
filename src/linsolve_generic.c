@@ -274,8 +274,6 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
     } else {
       res = _RES;
       if ( p->kind == _LEFT && p->preconditioner ) {
-
-        printf("SPOT 1\n");
         apply_operator_PRECISION( p->Z[0], p->x, p, l, threading );
 
         if ( p->shift ) vector_PRECISION_saxpy( p->Z[0], p->Z[0], p->x, p->shift, start, end, l );
@@ -286,7 +284,6 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
         }
         p->preconditioner( p->w, NULL, p->Z[0], _NO_RES, l, threading );
       } else {
-        //printf("SPOT 2\n");
         apply_operator_PRECISION( p->w, p->x, p, l, threading ); // compute w = D*x
 
       }
@@ -306,7 +303,6 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
     vector_PRECISION_real_scale( p->V[0], p->r, 1/p->gamma[0], start, end, l ); // v_0 = r / gamma_0
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
     if ( l->level == 0 && l->depth > 0 ) {
-      printf("ARNOLDI SPOT 1\n");
       arnoldi_step_PRECISION( p->V, p->Z, p->w, p->H, p->y, 0, p->preconditioner, p->shift, p, l, threading );
     }
 #endif   
@@ -378,38 +374,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
   
   if ( p->print ) {
 #ifdef FGMRES_RESTEST
-
-    //printf("SPOT X1 !\n");
-
-    // RE-DISABLE !
     apply_operator_PRECISION( p->w, p->x, p, l, threading );
-
-#ifdef CUDA_OPT
-    //else
-    // RE-ENABLE !
-    /*
-    {
-      cudaStream_t *streams_gmres = p->streams;
-      int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
-      cuda_vector_PRECISION_copy( (void*)p->w_gpu, (void*)p->w, 0, vl, l, _H2D, _CUDA_SYNC,
-                                  threading->core, streams_gmres );
-      cuda_vector_PRECISION_copy( (void*)p->x_gpu, (void*)p->x, 0, vl, l, _H2D, _CUDA_SYNC,
-                                  threading->core, streams_gmres );
-      apply_operator_PRECISION( (vector_PRECISION)p->w_gpu, (vector_PRECISION)p->x_gpu, p, l, threading );
-      cuda_vector_PRECISION_copy( (void*)p->w, (void*)p->w_gpu, 0, vl, l, _D2H, _CUDA_SYNC,
-                                  threading->core, streams_gmres );
-      cuda_vector_PRECISION_copy( (void*)p->x, (void*)p->x_gpu, 0, vl, l, _D2H, _CUDA_SYNC,
-                                  threading->core, streams_gmres );
-      if ( p->shift ) {
-        int start_, end_;
-        compute_core_start_end_custom(p->v_start, p->v_end, &start_, &end_, l, threading, l->num_lattice_site_var );
-        vector_PRECISION_saxpy( p->w, p->w, p->x, -p->shift, start, end, l );
-      }
-    }
-    */
-    //}
-#endif
-
     vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
     beta = global_norm_PRECISION( p->r, p->v_start, p->v_end, l, threading );
 #else
@@ -767,8 +732,6 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
     }
     PROF_PRECISION_STOP( _ALLR, 1 );
     END_MASTER(threading)
-
-    printf("SPOT 3\n");    
     apply_operator_PRECISION( Z[j+1], Z[j], p, l, threading );
 
     START_MASTER(threading)
@@ -816,8 +779,6 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
     
     if ( prec != NULL ) {
       if ( p->kind == _LEFT ) {
-
-        printf("SPOT 4\n");
         apply_operator_PRECISION( Z[0], V[j], p, l, threading );
         if ( shift ) vector_PRECISION_saxpy( Z[0], Z[0], V[j], shift, start, end, l );
         prec( V[j+1], NULL, Z[0], _NO_RES, l, threading );
@@ -825,7 +786,6 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
       } else {
         if ( l->level == 0 ) {
           prec( Z[j], NULL, V[j], _NO_RES, l, threading );
-          printf("SPOT 5\n");
           apply_operator_PRECISION( V[j+1], Z[j], p, l, threading );
         } else {
           if ( g.mixed_precision == 2 && (g.method >= 1 && g.method <= 2 ) ) {
@@ -833,7 +793,6 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
             // obtains w = D * Z[j] from Schwarz
           } else {
             prec( Z[j], NULL, V[j], _NO_RES, l, threading );
-            printf("SPOT 6\n");
             apply_operator_PRECISION( V[j+1], Z[j], p, l, threading ); // w = D*Z[j]
           }
         }
@@ -841,7 +800,6 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
         if ( sigma ) vector_PRECISION_saxpy( V[j+1], V[j+1], V[j], -sigma, start, end, l );
       }
     } else {
-      printf("SPOT 7");
       apply_operator_PRECISION( V[j+1], V[j], p, l, threading ); // w = D*V[j]
       if ( shift-sigma ) vector_PRECISION_saxpy( V[j+1], V[j+1], V[j], shift-sigma, start, end, l );
     }
@@ -894,13 +852,11 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
   
   if ( prec != NULL ) {
     if ( p->kind == _LEFT ) {
-      printf("SPOT 8\n");
       apply_operator_PRECISION( Z[0], V[j], p, l, threading );
       if ( shift ) vector_PRECISION_saxpy( Z[0], Z[0], V[j], shift, start, end, l );
       prec( w, NULL, Z[0], _NO_RES, l, threading );
     } else {
       if ( l->level == 0 ) { 
-        printf("SPOT 9\n");
         apply_operator_PRECISION( w, Z[j], p, l, threading );
       } else {
         if ( g.mixed_precision == 2 && (g.method >= 1 && g.method <= 2 ) ) {
@@ -908,86 +864,13 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
           // obtains w = D * Z[j] from Schwarz
         } else {
           prec( Z[j], NULL, V[j], _NO_RES, l, threading );
-          //printf("SPOT 10\n");
-
-          // RE-DISABLE !
           apply_operator_PRECISION( w, Z[j], p, l, threading ); // w = D*Z[j]
-
-#ifdef CUDA_OPT
-          //if (l->depth == 0)
-#endif
-          //{
-          //  apply_operator_PRECISION( w, Z[j], p, l, threading ); // w = D*Z[j]
-          //}
-#ifdef CUDA_OPT
-          //else
-          // RE-ENABLE !
-          /*
-          {
-            cudaStream_t *streams_gmres = p->streams;
-            int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
-            cuda_vector_PRECISION_copy( (void*)p->w_gpu, (void*)w, 0, vl, l, _H2D, _CUDA_SYNC,
-                                        threading->core, streams_gmres );
-            cuda_vector_PRECISION_copy( (void*)p->x_gpu, (void*)Z[j], 0, vl, l, _H2D, _CUDA_SYNC,
-                                        threading->core, streams_gmres );
-            apply_operator_PRECISION( (vector_PRECISION)p->w_gpu, (vector_PRECISION)p->x_gpu, p, l, threading );
-            cuda_vector_PRECISION_copy( (void*)w, (void*)p->w_gpu, 0, vl, l, _D2H, _CUDA_SYNC,
-                                        threading->core, streams_gmres );
-            cuda_vector_PRECISION_copy( (void*)Z[j], (void*)p->x_gpu, 0, vl, l, _D2H, _CUDA_SYNC,
-                                        threading->core, streams_gmres );
-            if ( p->shift ) {
-              int start_, end_;
-              compute_core_start_end_custom(p->v_start, p->v_end, &start_, &end_, l, threading, l->num_lattice_site_var );
-              vector_PRECISION_saxpy( w, w, Z[j], -p->shift, start, end, l );
-            }
-          }
-          */
-          //}
-#endif
-
         }
         if ( shift ) vector_PRECISION_saxpy( w, w, Z[j], shift, start, end, l );
       }
     }
   } else {
-
-    //printf("SPOT 11\n");
-
-    // RE-DISABLE !
-    apply_operator_PRECISION( w, V[j], p, l, threading ); // w = D*V[j]
-
-#ifdef CUDA_OPT
-    //if (l->depth == 0)
-#endif
-    //{
-    //  apply_operator_PRECISION( w, V[j], p, l, threading ); // w = D*V[j]
-    //}
-#ifdef CUDA_OPT
-    //else
-    // RE-ENABLE !
-    /*
-    {
-      cudaStream_t *streams_gmres = p->streams;
-      int vl = (l->depth==0)?l->inner_vector_size:l->vector_size;
-      cuda_vector_PRECISION_copy( (void*)p->w_gpu, (void*)w, 0, vl, l, _H2D, _CUDA_SYNC,
-                                  threading->core, streams_gmres );
-      cuda_vector_PRECISION_copy( (void*)p->x_gpu, (void*)V[j], 0, vl, l, _H2D, _CUDA_SYNC,
-                                  threading->core, streams_gmres );
-      apply_operator_PRECISION( (vector_PRECISION)p->w_gpu, (vector_PRECISION)p->x_gpu, p, l, threading );
-      cuda_vector_PRECISION_copy( (void*)w, (void*)p->w_gpu, 0, vl, l, _D2H, _CUDA_SYNC,
-                                  threading->core, streams_gmres );
-      cuda_vector_PRECISION_copy( (void*)V[j], (void*)p->x_gpu, 0, vl, l, _D2H, _CUDA_SYNC,
-                                  threading->core, streams_gmres );
-      if ( p->shift ) {
-        int start_, end_;
-        compute_core_start_end_custom(p->v_start, p->v_end, &start_, &end_, l, threading, l->num_lattice_site_var );
-        vector_PRECISION_saxpy( w, w, V[j], -p->shift, start, end, l );
-      }
-    }
-    */
-    //}
-#endif
-
+    apply_operator_PRECISION( w, V[j], p, l, threading ); // w = D*V[j
     if ( shift ) vector_PRECISION_saxpy( w, w, V[j], shift, start, end, l );
   }
 
