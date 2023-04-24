@@ -12,6 +12,6 @@ make -j 8 all 2>testlogs/cpu_build.log >testlogs/cpu_build.log
 
 make clean 2>testlogs/gpu_clean.log >testlogs/gpu_clean.log
 # Build GPU version of program
-sed -i 's/CUDA_ENABLER =.*/CUDA_ENABLER = -DCUDA_OPT/g' MakeSettings.mk
+sed -i 's/CUDA_ENABLER =.*/CUDA_ENABLER = yes/g' MakeSettings.mk
 make -j 8 all 2>testlogs/gpu_build.log >testlogs/gpu_build.log
 ./test/integration_test.sh gpu
