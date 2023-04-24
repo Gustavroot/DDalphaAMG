@@ -99,12 +99,7 @@
   
 #endif
 
-// functions
-#include "clifford.h"
-
 #ifdef SSE
-#include "vectorization_dirac_float.h"
-#include "vectorization_dirac_double.h"
 #include "blas_vectorized.h"
 #include "sse_blas_vectorized.h"
 #include "sse_complex_float_intrinsic.h"

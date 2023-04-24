@@ -21,6 +21,7 @@
 
 #include "main.h"
 #include "profiling.h"
+#include "vectorization_dirac_PRECISION.h"
 
 #ifdef SSE
 

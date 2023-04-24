@@ -70,6 +70,8 @@
 // anything to add here ?
 #else
 #define I _Complex_I
+#endif
+
 #define conj_double conj
 #define conj_float conjf
 #define cabs_double cabs
@@ -86,6 +88,5 @@
 #define pow_float powf
 #define abs_float fabs
 #define abs_double abs
-#endif
 
 #endif // GLOBAL_DEFS_H

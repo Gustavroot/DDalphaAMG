@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "vectorization_dirac_float.h"
 
 #ifdef SSE
 

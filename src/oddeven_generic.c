@@ -24,6 +24,7 @@
 // used in oddeven_PRECISION_test
 #include "proxies/dirac_proxy_double.h"
 #include "proxies/data_layout_proxy_PRECISION.h"
+#include "vectorization_dirac_PRECISION.h"
 
 void selfcoupling_cholesky_decomposition_PRECISION( const config_PRECISION output, config_double input ) {
   

@@ -22,6 +22,7 @@
 #ifndef SSE_SCHWARZ_PRECISION_H
 #define SSE_SCHWARZ_PRECISION_H
 #ifdef SSE
+#include "global_defs.h"
 
 #ifdef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
 static inline void set_PRECISION_D_vectorized( PRECISION *out1, PRECISION *out2, complex_PRECISION *in ) {

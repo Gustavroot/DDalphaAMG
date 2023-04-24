@@ -1,11 +1,5 @@
 #include <mpi.h>
-
-extern "C" {
-
-#define IMPORT_FROM_EXTERN_C
-#include "main.h"
-#undef IMPORT_FROM_EXTERN_C
-}
+#include "global_struct.h"
 
 extern "C" void get_device_properties() {
   cudaDeviceProp devProp;

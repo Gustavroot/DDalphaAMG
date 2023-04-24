@@ -23,7 +23,7 @@
 #define CLIFFORD_HEADER
 
 #include <complex.h>
-#ifdef CU_OVERWRITE_I
+#ifdef __cplusplus
 // for CUDA complex literals
 #include "gpu/cuda_complex_operators_float.h"
 #endif
@@ -37,13 +37,9 @@
   // BASIS3: Basis used in the QOPQDP Code
   #define BASIS0 // change here
 
-  #ifdef CU_OVERWRITE_I
+  #ifdef __cplusplus
   #undef I
   #define I 1.0_cu_i_float
-  #endif
-
-  #ifndef I
-    #define I _Complex_I
   #endif
 
   #ifdef BASIS0
@@ -539,14 +535,14 @@
     #endif
   #endif
 
-  #ifdef SSE
+  #if defined(SSE) && !defined(__cplusplus)
   static const int gamma_co[4][4] = {
     {GAMMA_T_SPIN0_CO, GAMMA_T_SPIN1_CO, GAMMA_T_SPIN2_CO, GAMMA_T_SPIN3_CO},
     {GAMMA_Z_SPIN0_CO, GAMMA_Z_SPIN1_CO, GAMMA_Z_SPIN2_CO, GAMMA_Z_SPIN3_CO},
     {GAMMA_Y_SPIN0_CO, GAMMA_Y_SPIN1_CO, GAMMA_Y_SPIN2_CO, GAMMA_Y_SPIN3_CO},
     {GAMMA_X_SPIN0_CO, GAMMA_X_SPIN1_CO, GAMMA_X_SPIN2_CO, GAMMA_X_SPIN3_CO}};
 
-  static const double complex gamma_val[4][4] = {
+  static const double _Complex gamma_val[4][4] = {
     {GAMMA_T_SPIN0_VAL, GAMMA_T_SPIN1_VAL, GAMMA_T_SPIN2_VAL, GAMMA_T_SPIN3_VAL},
     {GAMMA_Z_SPIN0_VAL, GAMMA_Z_SPIN1_VAL, GAMMA_Z_SPIN2_VAL, GAMMA_Z_SPIN3_VAL},
     {GAMMA_Y_SPIN0_VAL, GAMMA_Y_SPIN1_VAL, GAMMA_Y_SPIN2_VAL, GAMMA_Y_SPIN3_VAL},
@@ -569,6 +565,6 @@
     {GAMMA_Z_SPIN0_IM_SIGN,GAMMA_Z_SPIN1_IM_SIGN,GAMMA_Z_SPIN2_IM_SIGN,GAMMA_Z_SPIN3_IM_SIGN},
     {GAMMA_Y_SPIN0_IM_SIGN,GAMMA_Y_SPIN1_IM_SIGN,GAMMA_Y_SPIN2_IM_SIGN,GAMMA_Y_SPIN3_IM_SIGN},
     {GAMMA_X_SPIN0_IM_SIGN,GAMMA_X_SPIN1_IM_SIGN,GAMMA_X_SPIN2_IM_SIGN,GAMMA_X_SPIN3_IM_SIGN}};
-  #endif  // SSE
+  #endif  // defined(SSE) && !defined(__cplusplus)
   
 #endif  // CLIFFORD_HEADER

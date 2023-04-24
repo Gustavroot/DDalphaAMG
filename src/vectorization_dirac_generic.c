@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "vectorization_dirac_PRECISION.h"
 
 #ifdef SSE
 void d_plus_clover_aggregate_PRECISION_vectorized( complex_PRECISION *eta1, complex_PRECISION *eta2,
