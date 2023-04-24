@@ -3,6 +3,9 @@ dd_alpha_amg_db
 build
 testlogs
 
+# To be adjusted locally
+MakeSettings.mk
+
 # Ignore everything in conf/, except some default code/configs. This allows to add new test configs
 conf/*
 !conf/4x4x4x4b6.0000id3n1
