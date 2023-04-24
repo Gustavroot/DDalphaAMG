@@ -59,7 +59,7 @@ endif
 # Extra Warnings that developers should fix but don't.
 # This is a C only flag as implicit function declaration is forbidden in C++ anyways.
 COMPILE_FLAGS += -Wall -Werror-implicit-function-declaration
-LINK_FLAGS = -lgomp -lm
+LINK_FLAGS = -lgomp -lm -ldl
 
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
@@ -82,7 +82,7 @@ OPT_VERSION_FLAGS_CUDA = -O3 -Xcompiler "-ffast-math"
 DEBUG_VERSION_FLAGS_CUDA = 
 
 
-NVCC_LINK_FLAGS = $(NVCC_ARCHITECTURE_FLAGS) -lmpi -lgomp -lm
+NVCC_LINK_FLAGS = $(NVCC_ARCHITECTURE_FLAGS) -lmpi -lgomp -lm -ldl
 ifdef MPI_LIB
 	NVCC_LINK_FLAGS += -L$(MPI_LIB)
 endif
@@ -103,7 +103,7 @@ dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
 	$(NVCC) $(NVCC_LINK_FLAGS) -o $@ $(OBJ) $(OBJ_CUDA)
 else
 dd_alpha_amg : $(OBJ)
-	$(CC) $(LINK_FLAGS) -o $@ $(OBJ) -lm
+	$(CC) $(LINK_FLAGS) -o $@ $(OBJ)
 endif
 
 ifeq ($(CUDA_ENABLER),yes)
@@ -111,7 +111,7 @@ dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
 	$(NVCC) -g $(NVCC_LINK_FLAGS) -o $@ $(OBJDB) $(OBJ_CUDADB)
 else
 dd_alpha_amg_db : $(OBJDB)
-	$(CC) -g $(LINK_FLAGS) -o $@ $(OBJDB) -lm
+	$(CC) -g $(LINK_FLAGS) -o $@ $(OBJDB)
 endif
 
 ######
