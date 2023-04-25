@@ -5,6 +5,7 @@
 #ifdef CUDA_OPT
 #include "miscellaneous.h"
 #endif
+#include <malloc.h>
 
 
 #ifdef SSE
