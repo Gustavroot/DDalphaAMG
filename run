@@ -194,7 +194,7 @@ DBGPROF_LINE=
 if [ ${ipa[0]} = 0  ]
 then
   $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np \
-    --bind-to board --report-bindings $DBGPROF_LINE \
+    --bind-to board $DBGPROF_LINE \
     ./$exec $inputfile || exit $?
 else
   cp $inputfile output/${opf}.txt
