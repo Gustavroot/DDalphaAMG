@@ -21,14 +21,16 @@
  
 #include "main.h"
 
-global_struct g;
+#include "profiling.h"
+#include "proxies/dirac_proxy.h"
+
 #ifdef HAVE_HDF5
 Hdf5_fileinfo h5info;
 #endif
 struct common_thread_data *commonthreaddata;
-struct Thread *no_threading;
 
 int main( int argc, char **argv ) {
+  RangeHandleType profilingRangeMain = startProfilingRange("main");
     
 #ifdef HAVE_HDF5
   h5info.filename=NULL;
@@ -108,15 +110,22 @@ int main( int argc, char **argv ) {
 
     // TODO: move this line to a better place !
     g.nr_threads = threading.n_core;
-
+    RangeHandleType rangeHandle;
+    
+    rangeHandle = startProfilingRange("Setup");
     // setup up initial MG hierarchy
     method_setup( NULL, &l, &threading );
+    endProfilingRange(rangeHandle);
 
+    rangeHandle = startProfilingRange("Update");
     // iterative phase
     method_update( l.setup_iter, &l, &threading );
+    endProfilingRange(rangeHandle);
 
+    rangeHandle = startProfilingRange("Solve");
     g.on_solve=1;
     solve_driver( &l, &threading );
+    endProfilingRange(rangeHandle);
   }
 
   finalize_common_thread_data(commonthreaddata);
@@ -127,5 +136,6 @@ int main( int argc, char **argv ) {
 
   MPI_Finalize();
   
+  endProfilingRange(profilingRangeMain);
   return 0;
 }

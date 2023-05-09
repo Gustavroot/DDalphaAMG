@@ -21,11 +21,12 @@
 
 #include "main.h"
 #include "dd_alpha_amg.h"
+#include "proxies/operator_proxy_double.h"
+#include "proxies/dirac_proxy.h"
 
 
 #define NCORE 1
- 
-global_struct g;
+
 static level_struct l;
 static int (*get_global_time)(int t);
 static struct common_thread_data *commonthreaddata;
@@ -340,7 +341,7 @@ double dd_alpha_amg_wilson_solve( double *vector_out, double *vector_in, double 
   g.coarse_iter_count = 0;
   g.iter_count = 0;
   g.p.tol = tol;
-  g.p_MP.dp.tol = tol;
+  g.p_MP.double_section.tol = tol;
   
   for ( j=0, t=0; t<ll[T]; t++ )
     for ( z=0; z<ll[Z]; z++ )

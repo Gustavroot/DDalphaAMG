@@ -11,9 +11,9 @@ extern "C"{
 #ifdef CUDA_OPT
 
 extern "C" void
-cuda_vector_PRECISION_copy(					void* out, void* in, int start, int size_of_copy, level_struct *l,
-                                                                int memcpy_kind, int cuda_async_type, int stream_id,
-                                                                cudaStream_t *streams ){
+cuda_vector_PRECISION_copy(void *out, void const * in, int start, int size_of_copy, level_struct *l,
+                           int memcpy_kind, int cuda_async_type, int stream_id,
+                           cudaStream_t *streams){
 
   switch(memcpy_kind){
 

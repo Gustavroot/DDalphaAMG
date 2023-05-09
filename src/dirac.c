@@ -58,7 +58,7 @@ void compute_clover_term ( SU3_storage U, level_struct *l ) {
   }
 }
 
-void dirac_setup( config_double hopp, config_double clover, level_struct *l ) {
+void cpu_dirac_setup( config_double hopp, config_double clover, level_struct *l ) {
 
 /*********************************************************************************
 * Sets up the gauge matrices + clover term for the dirac operator and calculates 

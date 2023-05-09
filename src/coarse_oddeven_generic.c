@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "proxies/data_layout_proxy_PRECISION.h"
 
 void coarse_selfcoupling_LU_decomposition_PRECISION( const config_PRECISION output, config_PRECISION input, level_struct *l ) {
   // input = [ A B      , A=A*, D=D*, C = -B*
@@ -388,7 +389,7 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
   nt = op->neighbor_table;
   tt = op->translation_table;
   
-  define_nt_bt_tt( nt, op->backward_neighbor_table, NULL, tt, eot, N, l );
+  define_nt_bt_tt_PRECISION(op, NULL, N, l );
   
   // boundary table
   for ( mu=0; mu<4; mu++ ) {

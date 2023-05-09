@@ -20,6 +20,11 @@
  */
  
 #include "main.h"
+#include "proxies/dirac_proxy_float.h"
+// used in oddeven_PRECISION_test
+#include "proxies/dirac_proxy_double.h"
+#include "proxies/data_layout_proxy_PRECISION.h"
+#include "vectorization_dirac_PRECISION.h"
 
 void selfcoupling_cholesky_decomposition_PRECISION( const config_PRECISION output, config_double input ) {
   
@@ -418,7 +423,7 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   nt = op->neighbor_table;
   tt = op->translation_table;
   
-  define_nt_bt_tt( nt, op->backward_neighbor_table, NULL, tt, eot, N, l );
+  define_nt_bt_tt_PRECISION(op, NULL, N, l );
   
   // boundary table
   for ( mu=0; mu<4; mu++ ) {

@@ -36,10 +36,10 @@
                             complex_double *gamma, complex_double **H, int j,
                             gmres_float_struct *p, level_struct *l, struct Thread *threading );
   
-  void fgmres_MP_struct_init( gmres_MP_struct *p );
-  void fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_kind,
+  void cpu_fgmres_MP_struct_init( gmres_MP_struct *p );
+  void cpu_fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_kind,
                                void (*precond)(), gmres_MP_struct *p, level_struct* l );
-  void fgmres_MP_struct_free( gmres_MP_struct *p );
+  void cpu_fgmres_MP_struct_free( gmres_MP_struct *p );
   
   int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading );
   

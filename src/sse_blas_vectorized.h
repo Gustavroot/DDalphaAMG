@@ -34,7 +34,10 @@ static inline void sse_cgem_inverse( const int N, float *A_inverse, float *A, in
   
   for ( j=0; j<N; j++ ) {
     for ( i=0; i<N; i++ ) {
+// FUNCTION BROKEN! _Complex_I is not supported in C++
+#ifndef __cplusplus
       tmpA[i+N*j] = A[2*j*lda+i] + _Complex_I * A[(2*j+1)*lda+i];
+#endif
     }
   }
   

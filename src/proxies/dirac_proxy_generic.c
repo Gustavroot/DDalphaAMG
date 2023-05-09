@@ -1,0 +1,22 @@
+#include "dirac_proxy_PRECISION.h"
+
+#ifdef CUDA_OPT
+#include "gpu/cuda_dirac_PRECISION.h"
+#endif
+
+#include <complex.h>
+#include "dirac_PRECISION.h"
+#include "console_out.h"
+#include "linalg_PRECISION.h"
+#include "operator.h"
+
+void d_plus_clover_PRECISION(vector_PRECISION eta, complex_PRECISION const * phi,
+                             operator_PRECISION_struct *op, level_struct *l,
+                             struct Thread *threading)
+{
+#ifdef CUDA_OPT
+  cuda_d_plus_clover_PRECISION_vectorwrapper(eta, phi, op, l, threading);
+#else
+  d_plus_clover_PRECISION_cpu(eta, phi, op, l, threading);
+#endif
+}

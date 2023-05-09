@@ -1,0 +1,6 @@
+#ifndef COMPLEX_TYPES_PRECISION_H
+#define COMPLEX_TYPES_PRECISION_H
+typedef PRECISION _Complex complex_PRECISION;
+typedef PRECISION _Complex *config_PRECISION;
+typedef PRECISION _Complex *vector_PRECISION;
+#endif // COMPLEX_TYPES_PRECISION_H

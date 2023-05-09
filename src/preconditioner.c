@@ -21,10 +21,11 @@
 
 #include "main.h"
 #include "preconditioner.h"
+#include "profiling.h"
 
 void preconditioner( vector_double phi, vector_double Dphi, vector_double eta,
                       const int res, level_struct *l, struct Thread *threading ) {
-
+  RangeHandleType profilingRangePrec = startProfilingRange("Preconditioner");
   if ( g.method == 0 )
     vector_double_copy( phi, eta, threading->start_index[l->depth], threading->end_index[l->depth], l );
   else if ( g.method < 5 || g.method == 6 || !g.odd_even ) {
@@ -67,5 +68,6 @@ void preconditioner( vector_double phi, vector_double Dphi, vector_double eta,
   }
   ASSERT( g.mixed_precision != 2 );
   ASSERT( Dphi == NULL );
+  endProfilingRange(profilingRangePrec);
 }
 

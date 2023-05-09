@@ -23,6 +23,9 @@
 #define DIRAC_SSE_H
 #ifdef SSE
 
+#include "global_defs.h"
+#include "clifford.h"
+
 void prp_double( complex_double *prn[4], complex_double *phi, int start, int end );
 void prp_float( complex_float *prn[4], complex_float *phi, int start, int end );
 void prn_su3_double( complex_double *prp[4], complex_double *phi, operator_double_struct *op, int *neighbor, int start, int end );

@@ -65,8 +65,8 @@ int wilson_driver( vector_double solution, vector_double source, level_struct *l
   
   int iter = 0, start = threading->start_index[l->depth], end = threading->end_index[l->depth];
   
-  vector_double rhs = g.mixed_precision==2?g.p_MP.dp.b:g.p.b;
-  vector_double sol = g.mixed_precision==2?g.p_MP.dp.x:g.p.x;
+  vector_double rhs = g.mixed_precision==2?g.p_MP.double_section.b:g.p.b;
+  vector_double sol = g.mixed_precision==2?g.p_MP.double_section.x:g.p.x;
 
 #ifdef WILSON_BENCHMARK
   START_MASTER(threading)
@@ -106,7 +106,7 @@ int wilson_driver( vector_double solution, vector_double source, level_struct *l
 
 void solve( vector_double solution, vector_double source, level_struct *l, struct Thread *threading ) {
   
-  vector_double rhs = g.mixed_precision==2?g.p_MP.dp.b:g.p.b;
+  vector_double rhs = g.mixed_precision==2?g.p_MP.double_section.b:g.p.b;
 
   if ( g.vt.evaluation ) {
     // this would yield different results if we threaded it, so we don't

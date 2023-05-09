@@ -1,5 +1,8 @@
 #ifndef MISCELLANEOUS_HEADER
-  #define MISCELLANEOUS_HEADER
+#define MISCELLANEOUS_HEADER
+
+#include <stdio.h>
+#include "global_struct.h"
 
   // Specification of file and line nr to throw on error check
   #define cuda_safe_call( err ) __cuda_safe_call( err, __FILE__, __LINE__ )

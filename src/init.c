@@ -20,13 +20,13 @@
  */
 
 #include "main.h"
-
-complex_double _COMPLEX_double_ONE = (complex_double)1.0;
-complex_double _COMPLEX_double_MINUS_ONE = (complex_double)(-1.0);
-complex_double _COMPLEX_double_ZERO = (complex_double)0.0;
-complex_float  _COMPLEX_float_ONE = (complex_float)1.0;
-complex_float  _COMPLEX_float_MINUS_ONE = (complex_float)(-1.0);
-complex_float  _COMPLEX_float_ZERO = (complex_float)0.0;
+#include "proxies/dirac_proxy_double.h"
+#include "proxies/dirac_proxy_float.h"
+#include "proxies/linsolve_proxy.h"
+#include "proxies/linsolve_proxy_double.h"
+#include "proxies/linsolve_proxy_float.h"
+#include "proxies/operator_proxy_double.h"
+#include "proxies/operator_proxy_float.h"
 
 
 void next_level_setup( vector_double *V, level_struct *l, struct Thread *threading ) {
@@ -466,8 +466,10 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
       error0("only supporting 'block lattice _ mu' a multiple of 4 at the finest level for now.\n");
     }
 
-    if (g.method != 2) {
-      error0("only supporting method=2 for now when -DCUDA_OPT enabled. Check your .ini file.\n");
+    if (g.method != 2 && g.method != 0) {
+      // method 0 (GMRES only) mostly falls back to CPU calculations for now.
+      error0("only supporting method=2 and method=0 for now when -DCUDA_OPT enabled. "
+        "Check your .ini file.\n");
     }
     if (g.odd_even != 1) {
       error0("only supporting odd_even=1 for now when -DCUDA_OPT enabled. Check your .ini file.\n");
@@ -1132,6 +1134,11 @@ void validate_parameters( int ls, level_struct *l ) {
   if ( g.method == 5 && g.interpolation != 0 ) {
     warning0("Multigrid with BiCGstab smoothing is not supported.\n         Switching to FGMRES preconditioned with BiCGstab (g.interpolation=0).\n");
     g.interpolation = 0;
+  }
+
+  if (g.method == -1 && g.mixed_precision == 2) {
+    error0("Mixed precision 2 is a (F)GMRES option and thus only compatible with methods"
+           ">= 0 (i.e. pure GMRES and FGMRES).");
   }
 
   ASSERT( ASCENDING( 0, g.rhs, 2 ) );

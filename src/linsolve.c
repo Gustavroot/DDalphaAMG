@@ -21,37 +21,39 @@
 
 #include "main.h"
 #include "linsolve.h"
+#include "proxies/dirac_proxy_double.h"
+#include "proxies/dirac_proxy_float.h"
 
-void fgmres_MP_struct_init( gmres_MP_struct *p ) {
-  fgmres_float_struct_init( &(p->sp) );
-  fgmres_double_struct_init( &(p->dp) );
+void cpu_fgmres_MP_struct_init( gmres_MP_struct *p ) {
+  cpu_fgmres_float_struct_init( &(p->float_section) );
+  cpu_fgmres_double_struct_init( &(p->double_section) );
 }
 
 
-void fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_kind, 
+void cpu_fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_kind, 
                              void (*precond)(), gmres_MP_struct *p, level_struct *l ) {
   long int total=0; 
   int i, k=0;
   
-  p->dp.restart_length = m;                      p->sp.restart_length = m;           
-  p->dp.num_restart = n;                         p->sp.num_restart = n;
-  p->dp.preconditioner = NULL;                   p->sp.preconditioner = precond;
+  p->double_section.restart_length = m;                      p->float_section.restart_length = m;           
+  p->double_section.num_restart = n;                         p->float_section.num_restart = n;
+  p->double_section.preconditioner = NULL;                   p->float_section.preconditioner = precond;
   if ( g.method == 6 ) {
-  p->dp.eval_operator = g5D_plus_clover_double;  p->sp.eval_operator = g5D_plus_clover_float;
+  p->double_section.eval_operator = g5D_plus_clover_double;  p->float_section.eval_operator = g5D_plus_clover_float;
   } else {
-  p->dp.eval_operator = d_plus_clover_double;    p->sp.eval_operator = d_plus_clover_float;
+  p->double_section.eval_operator = d_plus_clover_double;    p->float_section.eval_operator = d_plus_clover_float;
   }
-  p->dp.tol = tol;                               p->sp.tol = MAX(tol,1E-5);
-  p->dp.kind = _NOTHING;                         p->sp.kind = prec_kind;
-  p->dp.timing = 1;                              p->sp.timing = 1;
+  p->double_section.tol = tol;                               p->float_section.tol = MAX(tol,1E-5);
+  p->double_section.kind = _NOTHING;                         p->float_section.kind = prec_kind;
+  p->double_section.timing = 1;                              p->float_section.timing = 1;
                                  
-  p->dp.print = g.vt.evaluation?0:1;             p->sp.print = g.vt.evaluation?0:1;
-  p->dp.initial_guess_zero = 1;                  p->sp.initial_guess_zero = 1;
-  p->dp.shift = 0;                               p->sp.shift = 0;
-  p->dp.v_start = 0;                             p->sp.v_start = 0;
-  p->dp.v_end = l->inner_vector_size;            p->sp.v_end = l->inner_vector_size;
+  p->double_section.print = g.vt.evaluation?0:1;             p->float_section.print = g.vt.evaluation?0:1;
+  p->double_section.initial_guess_zero = 1;                  p->float_section.initial_guess_zero = 1;
+  p->double_section.shift = 0;                               p->float_section.shift = 0;
+  p->double_section.v_start = 0;                             p->float_section.v_start = 0;
+  p->double_section.v_end = l->inner_vector_size;            p->float_section.v_end = l->inner_vector_size;
   
-  p->dp.op = &(g.op_double);                     p->sp.op = &(l->s_float.op);
+  p->double_section.op = &(g.op_double);                     p->float_section.op = &(l->s_float.op);
   
   g.p.op = &(g.op_double);
   if ( g.method == 6 ) {
@@ -63,43 +65,43 @@ void fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_ki
   // double precision part
   total = 0;
   total += (m+1)*m; // Hessenberg matrix
-  MALLOC( p->dp.H, complex_double*, m );
+  MALLOC( p->double_section.H, complex_double*, m );
   total += 4*(m+1); // y, gamma, c, s
   total += 3*vl;    // x, r, b
-  p->dp.total_storage = total;
+  p->double_section.total_storage = total;
   // precomputed storage amount
   
-  p->dp.H[0] = NULL; // allocate connected memory
-  MALLOC( p->dp.H[0], complex_double, total );
+  p->double_section.H[0] = NULL; // allocate connected memory
+  MALLOC( p->double_section.H[0], complex_double, total );
   
   // reserve storage
   total = 0;
   // H
   for ( i=1; i<m; i++ )
-    p->dp.H[i] = p->dp.H[0] + i*(m+1);
+    p->double_section.H[i] = p->double_section.H[0] + i*(m+1);
   total += m*(m+1);
   // y
-  p->dp.y = p->dp.H[0] + total; total += m+1;
+  p->double_section.y = p->double_section.H[0] + total; total += m+1;
   // gamma
-  p->dp.gamma = p->dp.H[0] + total; total += m+1;
+  p->double_section.gamma = p->double_section.H[0] + total; total += m+1;
   // c
-  p->dp.c = p->dp.H[0] + total; total += m+1;
+  p->double_section.c = p->double_section.H[0] + total; total += m+1;
   // s
-  p->dp.s = p->dp.H[0] + total; total += m+1;
+  p->double_section.s = p->double_section.H[0] + total; total += m+1;
   // x
-  p->dp.x = p->dp.H[0] + total; total += vl;
+  p->double_section.x = p->double_section.H[0] + total; total += vl;
   // r
-  p->dp.r = p->dp.H[0] + total; total += vl;
+  p->double_section.r = p->double_section.H[0] + total; total += vl;
   // b
-  p->dp.b = p->dp.H[0] + total; total += vl;  
+  p->double_section.b = p->double_section.H[0] + total; total += vl;  
   
-  ASSERT( p->dp.total_storage == total );
+  ASSERT( p->double_section.total_storage == total );
   
   
   // single precision part
   total = 0;
   total += (2+m)*vl; // w, V
-  MALLOC( p->sp.V, complex_float*, m+1 );
+  MALLOC( p->float_section.V, complex_float*, m+1 );
   if ( precond != NULL ) {
     if ( prec_kind == _RIGHT ) {
       total += (m+1)*vl; // Z
@@ -108,44 +110,44 @@ void fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int prec_ki
       total += vl;
       k = 1;
     }
-    MALLOC( p->sp.Z, complex_float*, k );
+    MALLOC( p->float_section.Z, complex_float*, k );
   }
-  p->sp.total_storage = total;
+  p->float_section.total_storage = total;
   // precomputed storage amount
   
-  p->sp.w = NULL;
-  MALLOC( p->sp.w, complex_float, total );
+  p->float_section.w = NULL;
+  MALLOC( p->float_section.w, complex_float, total );
   
   // reserve storage
   total = 0;
   // w
-  p->sp.w = p->sp.w + total; total += vl;
+  p->float_section.w = p->float_section.w + total; total += vl;
   // V 
   for ( i=0; i<m+1; i++ ) {
-    p->sp.V[i] = p->sp.w + total; total += vl;
+    p->float_section.V[i] = p->float_section.w + total; total += vl;
   }
   // Z
   if ( precond != NULL ) {
     for ( i=0; i<k; i++ ) {
-      p->sp.Z[i] = p->sp.w + total; total += vl;
+      p->float_section.Z[i] = p->float_section.w + total; total += vl;
     }
   }
   
-  ASSERT( p->sp.total_storage == total );
+  ASSERT( p->float_section.total_storage == total );
 }  
    
    
-void fgmres_MP_struct_free( gmres_MP_struct *p ) {
+void cpu_fgmres_MP_struct_free( gmres_MP_struct *p ) {
    
   // single precision
-  FREE( p->sp.w, complex_float, p->sp.total_storage );
-  FREE( p->sp.V, complex_float*, p->sp.restart_length+1 );
-  if ( p->sp.Z != NULL )
-    FREE( p->sp.Z, complex_float*, p->sp.kind==_RIGHT?p->sp.restart_length+1:1 );
+  FREE( p->float_section.w, complex_float, p->float_section.total_storage );
+  FREE( p->float_section.V, complex_float*, p->float_section.restart_length+1 );
+  if ( p->float_section.Z != NULL )
+    FREE( p->float_section.Z, complex_float*, p->float_section.kind==_RIGHT?p->float_section.restart_length+1:1 );
   
   // double precision
-  FREE( p->dp.H[0], complex_double, p->dp.total_storage );
-  FREE( p->dp.H, complex_double*, p->dp.restart_length );
+  FREE( p->double_section.H[0], complex_double, p->double_section.total_storage );
+  FREE( p->double_section.H, complex_double*, p->double_section.restart_length );
   
 }
   
@@ -170,32 +172,32 @@ int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading ) {
   double norm_r0=1, gamma_jp1=1, t0=0, t1=0;
   START_LOCKED_MASTER(threading)
 #ifndef WILSON_BENCHMARK
-  if ( l->depth==0 && ( p->dp.timing || p->dp.print ) ) prof_init( l );
+  if ( l->depth==0 && ( p->double_section.timing || p->double_section.print ) ) prof_init( l );
 #endif
-  if ( l->level==0 && g.num_levels > 1 && g.interpolation ) p->dp.tol = g.coarse_tol;
-  if ( l->depth > 0 ) p->dp.timing = 1;
+  if ( l->level==0 && g.num_levels > 1 && g.interpolation ) p->double_section.tol = g.coarse_tol;
+  if ( l->depth > 0 ) p->double_section.timing = 1;
   if ( l->depth == 0 ) t0 = MPI_Wtime();
 #if defined(TRACK_RES) && !defined(WILSON_BENCHMARK)
-  if ( p->dp.print && g.print > 0 ) printf0("+----------------------------------------------------------+\n");
+  if ( p->double_section.print && g.print > 0 ) printf0("+----------------------------------------------------------+\n");
 #endif
   END_LOCKED_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
   // compute start and end indices for core
   // this puts zero for all other hyperthreads, so we can call functions below with all hyperthreads
-  compute_core_start_end(p->dp.v_start, p->dp.v_end, &start, &end, l, threading);
+  compute_core_start_end(p->double_section.v_start, p->double_section.v_end, &start, &end, l, threading);
   
   // Outer loop in double precision
-  for( ol=0; ol<p->dp.num_restart && finish==0; ol++ )  {
+  for( ol=0; ol<p->double_section.num_restart && finish==0; ol++ )  {
 
-    if( ol == 0 && p->dp.initial_guess_zero ) {
-      vector_double_copy( p->dp.r, p->dp.b, start, end, l );
+    if( ol == 0 && p->double_section.initial_guess_zero ) {
+      vector_double_copy( p->double_section.r, p->double_section.b, start, end, l );
     } else {
-      apply_operator_double( p->dp.r, p->dp.x, &(p->dp), l, threading ); // compute r <- D*x
-      vector_double_minus( p->dp.r, p->dp.b, p->dp.r, start, end, l ); // compute r <- b - r
+      apply_operator_double( p->double_section.r, p->double_section.x, &(p->double_section), l, threading ); // compute r <- D*x
+      vector_double_minus( p->double_section.r, p->double_section.b, p->double_section.r, start, end, l ); // compute r <- b - r
     }
-    gamma0 = (complex_double) global_norm_double( p->dp.r, p->dp.v_start, p->dp.v_end, l, threading ); // gamma_0 = norm(r)
+    gamma0 = (complex_double) global_norm_double( p->double_section.r, p->double_section.v_start, p->double_section.v_end, l, threading ); // gamma_0 = norm(r)
     START_MASTER(threading)
-    p->dp.gamma[0] = gamma0;
+    p->double_section.gamma[0] = gamma0;
     END_MASTER(threading)
     SYNC_MASTER_TO_ALL(threading)
     
@@ -204,7 +206,7 @@ int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading ) {
     } 
 #if defined(TRACK_RES) && !defined(WILSON_BENCHMARK)
     else {
-      if ( p->dp.print && g.print > 0 ) {
+      if ( p->double_section.print && g.print > 0 ) {
         START_MASTER(threading)
         printf0("+----------------------------------------------------------+\n");
         printf0("| restarting ...          true residual norm: %6e |\n", creal(gamma0)/norm_r0 );
@@ -214,48 +216,48 @@ int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading ) {
     }
 #endif
     
-    trans_float( p->sp.V[0], p->dp.r, l->s_float.op.translation_table, l, threading );
-    vector_float_real_scale( p->sp.V[0], p->sp.V[0], (float)(1/p->dp.gamma[0]), start, end, l ); // V[0] <- r / gamma_0
+    trans_float( p->float_section.V[0], p->double_section.r, l->s_float.op.translation_table, l, threading );
+    vector_float_real_scale( p->float_section.V[0], p->float_section.V[0], (float)(1/p->double_section.gamma[0]), start, end, l ); // V[0] <- r / gamma_0
     
     // inner loop in single precision
-    for( il=0; il<p->dp.restart_length && finish==0; il++) {
+    for( il=0; il<p->double_section.restart_length && finish==0; il++) {
 
       j = il; iter++;
-      arnoldi_step_MP( p->sp.V, p->sp.Z, p->sp.w, p->dp.H, p->dp.y, j, p->sp.preconditioner,
-                       p->sp.shift, &(p->sp), l, threading );
+      arnoldi_step_MP( p->float_section.V, p->float_section.Z, p->float_section.w, p->double_section.H, p->double_section.y, j, p->float_section.preconditioner,
+                       p->float_section.shift, &(p->float_section), l, threading );
       
-      if ( cabs( p->dp.H[j][j+1] ) > 1E-15 ) {
-        qr_update_double( p->dp.H, p->dp.s, p->dp.c, p->dp.gamma, j, l, threading );
-        gamma_jp1 = cabs( p->dp.gamma[j+1] );	  
+      if ( cabs( p->double_section.H[j][j+1] ) > 1E-15 ) {
+        qr_update_double( p->double_section.H, p->double_section.s, p->double_section.c, p->double_section.gamma, j, l, threading );
+        gamma_jp1 = cabs( p->double_section.gamma[j+1] );	  
         
-        if ( iter%10 == 0 || p->sp.preconditioner != NULL || l->depth > 0 ) {
+        if ( iter%10 == 0 || p->float_section.preconditioner != NULL || l->depth > 0 ) {
 #if defined(TRACK_RES) && !defined(WILSON_BENCHMARK)
           START_MASTER(threading)
-          if ( p->sp.print && g.print > 0 )
+          if ( p->float_section.print && g.print > 0 )
             printf0("| approx. rel. res. after  %-6d iterations: %e |\n", iter, gamma_jp1/norm_r0 );
           END_MASTER(threading)
 #endif
         }
-        if( gamma_jp1/norm_r0 < p->dp.tol || gamma_jp1/norm_r0 > 1E+5 ) { // if satisfied ... stop
+        if( gamma_jp1/norm_r0 < p->double_section.tol || gamma_jp1/norm_r0 > 1E+5 ) { // if satisfied ... stop
           finish = 1;
           START_MASTER(threading)
             if ( gamma_jp1/norm_r0 > 1E+5 ) printf0("Divergence of fgmres_MP, iter = %d, level=%d\n", iter, l->level );
           END_MASTER(threading)
         }
-        if( gamma_jp1/creal(gamma0) < p->sp.tol )
+        if( gamma_jp1/creal(gamma0) < p->float_section.tol )
           break;
       } else {
         finish = 1;
       }
     } // end of a single restart
-    compute_solution_MP( p->sp.w, (p->sp.preconditioner&&p->sp.kind==_RIGHT)?p->sp.Z:p->sp.V,
-                         p->dp.y, p->dp.gamma, p->dp.H, j, &(p->sp), l, threading );
+    compute_solution_MP( p->float_section.w, (p->float_section.preconditioner&&p->float_section.kind==_RIGHT)?p->float_section.Z:p->float_section.V,
+                         p->double_section.y, p->double_section.gamma, p->double_section.H, j, &(p->float_section), l, threading );
                                 
-    trans_back_float( p->dp.r, p->sp.w, l->s_float.op.translation_table, l, threading );
+    trans_back_float( p->double_section.r, p->float_section.w, l->s_float.op.translation_table, l, threading );
     if ( ol == 0 ) {
-      vector_double_copy( p->dp.x, p->dp.r, start, end, l );
+      vector_double_copy( p->double_section.x, p->double_section.r, start, end, l );
     } else {
-      vector_double_plus( p->dp.x, p->dp.x, p->dp.r, start, end, l );
+      vector_double_plus( p->double_section.x, p->double_section.x, p->double_section.r, start, end, l );
     }
   } // end of fgmres
   
@@ -263,11 +265,11 @@ int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading ) {
   if ( l->depth == 0 ) { t1 = MPI_Wtime(); g.total_time = t1-t0; g.iter_count = iter; g.norm_res = gamma_jp1/norm_r0; }
   END_LOCKED_MASTER(threading)
   
-  if ( p->dp.print ) {
+  if ( p->double_section.print ) {
 #ifdef FGMRES_RESTEST
-    apply_operator_double( p->dp.r, p->dp.x, &(p->dp), l, threading );
-    vector_double_minus( p->dp.r, p->dp.b, p->dp.r, start, end, l );
-    beta = global_norm_double( p->dp.r, p->dp.v_start, p->dp.v_end, l, threading );
+    apply_operator_double( p->double_section.r, p->double_section.x, &(p->double_section), l, threading );
+    vector_double_minus( p->double_section.r, p->double_section.b, p->double_section.r, start, end, l );
+    beta = global_norm_double( p->double_section.r, p->double_section.v_start, p->double_section.v_end, l, threading );
 #else
     beta = gamma_jp1;
 #endif
@@ -306,7 +308,7 @@ int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading ) {
     }
   }
 
-  if ( l->depth == 0 && ( p->dp.timing || p->dp.print ) && !(g.vt.p_end != NULL )  ) {
+  if ( l->depth == 0 && ( p->double_section.timing || p->double_section.print ) && !(g.vt.p_end != NULL )  ) {
     START_MASTER(threading)
 #ifndef WILSON_BENCHMARK
     prof_print( l );

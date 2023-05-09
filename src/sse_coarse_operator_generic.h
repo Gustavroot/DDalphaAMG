@@ -25,8 +25,9 @@
   #ifdef SSE
   
   #include "blas_vectorized.h"
+  #include "global_defs.h"
   
-  void coarse_operator_PRECISION_setup_vectorized( complex_PRECISION *operator, level_struct *l, struct Thread *threading );
+  void coarse_operator_PRECISION_setup_vectorized( complex_PRECISION *op, level_struct *l, struct Thread *threading );
   void set_coarse_self_coupling_PRECISION_vectorized( complex_PRECISION *spin_0_1, complex_PRECISION *spin_2_3,
       complex_PRECISION *V, level_struct *l, int site, const int n_rhs, complex_PRECISION *tmp );
   void set_coarse_self_coupling_PRECISION_vectorized_finalize( level_struct *l, int site, const int n_rhs, complex_PRECISION *tmp );

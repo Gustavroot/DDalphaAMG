@@ -20,6 +20,10 @@
  */
 
 #include "main.h"
+#include "proxies/dirac_proxy_PRECISION.h"
+#include "proxies/linsolve_proxy_PRECISION.h"
+#include "proxies/operator_proxy_PRECISION.h"
+#include "proxies/data_layout_proxy_PRECISION.h"
 
 void smoother_PRECISION_def( level_struct *l ) {
   
@@ -667,7 +671,7 @@ void schwarz_layout_PRECISION_define( schwarz_PRECISION_struct *s, level_struct 
   // define neighbor table (for the application of the entire operator),
   // negative inner boundary table (for communication),
   // translation table (for translation to lexicographical site ordnering)
-  define_nt_bt_tt( s->op.neighbor_table, s->op.backward_neighbor_table, s->op.c.boundary_table, s->op.translation_table, it, dt, l );
+  define_nt_bt_tt_PRECISION(&(s->op), s->op.c.boundary_table, dt, l );
 }
 
 

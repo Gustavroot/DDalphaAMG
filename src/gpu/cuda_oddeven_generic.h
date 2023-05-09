@@ -7,7 +7,7 @@ struct Thread;
   // device functions
 
   __global__ void
-  cuda_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
+  cuda_block_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
 		                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id,
                   		                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
                                     		                int num_latt_site_var, block_struct* block );
@@ -51,10 +51,6 @@ struct Thread;
 	                                                        int nr_DD_blocks_to_compute, schwarz_PRECISION_struct *s, level_struct *l,
 	                                                        struct Thread *threading, int stream_id, cudaStream_t *streams, int color,
         	                                                int* DD_blocks_to_compute_gpu, int* DD_blocks_to_compute_cpu );
-
-  extern void
-  cuda_boundary_comms_copy_PRECISION(				cuda_vector_PRECISION out, cuda_vector_PRECISION in, int *bound_table,
-                                                                int num_sites, level_struct *l );
 
   extern void
   cuda_apply_block_schur_complement_PRECISION(			cuda_vector_PRECISION out, cuda_vector_PRECISION in,

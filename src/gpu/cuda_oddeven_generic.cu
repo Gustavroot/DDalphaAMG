@@ -2089,7 +2089,7 @@ _cuda_block_d_plus_clover_PRECISION_6threads_naive(		cu_cmplx_PRECISION *eta, cu
 
 
 __forceinline__ __device__ void
-_cuda_site_clover_PRECISION(					cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
+_cuda_block_site_clover_PRECISION(					cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int start,
                                                                 schwarz_PRECISION_struct_on_gpu *s, int idx,
                                                                 cu_config_PRECISION *op_clov, double csw ){
   int local_idx = idx%6;
@@ -2130,28 +2130,6 @@ _cuda_site_clover_PRECISION(					cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *ph
     }
     local_idx += 6;
   }
-}
-
-
-// FIXME:
-//		1. use shared memory to have better global memory accesses
-//		2. switch to an stream different from <default> ... ?
-__global__ void
-_cuda_boundary_comms_copy_PRECISION(				cu_cmplx_PRECISION *out, cu_cmplx_PRECISION *in,
-								int *bound_table, int site_size ){
-
-  int j, idx, site_id;
-  cu_cmplx_PRECISION *in_pt;
-
-  idx = threadIdx.x + blockDim.x * blockIdx.x;
-  j = idx/12;
-
-  site_id = bound_table[j];
-
-  in_pt = in + site_id*site_size;
-  in_pt += idx%12;
-
-  out[idx] = in_pt[0];
 }
 
 
@@ -2226,7 +2204,7 @@ cuda_n_block_PRECISION_boundary_op_minus_naive(			cu_cmplx_PRECISION* out, cu_cm
 
 
 __global__ void
-cuda_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
+cuda_block_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in, \
 			                                        schwarz_PRECISION_struct_on_gpu *s, int thread_id, \
                         		                        double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute, \
                                             			int num_latt_site_var, block_struct* block ){
@@ -2304,7 +2282,7 @@ cuda_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
 
   i = idx/6;
 
-  _cuda_site_clover_PRECISION(out_o, in_o, start, s, idx, clov_o, csw);
+  _cuda_block_site_clover_PRECISION(out_o, in_o, start, s, idx, clov_o, csw);
 
   __syncthreads();
 
@@ -4008,16 +3986,6 @@ cuda_n_block_PRECISION_boundary_op(				cuda_vector_PRECISION eta, cuda_vector_PR
                                                     DD_blocks_to_compute_gpu, l->num_lattice_site_var, (s->cu_s).block,
                                                     dir );
   }
-}
-
-
-extern "C" void
-cuda_boundary_comms_copy_PRECISION(				cuda_vector_PRECISION out, cuda_vector_PRECISION in,
-                                                                int *bound_table, int num_sites, level_struct *l ){
-  int nr_threads = num_sites*l->num_lattice_site_var, threads_per_cublock=32;
-
-  _cuda_boundary_comms_copy_PRECISION<<< nr_threads/threads_per_cublock, threads_per_cublock >>>
-                                     ( out, in, bound_table, l->num_lattice_site_var );
 }
 
 #endif
