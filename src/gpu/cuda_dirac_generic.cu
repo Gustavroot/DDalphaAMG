@@ -283,9 +283,9 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_ghost_sendrecv_PRECISION(op->prnT_gpu, T, -1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_sendrecv_PRECISION(op->prnT_gpu, Z, -1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_sendrecv_PRECISION(op->prnT_gpu, Y, -1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_sendrecv_PRECISION(op->prnT_gpu, X, -1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_sendrecv_PRECISION(op->prnZ_gpu, Z, -1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_sendrecv_PRECISION(op->prnY_gpu, Y, -1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_sendrecv_PRECISION(op->prnX_gpu, X, -1, &(op->cuda_c), _FULL_SYSTEM, l);
 
   // project plus dir and multiply with U dagger
   cuda_prn_T_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi, l->num_inner_lattice_sites);
@@ -307,14 +307,14 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_ghost_sendrecv_PRECISION(op->prpT_gpu, T, +1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_sendrecv_PRECISION(op->prpT_gpu, Z, +1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_sendrecv_PRECISION(op->prpT_gpu, Y, +1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_sendrecv_PRECISION(op->prpT_gpu, X, +1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_sendrecv_PRECISION(op->prpZ_gpu, Z, +1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_sendrecv_PRECISION(op->prpY_gpu, Y, +1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_sendrecv_PRECISION(op->prpX_gpu, X, +1, &(op->cuda_c), _FULL_SYSTEM, l);
 
   cuda_ghost_wait_PRECISION(op->prnT_gpu, T, -1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_wait_PRECISION(op->prnT_gpu, Z, -1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_wait_PRECISION(op->prnT_gpu, Y, -1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_wait_PRECISION(op->prnT_gpu, X, -1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_wait_PRECISION(op->prnZ_gpu, Z, -1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_wait_PRECISION(op->prnY_gpu, Y, -1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_wait_PRECISION(op->prnX_gpu, X, -1, &(op->cuda_c), _FULL_SYSTEM, l);
 
   cuda_pbp_su3_mvm_PRECISION<<<2*gridSize, blockSize>>>(op->pbuf_gpu, op->D_gpu, op->prnT_gpu,
                                                         op->neighbor_table_gpu, LatticeAxis::T,
@@ -334,9 +334,9 @@ extern "C" void cuda_d_plus_clover_PRECISION(
   cuda_pbp_su3_X_PRECISION<<<gridSize, blockSize>>>(eta, op->pbuf_gpu, l->num_inner_lattice_sites);
 
   cuda_ghost_wait_PRECISION(op->prpT_gpu, T, +1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_wait_PRECISION(op->prpT_gpu, Z, +1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_wait_PRECISION(op->prpT_gpu, Y, +1, &(op->cuda_c), _FULL_SYSTEM, l);
-  cuda_ghost_wait_PRECISION(op->prpT_gpu, X, +1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_wait_PRECISION(op->prpZ_gpu, Z, +1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_wait_PRECISION(op->prpY_gpu, Y, +1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_ghost_wait_PRECISION(op->prpX_gpu, X, +1, &(op->cuda_c), _FULL_SYSTEM, l);
 
   cuda_pbn_su3_T_PRECISION<<<gridSize, blockSize>>>(eta, op->prpT_gpu, l->num_inner_lattice_sites);
   cuda_pbn_su3_Z_PRECISION<<<gridSize, blockSize>>>(eta, op->prpZ_gpu, l->num_inner_lattice_sites);

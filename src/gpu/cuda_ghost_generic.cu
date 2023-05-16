@@ -169,6 +169,7 @@ void cuda_ghost_sendrecv_PRECISION(cuda_vector_PRECISION phi, const int mu, cons
       constexpr size_t blockSize = 128;
       const size_t gridSize = minGridSizeForN(num_boundary_sites * offset, blockSize);
       _boundary2buffer<<<gridSize, blockSize>>>(phi, buffer, table, offset, num_boundary_sites);
+      cuda_safe_call(cudaDeviceSynchronize());
 
       phi_pt = phi + comm_start;
 
@@ -232,6 +233,7 @@ void cuda_ghost_wait_PRECISION(cuda_vector_PRECISION phi, const int mu, const in
       constexpr size_t blockSize = 128;
       const size_t gridSize = minGridSizeForN(num_boundary_sites * offset, blockSize);
       _buffer2boundary<<<gridSize, blockSize>>>(phi, buffer, table, offset, num_boundary_sites);
+      cuda_safe_call(cudaDeviceSynchronize());
     } else if (dir == -1) {
       if (length[1] > 0) {
         PROF_PRECISION_START(_OP_IDLE);
