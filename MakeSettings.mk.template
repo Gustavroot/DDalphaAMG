@@ -1,6 +1,6 @@
 # --- COMPILER ----------------------------------------
 
-# if using -std different than gnu11, some changes are needed
+# MPI C compiler
 CC = mpicc
 
 # You may specify MPI_INCLUDE and MPI_LIB if those are not automatically found by your system.

@@ -1,28 +1,29 @@
+# DDαAMG
+----------------------
 
-
-NOTE : this version of DDalphaAMG contains some critical parts ported to CUDA (MPI, OpenMP and SSE vectorization are still present throughout). For more information on these improvements, contact : g.ramirez@stimulate-ejd.eu
-
-
+NOTE : This version of DDαAMG contains some critical parts ported to CUDA (MPI, OpenMP and SSE vectorization are still present throughout). For more information on these improvements, contact : g.ramirez@stimulate-ejd.eu
 
 ----------------------
 
 The DDalphaAMG solver library is an inverter for Wilson-Clover fermions from lattice QCD.
 
-INSTALL:
+## Install
 
-  The main directory contains a makefile example. The standard makefile
-  should work with a few adjustments (compiler and MPI library) on the 
-  machine of your choice. Once the necessary   adjustments of the
-  makefile are done, the command 
-    "make -f yourmakefile -j numberofthreads wilson"
-  should compile the whole entire Wilson solver code, such that it is
-  ready to be run. The makefile contains additional rules "library" and
-  "documentation" for compiling the code as a library and for compiling
-  the user documentation. the library interface can be found in the
-  "include" folder.
+The root directory contains a `Makefile` and `MakeSettings.mk.template`.
+Create a copy of `MakeSettings.mk.template` and name it `MakeSettings.mk`
+and adjust compiler and library paths in the newly created file.
+`MakeSettings.mk` contains all user-adjustable settings and should be
+self-documenting. `Makefile` is not intended to be changed by the
+user/distributor.
 
-HOWTO:
+```make -j8 dd_alpha_amg``` compiles the standalone dd_alpha_amg executable.
+The Makefile contains additional rules "library" and
+"documentation" for compiling the code as a library (not yet supported for
+the CUDA version) and for compiling the user documentation. The library
+interface can be found in the "include" folder after compiling the library.
 
-  After having compiled the user documentation via
-  "make documentation" please consult the compiled PDF in /doc for
-  further information.
+## Documentation
+
+After having compiled the user documentation via
+`make documentation` please consult the compiled PDF in the directory doc
+and the doxygen documentation in doc/doxygen.
