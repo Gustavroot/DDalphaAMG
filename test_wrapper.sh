@@ -15,3 +15,5 @@ make clean 2>testlogs/gpu_clean.log >testlogs/gpu_clean.log
 sed -i 's/CUDA_ENABLER =.*/CUDA_ENABLER = yes/g' MakeSettings.mk
 make -j 8 all 2>testlogs/gpu_build.log >testlogs/gpu_build.log
 ./test/integration_test.sh gpu
+
+./build/gtest/dd_alpha_amg_gtest |& tee testlogs/gtest.log

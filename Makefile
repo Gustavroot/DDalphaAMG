@@ -87,10 +87,11 @@ ifdef MPI_LIB
 	NVCC_LINK_FLAGS += -L$(MPI_LIB)
 endif
 
+-include test/gtest/Makefile
 
-all: wilson library library_db documentation
+all: wilson library library_db documentation gtest
 
-.PHONY: all wilson library library_db documentation
+.PHONY: all wilson library library_db documentation gtest
 .SUFFIXES:
 .SECONDARY:
 
