@@ -5,7 +5,6 @@
 #include "cuda_complex_operators.h"
 #include "cuda_vectors_PRECISION.h"
 #include "cuda_mvm_PRECISION.h"
-#include "cuda_coalesced.h"
 
 // The clifford header uses a C compiler extension version of I that is not compatible with CUDA.
 // CU_OVERWRITE_I replaces that.
@@ -116,33 +115,6 @@ __global__ void cuda_prp_T_PRECISION(cu_cmplx_PRECISION * prpT, cu_cmplx_PRECISI
   prpT[3] = phi[3] -GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO];
   prpT[4] = phi[4] -GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO+1];
   prpT[5] = phi[5] -GAMMA_T_SPIN1_VAL*phi[3*GAMMA_T_SPIN1_CO+2];
-}
-
-__global__ void cuda_prp_T_PRECISION_2(cu_cmplx_PRECISION * prpT, cu_cmplx_PRECISION const * phi,
-                                size_t num_sites) {
-  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
-  constexpr uint phiChunkSize = 12;
-  // set phi address to first element handled by block
-  phi += phiChunkSize * blockDim.x * blockIdx.x;
-
-  // copy the array elements handled in this block to shared memory
-  extern __shared__ cu_cmplx_PRECISION blockPhi[];
-  copy_chunks_to_consecutive_as_block(blockPhi, phi, 12, 0, blockDim.x);
-
-  if (idx >= num_sites){
-    // there is no more site for this index
-    return;
-  }
-
-  // set threadPhi address to first element handled by thread
-  cu_cmplx_PRECISION * const threadPhi = blockPhi + phiChunkSize * threadIdx.x;
-  prpT += 6*idx;
-  prpT[0] = threadPhi[0] -GAMMA_T_SPIN0_VAL*threadPhi[3*GAMMA_T_SPIN0_CO];
-  prpT[1] = threadPhi[1] -GAMMA_T_SPIN0_VAL*threadPhi[3*GAMMA_T_SPIN0_CO+1];
-  prpT[2] = threadPhi[2] -GAMMA_T_SPIN0_VAL*threadPhi[3*GAMMA_T_SPIN0_CO+2];
-  prpT[3] = threadPhi[3] -GAMMA_T_SPIN1_VAL*threadPhi[3*GAMMA_T_SPIN1_CO];
-  prpT[4] = threadPhi[4] -GAMMA_T_SPIN1_VAL*threadPhi[3*GAMMA_T_SPIN1_CO+1];
-  prpT[5] = threadPhi[5] -GAMMA_T_SPIN1_VAL*threadPhi[3*GAMMA_T_SPIN1_CO+2];
 }
 
 __global__ void cuda_prn_T_PRECISION(cu_cmplx_PRECISION* prnT, cu_cmplx_PRECISION const* phi,
