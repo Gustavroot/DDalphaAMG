@@ -26,6 +26,9 @@ __global__ void cuda_site_clover_PRECISION(cuda_vector_PRECISION eta, cu_cmplx_P
 __global__ void cuda_prp_T_PRECISION(cu_cmplx_PRECISION* prpT, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites);
 
+__global__ void cuda_prp_T_PRECISION_2(cu_cmplx_PRECISION* prpT, cu_cmplx_PRECISION const* phi,
+                                     size_t num_sites);
+
 __global__ void cuda_prn_T_PRECISION(cu_cmplx_PRECISION* prnT, cu_cmplx_PRECISION const* phi,
                                      size_t num_sites);
 
