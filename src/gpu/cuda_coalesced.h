@@ -28,19 +28,15 @@
  *  \param[in]  chunkCount  The total number of chunks to copy.
  */
 template <typename ElementType>
-__device__ void copy_chunks_to_consecutive_as_block(ElementType* dst, ElementType const* src,
+__device__ void copyChunksToConsecutiveAsBlock(ElementType* dst, ElementType const* src,
                                                     unsigned int chunkSize, unsigned int gapSize,
                                                     unsigned int chunkCount) {
   size_t elementCount = chunkCount * chunkSize;
-  size_t iterationCount = elementCount / blockDim.x;
-  // need another iteration to handle remaining elements.
-  if (elementCount % blockDim.x != 0) {
-    iterationCount++;
-  }
+  size_t iterationCount = (elementCount - 1) / blockDim.x + 1;
   for (size_t i = 0; i < iterationCount; i++) {
     size_t consecutiveIdx = (i * blockDim.x) + threadIdx.x;
     // thread does not need to handle another value
-    if (consecutiveIdx > chunkSize * chunkCount) {
+    if (consecutiveIdx >= chunkSize * chunkCount) {
       break;
     }
     size_t chunkIdx = consecutiveIdx / chunkSize;
@@ -48,6 +44,33 @@ __device__ void copy_chunks_to_consecutive_as_block(ElementType* dst, ElementTyp
     dst[consecutiveIdx] = src[chunkIdx * (chunkSize + gapSize) + valueIdx];
   }
   __syncthreads();
+}
+
+
+template <typename ElementType>
+__global__ void reorderVectorByComponent(ElementType* dst, ElementType const* src,
+                                         unsigned int chunkSize, unsigned int chunkCount) {
+  // integer division rounding up
+  size_t chunksPerBlock = (chunkCount - 1) / gridDim.x + 1;
+  uint requiredBlocks = (chunkCount - 1) / chunksPerBlock + 1;
+  if (blockIdx.x >= requiredBlocks) {
+    return;
+  }
+  //set src on first element to read
+  src += chunkSize * chunksPerBlock * blockIdx.x;
+  //set dst to first element that will be written
+  dst += blockIdx.x * chunksPerBlock;
+  size_t handledChunks = chunksPerBlock;
+
+  // last block might need to account for early end of array
+  if (blockIdx.x == requiredBlocks - 1) {
+    handledChunks = chunkCount - (blockIdx.x * chunksPerBlock);
+  }
+  for (uint i = 0; i < chunkSize; i++) {
+    copyChunksToConsecutiveAsBlock(dst, src, 1, chunkSize - 1, handledChunks);
+    src += 1;
+    dst += chunkCount;
+  }
 }
 
 #endif  // CUDA_COALESCED_H
