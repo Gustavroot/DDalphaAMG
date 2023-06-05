@@ -49,10 +49,10 @@ __device__ void copyChunksToConsecutiveAsBlock(ElementType* dst, ElementType con
 
 template <typename ElementType>
 __global__ void reorderVectorByComponent(ElementType* dst, ElementType const* src,
-                                         unsigned int chunkSize, unsigned int chunkCount) {
+                                         size_t chunkSize, size_t chunkCount) {
   // integer division rounding up
   size_t chunksPerBlock = (chunkCount - 1) / gridDim.x + 1;
-  uint requiredBlocks = (chunkCount - 1) / chunksPerBlock + 1;
+  size_t requiredBlocks = (chunkCount - 1) / chunksPerBlock + 1;
   if (blockIdx.x >= requiredBlocks) {
     return;
   }

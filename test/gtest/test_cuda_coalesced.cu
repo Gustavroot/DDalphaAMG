@@ -136,9 +136,6 @@ RC_GTEST_PROP(ReorderVectorByComponentTest, CheckDst, ()) {
   cuda_safe_call(cudaMemcpy(dst, dstCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
 
   for (unsigned int i = 0; i < arraySize; i++) {
-    if (dst[i] != i / chunkCount) {
-      RC_FAIL();
-    }
     RC_ASSERT(dst[i] == i / chunkCount);
   }
 
