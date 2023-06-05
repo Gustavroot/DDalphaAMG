@@ -6,7 +6,3 @@ extern "C" void get_device_properties() {
   cudaGetDeviceProperties(&devProp, g.device_id);
   g.warp_size = devProp.warpSize;
 }
-
-extern "C" size_t minGridSizeForN(size_t n, size_t blockSize) {
-  return (n - 1) / blockSize + 1 ;
-}
