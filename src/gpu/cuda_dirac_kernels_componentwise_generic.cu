@@ -2,7 +2,7 @@
 #include "cuda_complex_cxx.h"
 #include "cuda_complex_operators.h"
 #include "cuda_complex_operators_PRECISION.h"
-#include "cuda_dirac_kernels_coalesced_PRECISION.h"
+#include "cuda_dirac_kernels_componentwise_PRECISION.h"
 #include "cuda_mvm_PRECISION.h"
 #include "global_enums.h"
 
@@ -12,7 +12,7 @@
 #include "clifford.h"
 #undef CU_OVERWRITE_I
 
-__global__ void cuda_prp_T_coalesced_PRECISION(cu_cmplx_PRECISION* prpT,
+__global__ void cuda_prp_T_componentwise_PRECISION(cu_cmplx_PRECISION* prpT,
                                                cu_cmplx_PRECISION const* phi, size_t num_sites) {
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= num_sites) {

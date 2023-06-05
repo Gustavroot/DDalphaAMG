@@ -12,10 +12,10 @@ extern "C"{
 
 #include "cuda_miscellaneous.h"
 #include "cuda_dirac_kernels_PRECISION.h"
-#include "cuda_dirac_kernels_coalesced_PRECISION.h"
+#include "cuda_dirac_kernels_componentwise_PRECISION.h"
 #include "cuda_complex_cxx.h"
 #include "cuda_ghost_PRECISION.h"
-#include "cuda_coalesced.h"
+#include "cuda_componentwise.h"
 #ifdef CUDA_OPT
 
 constexpr uint diracDefaultBlockSize = 128;
@@ -279,7 +279,7 @@ void cuda_d_plus_clover_PRECISION(
   PROF_PRECISION_START_UNTHREADED( _NC );
 
   // Project in positive directions
-  cuda_prp_T_coalesced_PRECISION<<<gridSize, blockSize>>>(op->prnT_gpu, phi_componentwise, l->num_inner_lattice_sites);
+  cuda_prp_T_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnT_gpu, phi_componentwise, l->num_inner_lattice_sites);
   cuda_prp_Z_PRECISION<<<gridSize, blockSize>>>(op->prnZ_gpu, phi, l->num_inner_lattice_sites);
   cuda_prp_Y_PRECISION<<<gridSize, blockSize>>>(op->prnY_gpu, phi, l->num_inner_lattice_sites);
   cuda_prp_X_PRECISION<<<gridSize, blockSize>>>(op->prnX_gpu, phi, l->num_inner_lattice_sites);

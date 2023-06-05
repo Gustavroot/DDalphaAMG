@@ -1,10 +1,10 @@
-/** \file cuda_coalesced.h
+/** \file cuda_componentwise.h
  *
- *  \brief Contains functions that support coalesced access to global memory.
+ *  \brief Contains functions that support componentwise access to global memory.
  */
 
-#ifndef CUDA_COALESCED_H
-#define CUDA_COALESCED_H
+#ifndef CUDA_COMPONENTWISE_H
+#define CUDA_COMPONENTWISE_H
 
 /** \brief Copy data from array that has gaps to one that is consecutive.
  *  
@@ -73,4 +73,4 @@ __global__ void reorderVectorByComponent(ElementType* dst, ElementType const* sr
   }
 }
 
-#endif  // CUDA_COALESCED_H
+#endif  // CUDA_COMPONENTWISE_H

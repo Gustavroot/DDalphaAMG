@@ -3,7 +3,7 @@
 #include <rapidcheck.h>
 #include <rapidcheck/gtest.h>
 
-#include "gpu/cuda_coalesced.h"
+#include "gpu/cuda_componentwise.h"
 #include "gpu/cuda_miscellaneous.h"
 #include "miscellaneous.h"
 
