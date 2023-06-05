@@ -1,9 +1,9 @@
+#include "cuda_dirac_kernels_PRECISION.h"
 #include "global_enums.h"
 #include "cuda_complex.h"
 #include "cuda_complex_cxx.h"
 #include "cuda_complex_operators_PRECISION.h"
 #include "cuda_complex_operators.h"
-#include "cuda_vectors_PRECISION.h"
 #include "cuda_mvm_PRECISION.h"
 
 // The clifford header uses a C compiler extension version of I that is not compatible with CUDA.

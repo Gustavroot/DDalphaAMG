@@ -22,13 +22,27 @@ extern void cuda_block_d_plus_clover_PRECISION(
     schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading, int stream_id,
     cudaStream_t *streams, int color, int *DD_blocks_to_compute_gpu, int *DD_blocks_to_compute_cpu);
 
+#ifdef __cplusplus
 /** \brief Apply Wilson-Dirac operator with GPU acceleration.
  *
  *  \see d_plus_clover_PRECISION
  */
-extern void cuda_d_plus_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
-                                         operator_PRECISION_struct *op, level_struct *l,
-                                         struct Thread *threading);
+void cuda_d_plus_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
+                                  cuda_vector_PRECISION phi_componentwise,
+                                  operator_PRECISION_struct *op, level_struct *l,
+                                  struct Thread *threading);
+
+/** \brief Earlier version of cuda_d_plus_clover_PRECISION with unoptimized vector access.
+ *
+ *  Can be changed in cuda_d_plus_clover_PRECISION_vectorwrapper if results need to be reproduced.
+ *  Can be safely removed.
+ *
+ *  \see d_plus_clover_PRECISION
+ */
+void cuda_d_plus_clover_PRECISION_awarempi(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
+                                           operator_PRECISION_struct *op, level_struct *l,
+                                           struct Thread *threading);
+
 
 /** \brief Earlier version of cuda_d_plus_clover_PRECISION with unoptimized MPI communication.
  *
@@ -37,9 +51,11 @@ extern void cuda_d_plus_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_
  *
  *  \see d_plus_clover_PRECISION
  */
-extern void cuda_d_plus_clover_PRECISION_naive(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
-                                               operator_PRECISION_struct *op, level_struct *l,
-                                               struct Thread *threading);
+void cuda_d_plus_clover_PRECISION_naive(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
+                                        operator_PRECISION_struct *op, level_struct *l,
+                                        struct Thread *threading);
+
+#endif  // __cplusplus
 
 /** \brief Copy vectors eta and phi from CPU to GPU and back and call actual operator.
  *

@@ -144,3 +144,36 @@ RC_GTEST_PROP(ReorderVectorByComponentTest, CheckDst, ()) {
   cuda_safe_call(cudaFree(srcCuda));
   cuda_safe_call(cudaFree(dstCuda));
 }
+
+RC_GTEST_PROP(ReorderVectorByComponentTest, SrcPreserved, ()) {
+  unsigned int chunkSize = *rc::gen::inRange(1, 10);
+  unsigned int chunkCount = *rc::gen::inRange(1, 1024);
+  unsigned int blockSize = *rc::gen::inRange(1, 256);
+  unsigned int gridSize = minGridSizeForN(chunkCount, blockSize);
+
+  unsigned int arraySize = chunkCount * chunkSize;
+  int *src = (int *)malloc(arraySize * sizeof(int));
+  int *dst = (int *)malloc(arraySize * sizeof(int));
+  int *srcCuda, *dstCuda;
+  cuda_safe_call(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
+  cuda_safe_call(cudaMalloc(&dstCuda, arraySize * sizeof(int)));
+
+  // set elements in chunks to ascending numbers
+  for (unsigned int i = 0; i < arraySize; i++) {
+    src[i] = i % chunkSize;
+  }
+
+  cuda_safe_call(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
+  reorderVectorByComponent<<<gridSize, blockSize>>>(dstCuda, srcCuda, chunkSize, chunkCount);
+  cuda_safe_call(cudaDeviceSynchronize());
+  cuda_safe_call(cudaMemcpy(dst, srcCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
+
+  for (unsigned int i = 0; i < arraySize; i++) {
+    RC_ASSERT(dst[i] == src[i]);
+  }
+
+  free(src);
+  free(dst);
+  cuda_safe_call(cudaFree(srcCuda));
+  cuda_safe_call(cudaFree(dstCuda));
+}

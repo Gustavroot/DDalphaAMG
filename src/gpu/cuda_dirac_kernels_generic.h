@@ -7,7 +7,8 @@
 #ifndef CUDA_DIRAC_KERNELS_PRECISION_H
 #define CUDA_DIRAC_KERNELS_PRECISION_H
 
-#include "clifford.h"
+#include "global_enums.h"
+#include "cuda_vectors_PRECISION.h"
 
 /**
  * \brief Apply the Clover term per lattice site.
