@@ -586,7 +586,7 @@ extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta,
   cudaStream_t* const streams = &stream;
   
   cuda_vector_PRECISION_copy(phi_gpu, phi, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
-  const uint gridSize = minGridSizeForN(l->inner_vector_size, diracDefaultBlockSize);
+  const uint gridSize = minGridSizeForN(l->num_inner_lattice_sites, diracDefaultBlockSize);
   reorderVectorByComponent<<<gridSize, diracDefaultBlockSize>>>(
     phi_componentwise_gpu, phi_gpu, l->num_lattice_site_var, l->num_inner_lattice_sites);
   cuda_safe_call(cudaDeviceSynchronize());
