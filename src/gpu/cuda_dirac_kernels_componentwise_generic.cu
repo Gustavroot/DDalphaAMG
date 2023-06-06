@@ -5,6 +5,7 @@
 #include "cuda_dirac_kernels_componentwise_PRECISION.h"
 #include "cuda_mvm_PRECISION.h"
 #include "global_enums.h"
+#include "cuda_componentwise.h"
 
 // The clifford header uses a C compiler extension version of I that is not compatible with CUDA.
 // CU_OVERWRITE_I replaces that.
@@ -23,83 +24,84 @@ __global__ void cuda_site_clover_componentwise_PRECISION(cuda_vector_PRECISION e
   }
   eta += 12 * idx;
   phi += idx;
-  clover += 42 * idx;
+  // clover += idx;
+  auto coClover = ComponentAccess(clover + idx, num_sites);
 
   // diagonal
-  eta[0] = clover[0] * phi[0 * num_sites];
-  eta[1] = clover[1] * phi[1 * num_sites];
-  eta[2] = clover[2] * phi[2 * num_sites];
-  eta[3] = clover[3] * phi[3 * num_sites];
-  eta[4] = clover[4] * phi[4 * num_sites];
-  eta[5] = clover[5] * phi[5 * num_sites];
-  eta[6] = clover[6] * phi[6 * num_sites];
-  eta[7] = clover[7] * phi[7 * num_sites];
-  eta[8] = clover[8] * phi[8 * num_sites];
-  eta[9] = clover[9] * phi[9 * num_sites];
-  eta[10] = clover[10] * phi[10 * num_sites];
-  eta[11] = clover[11] * phi[11 * num_sites];
+  eta[0] = coClover[0] * phi[0 * num_sites];
+  eta[1] = coClover[1] * phi[1 * num_sites];
+  eta[2] = coClover[2] * phi[2 * num_sites];
+  eta[3] = coClover[3] * phi[3 * num_sites];
+  eta[4] = coClover[4] * phi[4 * num_sites];
+  eta[5] = coClover[5] * phi[5 * num_sites];
+  eta[6] = coClover[6] * phi[6 * num_sites];
+  eta[7] = coClover[7] * phi[7 * num_sites];
+  eta[8] = coClover[8] * phi[8 * num_sites];
+  eta[9] = coClover[9] * phi[9 * num_sites];
+  eta[10] = coClover[10] * phi[10 * num_sites];
+  eta[11] = coClover[11] * phi[11 * num_sites];
   // spin 0 and 1, row major
-  eta[0] += clover[12] * phi[1 * num_sites];
-  eta[0] += clover[13] * phi[2 * num_sites];
-  eta[0] += clover[14] * phi[3 * num_sites];
-  eta[0] += clover[15] * phi[4 * num_sites];
-  eta[0] += clover[16] * phi[5 * num_sites];
-  eta[1] += clover[17] * phi[2 * num_sites];
-  eta[1] += clover[18] * phi[3 * num_sites];
-  eta[1] += clover[19] * phi[4 * num_sites];
-  eta[1] += clover[20] * phi[5 * num_sites];
-  eta[2] += clover[21] * phi[3 * num_sites];
-  eta[2] += clover[22] * phi[4 * num_sites];
-  eta[2] += clover[23] * phi[5 * num_sites];
-  eta[3] += clover[24] * phi[4 * num_sites];
-  eta[3] += clover[25] * phi[5 * num_sites];
-  eta[4] += clover[26] * phi[5 * num_sites];
-  eta[1] += cu_conj_PRECISION(clover[12]) * phi[0 * num_sites];
-  eta[2] += cu_conj_PRECISION(clover[13]) * phi[0 * num_sites];
-  eta[3] += cu_conj_PRECISION(clover[14]) * phi[0 * num_sites];
-  eta[4] += cu_conj_PRECISION(clover[15]) * phi[0 * num_sites];
-  eta[5] += cu_conj_PRECISION(clover[16]) * phi[0 * num_sites];
-  eta[2] += cu_conj_PRECISION(clover[17]) * phi[1 * num_sites];
-  eta[3] += cu_conj_PRECISION(clover[18]) * phi[1 * num_sites];
-  eta[4] += cu_conj_PRECISION(clover[19]) * phi[1 * num_sites];
-  eta[5] += cu_conj_PRECISION(clover[20]) * phi[1 * num_sites];
-  eta[3] += cu_conj_PRECISION(clover[21]) * phi[2 * num_sites];
-  eta[4] += cu_conj_PRECISION(clover[22]) * phi[2 * num_sites];
-  eta[5] += cu_conj_PRECISION(clover[23]) * phi[2 * num_sites];
-  eta[4] += cu_conj_PRECISION(clover[24]) * phi[3 * num_sites];
-  eta[5] += cu_conj_PRECISION(clover[25]) * phi[3 * num_sites];
-  eta[5] += cu_conj_PRECISION(clover[26]) * phi[4 * num_sites];
+  eta[0] += coClover[12] * phi[1 * num_sites];
+  eta[0] += coClover[13] * phi[2 * num_sites];
+  eta[0] += coClover[14] * phi[3 * num_sites];
+  eta[0] += coClover[15] * phi[4 * num_sites];
+  eta[0] += coClover[16] * phi[5 * num_sites];
+  eta[1] += coClover[17] * phi[2 * num_sites];
+  eta[1] += coClover[18] * phi[3 * num_sites];
+  eta[1] += coClover[19] * phi[4 * num_sites];
+  eta[1] += coClover[20] * phi[5 * num_sites];
+  eta[2] += coClover[21] * phi[3 * num_sites];
+  eta[2] += coClover[22] * phi[4 * num_sites];
+  eta[2] += coClover[23] * phi[5 * num_sites];
+  eta[3] += coClover[24] * phi[4 * num_sites];
+  eta[3] += coClover[25] * phi[5 * num_sites];
+  eta[4] += coClover[26] * phi[5 * num_sites];
+  eta[1] += cu_conj_PRECISION(coClover[12]) * phi[0 * num_sites];
+  eta[2] += cu_conj_PRECISION(coClover[13]) * phi[0 * num_sites];
+  eta[3] += cu_conj_PRECISION(coClover[14]) * phi[0 * num_sites];
+  eta[4] += cu_conj_PRECISION(coClover[15]) * phi[0 * num_sites];
+  eta[5] += cu_conj_PRECISION(coClover[16]) * phi[0 * num_sites];
+  eta[2] += cu_conj_PRECISION(coClover[17]) * phi[1 * num_sites];
+  eta[3] += cu_conj_PRECISION(coClover[18]) * phi[1 * num_sites];
+  eta[4] += cu_conj_PRECISION(coClover[19]) * phi[1 * num_sites];
+  eta[5] += cu_conj_PRECISION(coClover[20]) * phi[1 * num_sites];
+  eta[3] += cu_conj_PRECISION(coClover[21]) * phi[2 * num_sites];
+  eta[4] += cu_conj_PRECISION(coClover[22]) * phi[2 * num_sites];
+  eta[5] += cu_conj_PRECISION(coClover[23]) * phi[2 * num_sites];
+  eta[4] += cu_conj_PRECISION(coClover[24]) * phi[3 * num_sites];
+  eta[5] += cu_conj_PRECISION(coClover[25]) * phi[3 * num_sites];
+  eta[5] += cu_conj_PRECISION(coClover[26]) * phi[4 * num_sites];
   // spin 2 and 3, row major
-  eta[6] += clover[27] * phi[7 * num_sites];
-  eta[6] += clover[28] * phi[8 * num_sites];
-  eta[6] += clover[29] * phi[9 * num_sites];
-  eta[6] += clover[30] * phi[10 * num_sites];
-  eta[6] += clover[31] * phi[11 * num_sites];
-  eta[7] += clover[32] * phi[8 * num_sites];
-  eta[7] += clover[33] * phi[9 * num_sites];
-  eta[7] += clover[34] * phi[10 * num_sites];
-  eta[7] += clover[35] * phi[11 * num_sites];
-  eta[8] += clover[36] * phi[9 * num_sites];
-  eta[8] += clover[37] * phi[10 * num_sites];
-  eta[8] += clover[38] * phi[11 * num_sites];
-  eta[9] += clover[39] * phi[10 * num_sites];
-  eta[9] += clover[40] * phi[11 * num_sites];
-  eta[10] += clover[41] * phi[11 * num_sites];
-  eta[7] += cu_conj_PRECISION(clover[27]) * phi[6 * num_sites];
-  eta[8] += cu_conj_PRECISION(clover[28]) * phi[6 * num_sites];
-  eta[9] += cu_conj_PRECISION(clover[29]) * phi[6 * num_sites];
-  eta[10] += cu_conj_PRECISION(clover[30]) * phi[6 * num_sites];
-  eta[11] += cu_conj_PRECISION(clover[31]) * phi[6 * num_sites];
-  eta[8] += cu_conj_PRECISION(clover[32]) * phi[7 * num_sites];
-  eta[9] += cu_conj_PRECISION(clover[33]) * phi[7 * num_sites];
-  eta[10] += cu_conj_PRECISION(clover[34]) * phi[7 * num_sites];
-  eta[11] += cu_conj_PRECISION(clover[35]) * phi[7 * num_sites];
-  eta[9] += cu_conj_PRECISION(clover[36]) * phi[8 * num_sites];
-  eta[10] += cu_conj_PRECISION(clover[37]) * phi[8 * num_sites];
-  eta[11] += cu_conj_PRECISION(clover[38]) * phi[8 * num_sites];
-  eta[10] += cu_conj_PRECISION(clover[39]) * phi[9 * num_sites];
-  eta[11] += cu_conj_PRECISION(clover[40]) * phi[9 * num_sites];
-  eta[11] += cu_conj_PRECISION(clover[41]) * phi[10 * num_sites];
+  eta[6] += coClover[27] * phi[7 * num_sites];
+  eta[6] += coClover[28] * phi[8 * num_sites];
+  eta[6] += coClover[29] * phi[9 * num_sites];
+  eta[6] += coClover[30] * phi[10 * num_sites];
+  eta[6] += coClover[31] * phi[11 * num_sites];
+  eta[7] += coClover[32] * phi[8 * num_sites];
+  eta[7] += coClover[33] * phi[9 * num_sites];
+  eta[7] += coClover[34] * phi[10 * num_sites];
+  eta[7] += coClover[35] * phi[11 * num_sites];
+  eta[8] += coClover[36] * phi[9 * num_sites];
+  eta[8] += coClover[37] * phi[10 * num_sites];
+  eta[8] += coClover[38] * phi[11 * num_sites];
+  eta[9] += coClover[39] * phi[10 * num_sites];
+  eta[9] += coClover[40] * phi[11 * num_sites];
+  eta[10] += coClover[41] * phi[11 * num_sites];
+  eta[7] += cu_conj_PRECISION(coClover[27]) * phi[6 * num_sites];
+  eta[8] += cu_conj_PRECISION(coClover[28]) * phi[6 * num_sites];
+  eta[9] += cu_conj_PRECISION(coClover[29]) * phi[6 * num_sites];
+  eta[10] += cu_conj_PRECISION(coClover[30]) * phi[6 * num_sites];
+  eta[11] += cu_conj_PRECISION(coClover[31]) * phi[6 * num_sites];
+  eta[8] += cu_conj_PRECISION(coClover[32]) * phi[7 * num_sites];
+  eta[9] += cu_conj_PRECISION(coClover[33]) * phi[7 * num_sites];
+  eta[10] += cu_conj_PRECISION(coClover[34]) * phi[7 * num_sites];
+  eta[11] += cu_conj_PRECISION(coClover[35]) * phi[7 * num_sites];
+  eta[9] += cu_conj_PRECISION(coClover[36]) * phi[8 * num_sites];
+  eta[10] += cu_conj_PRECISION(coClover[37]) * phi[8 * num_sites];
+  eta[11] += cu_conj_PRECISION(coClover[38]) * phi[8 * num_sites];
+  eta[10] += cu_conj_PRECISION(coClover[39]) * phi[9 * num_sites];
+  eta[11] += cu_conj_PRECISION(coClover[40]) * phi[9 * num_sites];
+  eta[11] += cu_conj_PRECISION(coClover[41]) * phi[10 * num_sites];
 }
 
 __global__ void cuda_prp_T_componentwise_PRECISION(cu_cmplx_PRECISION* prpT,

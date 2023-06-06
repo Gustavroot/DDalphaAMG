@@ -73,4 +73,20 @@ __global__ void reorderVectorByComponent(ElementType* dst, ElementType const* sr
   }
 }
 
+template <typename ElementType>
+class ComponentAccess{
+  public:
+    __host__ __device__ ComponentAccess(ElementType * data, size_t num_sites){
+      this->data = data;
+      this->num_sites = num_sites;
+    }
+
+    __host__ __device__ ElementType& operator[](size_t i){
+      return data[i * this->num_sites];
+    }
+  private:
+    ElementType * data;
+    size_t num_sites;
+};
+
 #endif  // CUDA_COMPONENTWISE_H

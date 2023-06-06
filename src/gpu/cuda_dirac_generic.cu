@@ -284,7 +284,7 @@ void cuda_d_plus_clover_PRECISION(
   if ( g.csw == 0.0 ) {
     cuda_vector_PRECISION_scale(eta, phi, shift, 0, l->inner_vector_size, l, _CUDA_SYNC, 0, streams);
   } else {
-    _cuda_clover_componentwise_PRECISION(eta, phi_componentwise, op->clover_gpu, l->num_inner_lattice_sites, l);
+    _cuda_clover_componentwise_PRECISION(eta, phi_componentwise, op->clover_componentwise_gpu, l->num_inner_lattice_sites, l);
   }
   
   PROF_PRECISION_START_UNTHREADED( _NC );

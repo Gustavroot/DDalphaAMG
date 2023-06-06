@@ -1,5 +1,7 @@
+#include "cuda_componentwise.h"
 #include "cuda_dirac.h"
 #include "cuda_linalg_double.h"
+#include "cuda_miscellaneous.h"
 extern "C" {
 #include "operator.h"
 }
@@ -15,6 +17,11 @@ void cuda_dirac_setup(config_double hopp, config_double clover, level_struct* l)
   // (possibly because on lower levels, there are different methods handling that)
   cuda_vector_double_copy(g.op_double.clover_gpu, g.op_double.clover, 0,
                           l->num_inner_lattice_sites * css, l, _H2D, _CUDA_SYNC, 0, streams);
+  constexpr uint blockSize = 128;
+  const uint gridSize = minGridSizeForN(l->num_inner_lattice_sites, blockSize);
+  reorderVectorByComponent<<<gridSize, 128>>>(g.op_double.clover_componentwise_gpu,
+                                              g.op_double.clover_gpu, css,
+                                              l->num_inner_lattice_sites);
   cuda_vector_double_copy(g.op_double.D_gpu, g.op_double.D, 0, 4 * 9 * l->num_inner_lattice_sites,
                           l, _H2D, _CUDA_SYNC, 0, streams);
 }
