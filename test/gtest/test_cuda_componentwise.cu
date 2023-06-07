@@ -179,6 +179,36 @@ RC_GTEST_PROP(ReorderVectorByComponentTest, SrcPreserved, ()) {
   RC_ASSERT_CUDA_SUCCESS(cudaFree(dstCuda));
 }
 
+RC_GTEST_PROP(ReorderVectorByChunksTest, SrcRestored, ()) {
+  unsigned int chunkSize = *rc::gen::inRange(1, 10);
+  unsigned int chunkCount = *rc::gen::inRange(1, 1024);
+  unsigned int blockSize = *rc::gen::inRange(1, 256);
+  unsigned int gridSize = minGridSizeForN(chunkCount, blockSize);
+
+  unsigned int arraySize = chunkCount * chunkSize;
+  auto src = *rc::gen::container<std::vector<int>>(arraySize, rc::gen::arbitrary<int>());
+  int *dst = (int *)malloc(arraySize * sizeof(int));
+  int *srcCuda, *srcComponentwiseCuda, *dstCuda;
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&srcComponentwiseCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&dstCuda, arraySize * sizeof(int)));
+
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src.data(), arraySize * sizeof(int), cudaMemcpyHostToDevice));
+  reorderVectorByComponent<<<gridSize, blockSize>>>(srcComponentwiseCuda, srcCuda, chunkSize, chunkCount);
+  reorderVectorByChunks<<<gridSize, blockSize>>>(dstCuda, srcComponentwiseCuda, chunkSize, chunkCount);
+  RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(dst, dstCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
+
+  for (unsigned int i = 0; i < arraySize; i++) {
+    RC_ASSERT(dst[i] == src[i]);
+  }
+
+  free(dst);
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(srcCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(srcComponentwiseCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(dstCuda));
+}
+
 __global__ void _compareOriginalKernel(int * dst, int const *srcComponentwise,
                                        uint siteCount) {
   auto caSrc = ComponentAccess(srcComponentwise, siteCount);
