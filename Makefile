@@ -138,7 +138,7 @@ $(OBJ_CUDA_DLINKDB): $(OBJ_NO_MAINDB) $(OBJ_CUDADB)
 # to actually use the objects created by NVCC we need an object file
 # on which NVCC did perform device code linking
 # see also: https://stackoverflow.com/questions/22115197/dynamic-parallelism-undefined-reference-to-cudaregisterlinkedbinary-linking
-	$(NVCC) -dlink -lcudadevrt -o $@ $(OBJ_NO_MAINDB) $(OBJ_CUDADB)
+	$(NVCC) $(NVCC_LINK_FLAGS) -dlink -lcudadevrt -o $@ $(OBJ_NO_MAINDB) $(OBJ_CUDADB)
 
 lib/libdd_alpha_amg_db.a: $(OBJ_CUDA_DLINKDB) $(OBJ_NO_MAINDB) $(OBJ_CUDADB)
 # see also https://stackoverflow.com/questions/26893588/creating-a-static-cuda-library-to-be-linked-with-a-c-program
