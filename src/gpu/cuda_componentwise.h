@@ -110,7 +110,8 @@ class ComponentAccess{
       this->num_sites = num_sites;
     }
 
-    __host__ __device__ ElementType& operator[](size_t i){
+    __device__ ElementType& operator[](size_t i){
+      asm("prefetch.global.L1 [%0];" : : "l"(data + ((i + 1) * this->num_sites)));
       return data[i * this->num_sites];
     }
   private:
