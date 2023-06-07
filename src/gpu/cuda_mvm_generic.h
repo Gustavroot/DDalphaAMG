@@ -7,6 +7,7 @@
 #define CUDA_MVM_PRECISION_H
 
 #include "cuda_complex.h"
+#include "cuda_componentwise.h"
 
 /**
  * \brief Calculate the 3x3 matrix vector product y = M x.
@@ -33,5 +34,9 @@ __device__ void cuda_mvm_PRECISION(cu_cmplx_PRECISION *y, cu_cmplx_PRECISION con
  */
 __device__ void cuda_mvmh_PRECISION(cu_cmplx_PRECISION *y, cu_cmplx_PRECISION const *M,
                                     cu_cmplx_PRECISION const *x);
+
+__device__ void cuda_mvmh_componentwise_PRECISION(cu_cmplx_PRECISION *y,
+                                                  cu_cmplx_PRECISION const *M,
+                                                  ComponentAccess<cu_cmplx_PRECISION const> x);
 
 #endif  // CUDA_MVM_PRECISION_H

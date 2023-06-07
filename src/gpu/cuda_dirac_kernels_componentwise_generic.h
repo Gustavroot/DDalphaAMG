@@ -50,4 +50,85 @@ __global__ void cuda_prp_X_componentwise_PRECISION(cu_cmplx_PRECISION* prpX,
 __global__ void cuda_prn_X_componentwise_PRECISION(cu_cmplx_PRECISION* prnX,
                                                    cu_cmplx_PRECISION const* phi, size_t num_sites);
 
+/**
+ * \brief Applies the matrix vector products as required for the projection in negative direction.
+ *
+ * This kernel must be invoked with double as many (total across blocks) threads as there are
+ * inner lattice sites. This is done in order to expose full parralelism for the 3x3 matrix vector
+ * multiplications.
+ *
+ * \param[out]  prp_buf   The projection buffer to which the result is written.
+ * \param[in]   D         The Wilson-Dirac matrix in the form used throughout this project.
+ * \param[in]   pbuf      The vector prepared by a previous call to cuda_prn_*_PRECISION.
+ * \param[in]   neighbors The neighbor table containing the neighbors in all 4 directions.
+ *                        See also operator_PRECISION_struct::neighbor_table.
+ * \param[in]   dim       The direction in which the projection is performed.
+ * \param[in]   num_sites The number of lattice sites for which the projection will be performed.
+ *                        Note that even though this is the number of inner lattice site, sites
+ *                        outside of that range will be written to in prp_buf if they are neighbors
+ *                        to an inner lattice site.
+ */
+__global__ void cuda_prn_mvmh_componentwise_PRECISION(cu_cmplx_PRECISION* prp_buf,
+                                                      cu_cmplx_PRECISION const* D,
+                                                      cu_cmplx_PRECISION const* pbuf,
+                                                      int const* neighbors, LatticeAxis dim,
+                                                      size_t num_sites);
+
+/**
+ * \brief Applies the matrix vector products as required for the projection in positive direction.
+ *
+ * This kernel must be invoked with double as many (total across blocks) threads as there are
+ * inner lattice sites. This is done in order to expose full parralelism for the 3x3 matrix vector
+ * multiplications.
+ *
+ * \param[in]   pbuf      The result vector prepared for a subsequent call to
+ *                        cuda_pbp_su3_*_PRECISION.
+ * \param[in]   D         The Wilson-Dirac matrix in the form used throughout this project.
+ * \param[out]  prn_buf   The negative projection vector as previously calculated and communicated.
+ * \param[in]   neighbors The neighbor table containing the neighbors in all 4 directions.
+ *                        See also operator_PRECISION_struct::neighbor_table.
+ * \param[in]   dim       The direction in which the projection is performed.
+ * \param[in]   num_sites The number of lattice sites for which the projection will be performed.
+ *                        Note that even though this is the number of inner lattice site, sites
+ *                        outside of that range will be read in prn_buf if they are neighbors
+ *                        to an inner lattice site.
+ */
+__global__ void cuda_pbp_su3_mvm_componentwise_PRECISION(cu_cmplx_PRECISION* pbuf,
+                                                         cu_cmplx_PRECISION const* D,
+                                                         cu_cmplx_PRECISION const* prn_buf,
+                                                         int const* neighbors, LatticeAxis dim,
+                                                         size_t num_sites);
+
+__global__ void cuda_pbp_su3_T_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
+                                                       cu_cmplx_PRECISION const* pbuf,
+                                                       size_t num_sites);
+
+__global__ void cuda_pbp_su3_Z_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
+                                                       cu_cmplx_PRECISION const* pbuf,
+                                                       size_t num_sites);
+
+__global__ void cuda_pbp_su3_Y_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
+                                                       cu_cmplx_PRECISION const* pbuf,
+                                                       size_t num_sites);
+
+__global__ void cuda_pbp_su3_X_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
+                                                       cu_cmplx_PRECISION const* pbuf,
+                                                       size_t num_sites);
+
+__global__ void cuda_pbn_su3_T_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
+                                                       cu_cmplx_PRECISION const* prpT,
+                                                       size_t num_sites);
+
+__global__ void cuda_pbn_su3_Z_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
+                                                       cu_cmplx_PRECISION const* prpZ,
+                                                       size_t num_sites);
+
+__global__ void cuda_pbn_su3_Y_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
+                                                       cu_cmplx_PRECISION const* prpY,
+                                                       size_t num_sites);
+
+__global__ void cuda_pbn_su3_X_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
+                                                       cu_cmplx_PRECISION const* prpX,
+                                                       size_t num_sites);
+
 #endif  // CUDA_DIRAC_KERNELS_COMPONENTWISE_PRECISION_H

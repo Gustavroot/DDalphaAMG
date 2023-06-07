@@ -26,7 +26,7 @@ typedef struct
     cuda_config_PRECISION clover_gpu, clover_componentwise_gpu, D_gpu;
 
     // Local vectors to apply the operator w = w + Dx on the GPU.
-    cuda_vector_PRECISION x_gpu, x_componentwise_gpu, w_gpu, pbuf_gpu;
+    cuda_vector_PRECISION x_gpu, x_componentwise_gpu, w_gpu, w_componentwise_gpu, pbuf_gpu;
     cuda_vector_PRECISION prpT_gpu, prpZ_gpu, prpY_gpu, prpX_gpu;
     cuda_vector_PRECISION prnT_gpu, prnZ_gpu, prnY_gpu, prnX_gpu;
 
