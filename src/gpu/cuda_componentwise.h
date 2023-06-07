@@ -1,6 +1,17 @@
 /** \file cuda_componentwise.h
  *
  *  \brief Contains functions that support componentwise access to global memory.
+ * 
+ * A vector is considered to be in subvector format if it is ordered like
+ * 123412341234.
+ * 
+ * A vector is considered to be in componentwise format if it ordered like
+ * 111222333444.
+ * 
+ * Access to a componentwise vector is more efficient in CUDA code if all
+ * threads access the same component as more values fit each cache line and
+ * thus the amount of data that needs to be transferred from global memory
+ * (or another cache) is reduced.
  */
 
 #ifndef CUDA_COMPONENTWISE_H
@@ -46,7 +57,18 @@ __device__ void copyChunksToConsecutiveAsBlock(ElementType* dst, ElementType con
   __syncthreads();
 }
 
-
+/** \brief Reorder a full vector by component using arbitrary block and grid dimensions.
+ * 
+ *  Transforms a vector from subvector format to componentwise format.
+ * 
+ *  \param[out] dst         The vector that will be set to the componentwise reordering of src.
+ *                          Must have at least size chunkSize * chunkCount.
+ *  \param[in]  src         The vector in subvector format that will be reordered. Remains unchanged.
+ *  \param[in]  chunkSize   The count of components in the src vector.
+ *  \param[in]  chunkCount  The count of subvectors/chunks/sites in the src vector. Equivalent to
+ *                          the distance between components +1.
+ * 
+ */
 template <typename ElementType>
 __global__ void reorderVectorByComponent(ElementType* dst, ElementType const* src,
                                          size_t chunkSize, size_t chunkCount) {
@@ -73,6 +95,13 @@ __global__ void reorderVectorByComponent(ElementType* dst, ElementType const* sr
   }
 }
 
+/**
+ * \brief Simplifies access to components of a componentwise vector.
+ * 
+ * Objects of this class can be used to access src[i * num_sites]
+ * as ComponentAccess(src, num_sites)[i]. The created object is reusable to
+ * eliminate the excessive writing of the num_sites variable.
+ */
 template <typename ElementType>
 class ComponentAccess{
   public:

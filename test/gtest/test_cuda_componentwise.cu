@@ -6,6 +6,7 @@
 #include "gpu/cuda_componentwise.h"
 #include "gpu/cuda_miscellaneous.h"
 #include "miscellaneous.h"
+#include "test_macros.h"
 
 __global__ void _checkDstKernel(int *dst, int const *src, unsigned int chunkSize,
                                 unsigned int gapSize, unsigned int chunkCount) {
@@ -21,18 +22,18 @@ RC_GTEST_PROP(CopyChunksToConsecutiveAsBlockTest, CheckDst, ()) {
   int *src = (int *)malloc(arraySize * sizeof(int));
   int *dst = (int *)malloc(chunkSize * blockSize * sizeof(int));
   int *srcCuda, *dstCuda;
-  cuda_safe_call(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
-  cuda_safe_call(cudaMalloc(&dstCuda, chunkSize * blockSize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&dstCuda, chunkSize * blockSize * sizeof(int)));
 
   // set chunks to 1 and gaps to -1
   for (unsigned int i = 0; i < arraySize; i++) {
     src[i] = (i % (chunkSize + gapSize) < chunkSize) ? 1 : -1;
   }
 
-  cuda_safe_call(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
   _checkDstKernel<<<1, blockSize>>>(dstCuda, srcCuda, chunkSize, gapSize, blockSize);
-  cuda_safe_call(cudaDeviceSynchronize());
-  cuda_safe_call(
+  RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
+  RC_ASSERT_CUDA_SUCCESS(
       cudaMemcpy(dst, dstCuda, chunkSize * blockSize * sizeof(int), cudaMemcpyDeviceToHost));
 
   for (unsigned int i = 0; i < chunkSize * blockSize; i++) {
@@ -41,8 +42,8 @@ RC_GTEST_PROP(CopyChunksToConsecutiveAsBlockTest, CheckDst, ()) {
 
   free(src);
   free(dst);
-  cuda_safe_call(cudaFree(srcCuda));
-  cuda_safe_call(cudaFree(dstCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(srcCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(dstCuda));
 }
 
 RC_GTEST_PROP(CopyChunksToConsecutiveAsBlockTest, CheckDstNonDivisible, ()) {
@@ -55,18 +56,18 @@ RC_GTEST_PROP(CopyChunksToConsecutiveAsBlockTest, CheckDstNonDivisible, ()) {
   int *src = (int *)malloc(arraySize * sizeof(int));
   int *dst = (int *)malloc(chunkSize * chunkCount * sizeof(int));
   int *srcCuda, *dstCuda;
-  cuda_safe_call(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
-  cuda_safe_call(cudaMalloc(&dstCuda, chunkSize * chunkCount * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&dstCuda, chunkSize * chunkCount * sizeof(int)));
 
   // set chunks to 1 and gaps to -1
   for (unsigned int i = 0; i < arraySize; i++) {
     src[i] = (i % (chunkSize + gapSize) < chunkSize) ? 1 : -1;
   }
 
-  cuda_safe_call(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
   _checkDstKernel<<<1, blockSize>>>(dstCuda, srcCuda, chunkSize, gapSize, chunkCount);
-  cuda_safe_call(cudaDeviceSynchronize());
-  cuda_safe_call(
+  RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
+  RC_ASSERT_CUDA_SUCCESS(
       cudaMemcpy(dst, dstCuda, chunkSize * chunkCount * sizeof(int), cudaMemcpyDeviceToHost));
 
   for (unsigned int i = 0; i < chunkSize * chunkCount; i++) {
@@ -75,8 +76,8 @@ RC_GTEST_PROP(CopyChunksToConsecutiveAsBlockTest, CheckDstNonDivisible, ()) {
 
   free(src);
   free(dst);
-  cuda_safe_call(cudaFree(srcCuda));
-  cuda_safe_call(cudaFree(dstCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(srcCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(dstCuda));
 }
 
 __global__ void _sharedMemoryKernel(int const *src, unsigned int chunkSize, unsigned int gapSize) {
@@ -92,24 +93,24 @@ RC_GTEST_PROP(CopyChunksToConsecutiveAsBlockTest, SharedMemory, ()) {
   unsigned int arraySize = blockSize * (chunkSize + gapSize);
   int *src = (int *)malloc(arraySize * sizeof(int));
   int *srcCuda;
-  cuda_safe_call(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
 
   // set chunks to 1 and gaps to -1
   for (unsigned int i = 0; i < arraySize; i++) {
     src[i] = (i % (chunkSize + gapSize) < chunkSize) ? 1 : -1;
   }
 
-  cuda_safe_call(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
   _sharedMemoryKernel<<<1, blockSize, blockSize * chunkSize * sizeof(int)>>>(srcCuda, chunkSize,
                                                                              gapSize);
-  cuda_safe_call(cudaDeviceSynchronize());
+  RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
 
   // We don't actually want to assert anything here. Just that dst can
   // be in shared memory.
   RC_SUCCEED();
 
   free(src);
-  cuda_safe_call(cudaFree(srcCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(srcCuda));
 }
 
 RC_GTEST_PROP(ReorderVectorByComponentTest, CheckDst, ()) {
@@ -122,18 +123,18 @@ RC_GTEST_PROP(ReorderVectorByComponentTest, CheckDst, ()) {
   int *src = (int *)malloc(arraySize * sizeof(int));
   int *dst = (int *)malloc(arraySize * sizeof(int));
   int *srcCuda, *dstCuda;
-  cuda_safe_call(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
-  cuda_safe_call(cudaMalloc(&dstCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&dstCuda, arraySize * sizeof(int)));
 
   // set elements in chunks to ascending numbers
   for (unsigned int i = 0; i < arraySize; i++) {
     src[i] = i % chunkSize;
   }
 
-  cuda_safe_call(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
   reorderVectorByComponent<<<gridSize, blockSize>>>(dstCuda, srcCuda, chunkSize, chunkCount);
-  cuda_safe_call(cudaDeviceSynchronize());
-  cuda_safe_call(cudaMemcpy(dst, dstCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
+  RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(dst, dstCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
 
   for (unsigned int i = 0; i < arraySize; i++) {
     RC_ASSERT(dst[i] == i / chunkCount);
@@ -141,8 +142,8 @@ RC_GTEST_PROP(ReorderVectorByComponentTest, CheckDst, ()) {
 
   free(src);
   free(dst);
-  cuda_safe_call(cudaFree(srcCuda));
-  cuda_safe_call(cudaFree(dstCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(srcCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(dstCuda));
 }
 
 RC_GTEST_PROP(ReorderVectorByComponentTest, SrcPreserved, ()) {
@@ -155,18 +156,18 @@ RC_GTEST_PROP(ReorderVectorByComponentTest, SrcPreserved, ()) {
   int *src = (int *)malloc(arraySize * sizeof(int));
   int *dst = (int *)malloc(arraySize * sizeof(int));
   int *srcCuda, *dstCuda;
-  cuda_safe_call(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
-  cuda_safe_call(cudaMalloc(&dstCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&dstCuda, arraySize * sizeof(int)));
 
   // set elements in chunks to ascending numbers
   for (unsigned int i = 0; i < arraySize; i++) {
     src[i] = i % chunkSize;
   }
 
-  cuda_safe_call(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
   reorderVectorByComponent<<<gridSize, blockSize>>>(dstCuda, srcCuda, chunkSize, chunkCount);
-  cuda_safe_call(cudaDeviceSynchronize());
-  cuda_safe_call(cudaMemcpy(dst, srcCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
+  RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(dst, srcCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
 
   for (unsigned int i = 0; i < arraySize; i++) {
     RC_ASSERT(dst[i] == src[i]);
@@ -174,6 +175,44 @@ RC_GTEST_PROP(ReorderVectorByComponentTest, SrcPreserved, ()) {
 
   free(src);
   free(dst);
-  cuda_safe_call(cudaFree(srcCuda));
-  cuda_safe_call(cudaFree(dstCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(srcCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(dstCuda));
+}
+
+__global__ void _compareOriginalKernel(int * dst, int const *srcComponentwise,
+                                       uint siteCount) {
+  auto caSrc = ComponentAccess(srcComponentwise, siteCount);
+  dst[threadIdx.x] = caSrc[threadIdx.x];
+}
+
+RC_GTEST_PROP(ComponentAccessTest, CompareOriginal, ()) {
+  unsigned int componentCount = *rc::gen::inRange(1, 10);
+  unsigned int siteCount = *rc::gen::inRange(1, 1024);
+  unsigned int siteIdx = *rc::gen::inRange(0u, siteCount-1);
+  constexpr unsigned int blockSize = 32;
+  unsigned int gridSize = minGridSizeForN(siteCount, blockSize);
+
+  unsigned int arraySize = siteCount * componentCount;
+  auto src = *rc::gen::container<std::vector<int>>(arraySize, rc::gen::arbitrary<int>());
+  int *dst = (int *)malloc(componentCount * sizeof(int));
+  int *srcCuda, *srcComponentwiseCuda, *dstCuda;
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&srcCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&srcComponentwiseCuda, arraySize * sizeof(int)));
+  RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&dstCuda, componentCount * sizeof(int)));
+
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src.data(), arraySize * sizeof(int), cudaMemcpyHostToDevice));
+  reorderVectorByComponent<<<gridSize, blockSize>>>(srcComponentwiseCuda, srcCuda, componentCount,
+                                                    siteCount);
+  // note `+ siteIdx` -> we access components for site at siteIdx
+  _compareOriginalKernel<<<1, componentCount>>>(dstCuda, srcComponentwiseCuda + siteIdx, siteCount);
+  RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
+  RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(dst, dstCuda, componentCount * sizeof(int), cudaMemcpyDeviceToHost));
+
+  for (unsigned int i = 0; i < componentCount; i++) {
+    RC_ASSERT(dst[i] == src[siteIdx * componentCount + i]);
+  }
+  free(dst);
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(srcCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(srcComponentwiseCuda));
+  RC_ASSERT_CUDA_SUCCESS(cudaFree(dstCuda));
 }
