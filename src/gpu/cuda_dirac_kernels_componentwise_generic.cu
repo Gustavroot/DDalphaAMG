@@ -107,19 +107,24 @@ __global__ void cuda_site_clover_componentwise_PRECISION(cuda_vector_PRECISION e
 __global__ void cuda_prp_T_componentwise_PRECISION(cu_cmplx_PRECISION* prpT,
                                                    cu_cmplx_PRECISION const* phi,
                                                    size_t num_sites) {
+  __shared__ cu_cmplx_PRECISION sharedPrpT[6 * diracCommonBlockSize];
+  auto localPrpT = sharedPrpT + 6 * threadIdx.x;
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= num_sites) {
-    // there is no more site for this index
-    return;
-  }
   auto caPhi = ComponentAccess(phi + idx, num_sites);
-  auto paPrpT = PrefetchedAccess(prpT + 6 * idx, num_sites);
-  paPrpT[0] = caPhi[0] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 0];
-  paPrpT[1] = caPhi[1] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 1];
-  paPrpT[2] = caPhi[2] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 2];
-  paPrpT[3] = caPhi[3] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 0];
-  paPrpT[4] = caPhi[4] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 1];
-  paPrpT[5] = caPhi[5] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 2];
+  // there is no more site for this index
+  if (idx >= num_sites) goto copymem;
+  localPrpT[0] = caPhi[0] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 0];
+  localPrpT[1] = caPhi[1] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 1];
+  localPrpT[2] = caPhi[2] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 2];
+  localPrpT[3] = caPhi[3] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 0];
+  localPrpT[4] = caPhi[4] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 1];
+  localPrpT[5] = caPhi[5] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 2];
+copymem:
+  __syncthreads();
+  // advance prpT to first element of block
+  prpT += 6 * blockDim.x * blockIdx.x;
+  copyChunksToConsecutiveAsBlock(prpT, sharedPrpT, 6, 0,
+                                 min(diracCommonBlockSize, num_sites - blockDim.x * blockIdx.x));
 }
 
 __global__ void cuda_prn_T_componentwise_PRECISION(cu_cmplx_PRECISION* prnT,
