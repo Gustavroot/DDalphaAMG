@@ -101,12 +101,30 @@ __global__ void reorderVectorByComponent(ElementType* dst, ElementType const* sr
                                          size_t chunkCount) {
   assert(blockDim.x * gridDim.x >= chunkCount);
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= chunkCount){
+  if (idx >= chunkCount) {
     // there is no more chunk for this index
     return;
   }
-  // set dst to first element that will be written
+  // set src to first element that will be read
   src += chunkSize * idx;
+  auto caDst = ComponentAccess(dst + idx, chunkCount);
+  for (size_t i = 0; i < chunkSize; i++) {
+    caDst[i] = src[i];
+  }
+}
+
+template <typename ElementType>
+__global__ void reorderVectorWithGapsByComponent(ElementType* dst, ElementType const* src,
+                                                 unsigned int chunkSize, unsigned int gapSize,
+                                                 unsigned int chunkCount) {
+  assert(blockDim.x * gridDim.x >= chunkCount);
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= chunkCount) {
+    // there is no more chunk for this index
+    return;
+  }
+  // set src to first element that will be read (start of handled chunk)
+  src += (chunkSize + gapSize) * idx;
   auto caDst = ComponentAccess(dst + idx, chunkCount);
   for (size_t i = 0; i < chunkSize; i++) {
     caDst[i] = src[i];
@@ -118,7 +136,7 @@ __global__ void reorderVectorByChunks(ElementType* dst, ElementType const* src, 
                                       size_t chunkCount) {
   assert(blockDim.x * gridDim.x >= chunkCount);
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= chunkCount){
+  if (idx >= chunkCount) {
     // there is no more chunk for this index
     return;
   }

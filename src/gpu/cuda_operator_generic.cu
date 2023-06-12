@@ -10,6 +10,9 @@ void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
   op->clover_gpu = NULL;
   op->clover_componentwise_gpu = NULL;
   op->D_gpu = NULL;
+  for ( int mu=0; mu<4; mu++ ) {
+    op->Ds_componentwise_gpu[mu] = NULL;
+  }
   op->x_gpu = NULL;
   op->x_componentwise_gpu = NULL;
   op->w_gpu = NULL;
@@ -48,6 +51,9 @@ void cuda_operator_PRECISION_alloc(operator_PRECISION_struct *op, const int type
   CUDA_MALLOC(op->w_componentwise_gpu, cu_cmplx_PRECISION, l->inner_vector_size);
 
   CUDA_MALLOC(op->D_gpu, cu_cmplx_PRECISION, 4 * 9 * l->num_inner_lattice_sites);
+  for ( int mu=0; mu<4; mu++ ) {
+    CUDA_MALLOC(op->Ds_componentwise_gpu[mu], cu_cmplx_PRECISION, 9 * l->num_inner_lattice_sites);
+  };
   CUDA_MALLOC(op->neighbor_table_gpu, int, 4 * l->num_inner_lattice_sites);
 
   CUDA_MALLOC(op->pbuf_gpu, cu_cmplx_PRECISION, pbs);
@@ -91,6 +97,9 @@ void cuda_operator_PRECISION_free(operator_PRECISION_struct *op, const int type,
   CUDA_FREE(op->clover_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
   CUDA_FREE(op->clover_componentwise_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
   CUDA_FREE(op->D_gpu, cu_cmplx_PRECISION, 4 * 9 * l->num_inner_lattice_sites);
+  for ( int mu=0; mu<4; mu++ ) {
+    CUDA_FREE(op->Ds_componentwise_gpu[mu], cu_cmplx_PRECISION, 9 * l->num_inner_lattice_sites);
+  };
   CUDA_FREE(op->x_gpu, cu_cmplx_PRECISION, l->inner_vector_size);
   CUDA_FREE(op->x_componentwise_gpu, cu_cmplx_PRECISION, l->inner_vector_size);
   CUDA_FREE(op->w_gpu, cu_cmplx_PRECISION, l->inner_vector_size);

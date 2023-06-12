@@ -275,7 +275,7 @@ __global__ void cuda_prn_mvmh_componentwise_PRECISION(cu_cmplx_PRECISION* prp_bu
     // there is no more site for this index
     return;
   }
-  D += 9 * (4 * lattice_idx + neighbor_offset);
+
   neighbors += 4 * lattice_idx + neighbor_offset;
   // We operate in steps of 3 here as the application of D happens as 3x3 matrix vector
   // multiplications. There will be two mvms per lattice site.
@@ -284,10 +284,11 @@ __global__ void cuda_prn_mvmh_componentwise_PRECISION(cu_cmplx_PRECISION* prp_bu
     // Uneven indices access elements 3..5
     pbuf += 3 * num_sites;
   }
+  auto caD = ComponentAccess(D + lattice_idx, num_sites);
   auto caPbuf = ComponentAccess(pbuf + lattice_idx, num_sites);
   const size_t j = 6 * (*neighbors);
   prp_buf += j + (idx % 2 == 0 ? 0 : 3);
-  cuda_mvmh_componentwise_PRECISION(prp_buf, D, caPbuf);
+  cuda_mvmh_componentwise_PRECISION(prp_buf, caD, caPbuf);
 }
 
 __global__ void cuda_pbp_su3_mvm_componentwise_PRECISION(cu_cmplx_PRECISION* pbuf,
@@ -317,14 +318,15 @@ __global__ void cuda_pbp_su3_mvm_componentwise_PRECISION(cu_cmplx_PRECISION* pbu
     // there is no more site for this index
     return;
   }
-  D += 9 * (4 * lattice_idx + neighbor_offset);
+
   neighbors += 4 * lattice_idx + neighbor_offset;
   // We operate in steps of 3 here as the application of D happens as 3x3 matrix vector
   // multiplications. There will be two mvms per lattice site.
+  auto caD = ComponentAccess(D + lattice_idx, num_sites);
   auto caPbuf = ComponentAccess(pbuf + lattice_idx + (idx % 2 == 0 ? 0 : 3) * num_sites, num_sites);
   const size_t j = 6 * (*neighbors);
   prn_buf += j + (idx % 2 == 0 ? 0 : 3);
-  cuda_mvm_componentwise_PRECISION(caPbuf, D, prn_buf);
+  cuda_mvm_componentwise_PRECISION(caPbuf, caD, prn_buf);
 }
 
 __global__ void cuda_pbp_su3_T_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
