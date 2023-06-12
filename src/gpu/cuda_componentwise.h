@@ -84,6 +84,25 @@ class ComponentAccess {
   size_t num_sites;
 };
 
+
+template <typename ElementType>
+class PrefetchedAccess {
+ public:
+  __host__ __device__ PrefetchedAccess(ElementType* data, size_t num_sites) {
+    this->data = data;
+    this->num_sites = num_sites;
+  }
+
+  __device__ ElementType& operator[](size_t i) {
+    asm("prefetch.global.L1 [%0];" : : "l"(data + i + 1));
+    return data[i];
+  }
+
+ private:
+  ElementType* data;
+  size_t num_sites;
+};
+
 /** \brief Reorder a full vector by component using arbitrary block and grid dimensions.
  *
  *  Transforms a vector from chunkwise format to componentwise format.
