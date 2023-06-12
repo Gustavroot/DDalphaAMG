@@ -107,19 +107,24 @@ __global__ void cuda_site_clover_componentwise_PRECISION(cuda_vector_PRECISION e
 __global__ void cuda_prp_T_componentwise_PRECISION(cu_cmplx_PRECISION* prpT,
                                                    cu_cmplx_PRECISION const* phi,
                                                    size_t num_sites) {
+  __shared__ cu_cmplx_PRECISION sharedPrpT[6 * diracCommonBlockSize];
+  auto localPrpT = sharedPrpT + 6 * threadIdx.x;
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= num_sites) {
-    // there is no more site for this index
-    return;
-  }
   auto caPhi = ComponentAccess(phi + idx, num_sites);
-  prpT += 6 * idx;
-  prpT[0] = caPhi[0] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 0];
-  prpT[1] = caPhi[1] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 1];
-  prpT[2] = caPhi[2] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 2];
-  prpT[3] = caPhi[3] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 0];
-  prpT[4] = caPhi[4] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 1];
-  prpT[5] = caPhi[5] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 2];
+  // there is no more site for this index
+  if (idx >= num_sites) goto copymem;
+  localPrpT[0] = caPhi[0] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 0];
+  localPrpT[1] = caPhi[1] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 1];
+  localPrpT[2] = caPhi[2] - GAMMA_T_SPIN0_VAL * caPhi[3 * GAMMA_T_SPIN0_CO + 2];
+  localPrpT[3] = caPhi[3] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 0];
+  localPrpT[4] = caPhi[4] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 1];
+  localPrpT[5] = caPhi[5] - GAMMA_T_SPIN1_VAL * caPhi[3 * GAMMA_T_SPIN1_CO + 2];
+copymem:
+  __syncthreads();
+  // advance prpT to first element of block
+  prpT += 6 * blockDim.x * blockIdx.x;
+  copyChunksToConsecutiveAsBlock(prpT, sharedPrpT, 6, 0,
+                                 min(diracCommonBlockSize, num_sites - blockDim.x * blockIdx.x));
 }
 
 __global__ void cuda_prn_T_componentwise_PRECISION(cu_cmplx_PRECISION* prnT,
@@ -143,19 +148,24 @@ __global__ void cuda_prn_T_componentwise_PRECISION(cu_cmplx_PRECISION* prnT,
 __global__ void cuda_prp_Z_componentwise_PRECISION(cu_cmplx_PRECISION* prpZ,
                                                    cu_cmplx_PRECISION const* phi,
                                                    size_t num_sites) {
+  __shared__ cu_cmplx_PRECISION sharedPrpZ[6 * diracCommonBlockSize];
+  auto localPrpZ = sharedPrpZ + 6 * threadIdx.x;
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= num_sites) {
-    // there is no more site for this index
-    return;
-  }
   auto caPhi = ComponentAccess(phi + idx, num_sites);
-  prpZ += 6 * idx;
-  prpZ[0] = caPhi[0] - GAMMA_Z_SPIN0_VAL * caPhi[3 * GAMMA_Z_SPIN0_CO + 0];
-  prpZ[1] = caPhi[1] - GAMMA_Z_SPIN0_VAL * caPhi[3 * GAMMA_Z_SPIN0_CO + 1];
-  prpZ[2] = caPhi[2] - GAMMA_Z_SPIN0_VAL * caPhi[3 * GAMMA_Z_SPIN0_CO + 2];
-  prpZ[3] = caPhi[3] - GAMMA_Z_SPIN1_VAL * caPhi[3 * GAMMA_Z_SPIN1_CO + 0];
-  prpZ[4] = caPhi[4] - GAMMA_Z_SPIN1_VAL * caPhi[3 * GAMMA_Z_SPIN1_CO + 1];
-  prpZ[5] = caPhi[5] - GAMMA_Z_SPIN1_VAL * caPhi[3 * GAMMA_Z_SPIN1_CO + 2];
+  // there is no more site for this index
+  if (idx >= num_sites) goto copymem;
+  localPrpZ[0] = caPhi[0] - GAMMA_Z_SPIN0_VAL * caPhi[3 * GAMMA_Z_SPIN0_CO + 0];
+  localPrpZ[1] = caPhi[1] - GAMMA_Z_SPIN0_VAL * caPhi[3 * GAMMA_Z_SPIN0_CO + 1];
+  localPrpZ[2] = caPhi[2] - GAMMA_Z_SPIN0_VAL * caPhi[3 * GAMMA_Z_SPIN0_CO + 2];
+  localPrpZ[3] = caPhi[3] - GAMMA_Z_SPIN1_VAL * caPhi[3 * GAMMA_Z_SPIN1_CO + 0];
+  localPrpZ[4] = caPhi[4] - GAMMA_Z_SPIN1_VAL * caPhi[3 * GAMMA_Z_SPIN1_CO + 1];
+  localPrpZ[5] = caPhi[5] - GAMMA_Z_SPIN1_VAL * caPhi[3 * GAMMA_Z_SPIN1_CO + 2];
+copymem:
+  __syncthreads();
+  // advance prpZ to first element of block
+  prpZ += 6 * blockDim.x * blockIdx.x;
+  copyChunksToConsecutiveAsBlock(prpZ, sharedPrpZ, 6, 0,
+                                 min(diracCommonBlockSize, num_sites - blockDim.x * blockIdx.x));
 }
 
 __global__ void cuda_prn_Z_componentwise_PRECISION(cu_cmplx_PRECISION* prnZ,
@@ -179,19 +189,24 @@ __global__ void cuda_prn_Z_componentwise_PRECISION(cu_cmplx_PRECISION* prnZ,
 __global__ void cuda_prp_Y_componentwise_PRECISION(cu_cmplx_PRECISION* prpY,
                                                    cu_cmplx_PRECISION const* phi,
                                                    size_t num_sites) {
+  __shared__ cu_cmplx_PRECISION sharedPrpY[6 * diracCommonBlockSize];
+  auto localPrpY = sharedPrpY + 6 * threadIdx.x;
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= num_sites) {
-    // there is no more site for this index
-    return;
-  }
   auto caPhi = ComponentAccess(phi + idx, num_sites);
-  prpY += 6 * idx;
-  prpY[0] = caPhi[0] - GAMMA_Y_SPIN0_VAL * caPhi[3 * GAMMA_Y_SPIN0_CO + 0];
-  prpY[1] = caPhi[1] - GAMMA_Y_SPIN0_VAL * caPhi[3 * GAMMA_Y_SPIN0_CO + 1];
-  prpY[2] = caPhi[2] - GAMMA_Y_SPIN0_VAL * caPhi[3 * GAMMA_Y_SPIN0_CO + 2];
-  prpY[3] = caPhi[3] - GAMMA_Y_SPIN1_VAL * caPhi[3 * GAMMA_Y_SPIN1_CO + 0];
-  prpY[4] = caPhi[4] - GAMMA_Y_SPIN1_VAL * caPhi[3 * GAMMA_Y_SPIN1_CO + 1];
-  prpY[5] = caPhi[5] - GAMMA_Y_SPIN1_VAL * caPhi[3 * GAMMA_Y_SPIN1_CO + 2];
+  // there is no more site for this index
+  if (idx >= num_sites) goto copymem;
+  localPrpY[0] = caPhi[0] - GAMMA_Y_SPIN0_VAL * caPhi[3 * GAMMA_Y_SPIN0_CO + 0];
+  localPrpY[1] = caPhi[1] - GAMMA_Y_SPIN0_VAL * caPhi[3 * GAMMA_Y_SPIN0_CO + 1];
+  localPrpY[2] = caPhi[2] - GAMMA_Y_SPIN0_VAL * caPhi[3 * GAMMA_Y_SPIN0_CO + 2];
+  localPrpY[3] = caPhi[3] - GAMMA_Y_SPIN1_VAL * caPhi[3 * GAMMA_Y_SPIN1_CO + 0];
+  localPrpY[4] = caPhi[4] - GAMMA_Y_SPIN1_VAL * caPhi[3 * GAMMA_Y_SPIN1_CO + 1];
+  localPrpY[5] = caPhi[5] - GAMMA_Y_SPIN1_VAL * caPhi[3 * GAMMA_Y_SPIN1_CO + 2];
+copymem:
+  __syncthreads();
+  // advance prpY to first element of block
+  prpY += 6 * blockDim.x * blockIdx.x;
+  copyChunksToConsecutiveAsBlock(prpY, sharedPrpY, 6, 0,
+                                 min(diracCommonBlockSize, num_sites - blockDim.x * blockIdx.x));
 }
 
 __global__ void cuda_prn_Y_componentwise_PRECISION(cu_cmplx_PRECISION* prnY,
@@ -215,19 +230,24 @@ __global__ void cuda_prn_Y_componentwise_PRECISION(cu_cmplx_PRECISION* prnY,
 __global__ void cuda_prp_X_componentwise_PRECISION(cu_cmplx_PRECISION* prpX,
                                                    cu_cmplx_PRECISION const* phi,
                                                    size_t num_sites) {
+  __shared__ cu_cmplx_PRECISION sharedPrpX[6 * diracCommonBlockSize];
+  auto localPrpX = sharedPrpX + 6 * threadIdx.x;
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
-  if (idx >= num_sites) {
-    // there is no more site for this index
-    return;
-  }
   auto caPhi = ComponentAccess(phi + idx, num_sites);
-  prpX += 6 * idx;
-  prpX[0] = caPhi[0] - GAMMA_X_SPIN0_VAL * caPhi[3 * GAMMA_X_SPIN0_CO + 0];
-  prpX[1] = caPhi[1] - GAMMA_X_SPIN0_VAL * caPhi[3 * GAMMA_X_SPIN0_CO + 1];
-  prpX[2] = caPhi[2] - GAMMA_X_SPIN0_VAL * caPhi[3 * GAMMA_X_SPIN0_CO + 2];
-  prpX[3] = caPhi[3] - GAMMA_X_SPIN1_VAL * caPhi[3 * GAMMA_X_SPIN1_CO + 0];
-  prpX[4] = caPhi[4] - GAMMA_X_SPIN1_VAL * caPhi[3 * GAMMA_X_SPIN1_CO + 1];
-  prpX[5] = caPhi[5] - GAMMA_X_SPIN1_VAL * caPhi[3 * GAMMA_X_SPIN1_CO + 2];
+  // there is no more site for this index
+  if (idx >= num_sites) goto copymem;
+  localPrpX[0] = caPhi[0] - GAMMA_X_SPIN0_VAL * caPhi[3 * GAMMA_X_SPIN0_CO + 0];
+  localPrpX[1] = caPhi[1] - GAMMA_X_SPIN0_VAL * caPhi[3 * GAMMA_X_SPIN0_CO + 1];
+  localPrpX[2] = caPhi[2] - GAMMA_X_SPIN0_VAL * caPhi[3 * GAMMA_X_SPIN0_CO + 2];
+  localPrpX[3] = caPhi[3] - GAMMA_X_SPIN1_VAL * caPhi[3 * GAMMA_X_SPIN1_CO + 0];
+  localPrpX[4] = caPhi[4] - GAMMA_X_SPIN1_VAL * caPhi[3 * GAMMA_X_SPIN1_CO + 1];
+  localPrpX[5] = caPhi[5] - GAMMA_X_SPIN1_VAL * caPhi[3 * GAMMA_X_SPIN1_CO + 2];
+copymem:
+  __syncthreads();
+  // advance prpY to first element of block
+  prpX += 6 * blockDim.x * blockIdx.x;
+  copyChunksToConsecutiveAsBlock(prpX, sharedPrpX, 6, 0,
+                                 min(diracCommonBlockSize, num_sites - blockDim.x * blockIdx.x));
 }
 
 __global__ void cuda_prn_X_componentwise_PRECISION(cu_cmplx_PRECISION* prnX,
@@ -428,78 +448,99 @@ __global__ void cuda_pbp_su3_X_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
 __global__ void cuda_pbn_su3_T_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
                                                        cu_cmplx_PRECISION const* prpT,
                                                        size_t num_sites) {
+  __shared__ cu_cmplx_PRECISION sharedPrpT[6 * diracCommonBlockSize];
+  auto localPrpT = sharedPrpT + 6 * threadIdx.x;
+  // advance prpT to first element of block
+  prpT += 6 * blockDim.x * blockIdx.x;
+  copyChunksToConsecutiveAsBlock(sharedPrpT, prpT, 6, 0,
+                                 min(diracCommonBlockSize, num_sites - blockDim.x * blockIdx.x));
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= num_sites) {
     // there is no more site for this index
     return;
   }
   auto caEta = ComponentAccess(eta + idx, num_sites);
-  prpT += 6 * idx;
-  caEta[0] -= prpT[0];
-  caEta[1] -= prpT[1];
-  caEta[2] -= prpT[2];
-  caEta[3] -= prpT[3];
-  caEta[4] -= prpT[4];
-  caEta[5] -= prpT[5];
-  caEta[6] -= GAMMA_T_SPIN2_VAL * prpT[3 * GAMMA_T_SPIN2_CO];
-  caEta[7] -= GAMMA_T_SPIN2_VAL * prpT[3 * GAMMA_T_SPIN2_CO + 1];
-  caEta[8] -= GAMMA_T_SPIN2_VAL * prpT[3 * GAMMA_T_SPIN2_CO + 2];
-  caEta[9] -= GAMMA_T_SPIN3_VAL * prpT[3 * GAMMA_T_SPIN3_CO];
-  caEta[10] -= GAMMA_T_SPIN3_VAL * prpT[3 * GAMMA_T_SPIN3_CO + 1];
-  caEta[11] -= GAMMA_T_SPIN3_VAL * prpT[3 * GAMMA_T_SPIN3_CO + 2];
+  caEta[0] -= localPrpT[0];
+  caEta[1] -= localPrpT[1];
+  caEta[2] -= localPrpT[2];
+  caEta[3] -= localPrpT[3];
+  caEta[4] -= localPrpT[4];
+  caEta[5] -= localPrpT[5];
+  caEta[6] -= GAMMA_T_SPIN2_VAL * localPrpT[3 * GAMMA_T_SPIN2_CO];
+  caEta[7] -= GAMMA_T_SPIN2_VAL * localPrpT[3 * GAMMA_T_SPIN2_CO + 1];
+  caEta[8] -= GAMMA_T_SPIN2_VAL * localPrpT[3 * GAMMA_T_SPIN2_CO + 2];
+  caEta[9] -= GAMMA_T_SPIN3_VAL * localPrpT[3 * GAMMA_T_SPIN3_CO];
+  caEta[10] -= GAMMA_T_SPIN3_VAL * localPrpT[3 * GAMMA_T_SPIN3_CO + 1];
+  caEta[11] -= GAMMA_T_SPIN3_VAL * localPrpT[3 * GAMMA_T_SPIN3_CO + 2];
 }
 
 __global__ void cuda_pbn_su3_Z_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
                                                        cu_cmplx_PRECISION const* prpZ,
                                                        size_t num_sites) {
+  __shared__ cu_cmplx_PRECISION sharedPrpZ[6 * diracCommonBlockSize];
+  auto localPrpZ = sharedPrpZ + 6 * threadIdx.x;
+  // advance prpZ to first element of block
+  prpZ += 6 * blockDim.x * blockIdx.x;
+  copyChunksToConsecutiveAsBlock(sharedPrpZ, prpZ, 6, 0,
+                                 min(diracCommonBlockSize, num_sites - blockDim.x * blockIdx.x));
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= num_sites) {
     // there is no more site for this index
     return;
   }
   auto caEta = ComponentAccess(eta + idx, num_sites);
-  prpZ += 6 * idx;
-  caEta[0] -= prpZ[0];
-  caEta[1] -= prpZ[1];
-  caEta[2] -= prpZ[2];
-  caEta[3] -= prpZ[3];
-  caEta[4] -= prpZ[4];
-  caEta[5] -= prpZ[5];
-  caEta[6] -= GAMMA_Z_SPIN2_VAL * prpZ[3 * GAMMA_Z_SPIN2_CO];
-  caEta[7] -= GAMMA_Z_SPIN2_VAL * prpZ[3 * GAMMA_Z_SPIN2_CO + 1];
-  caEta[8] -= GAMMA_Z_SPIN2_VAL * prpZ[3 * GAMMA_Z_SPIN2_CO + 2];
-  caEta[9] -= GAMMA_Z_SPIN3_VAL * prpZ[3 * GAMMA_Z_SPIN3_CO];
-  caEta[10] -= GAMMA_Z_SPIN3_VAL * prpZ[3 * GAMMA_Z_SPIN3_CO + 1];
-  caEta[11] -= GAMMA_Z_SPIN3_VAL * prpZ[3 * GAMMA_Z_SPIN3_CO + 2];
+  caEta[0] -= localPrpZ[0];
+  caEta[1] -= localPrpZ[1];
+  caEta[2] -= localPrpZ[2];
+  caEta[3] -= localPrpZ[3];
+  caEta[4] -= localPrpZ[4];
+  caEta[5] -= localPrpZ[5];
+  caEta[6] -= GAMMA_Z_SPIN2_VAL * localPrpZ[3 * GAMMA_Z_SPIN2_CO];
+  caEta[7] -= GAMMA_Z_SPIN2_VAL * localPrpZ[3 * GAMMA_Z_SPIN2_CO + 1];
+  caEta[8] -= GAMMA_Z_SPIN2_VAL * localPrpZ[3 * GAMMA_Z_SPIN2_CO + 2];
+  caEta[9] -= GAMMA_Z_SPIN3_VAL * localPrpZ[3 * GAMMA_Z_SPIN3_CO];
+  caEta[10] -= GAMMA_Z_SPIN3_VAL * localPrpZ[3 * GAMMA_Z_SPIN3_CO + 1];
+  caEta[11] -= GAMMA_Z_SPIN3_VAL * localPrpZ[3 * GAMMA_Z_SPIN3_CO + 2];
 }
 
 __global__ void cuda_pbn_su3_Y_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
                                                        cu_cmplx_PRECISION const* prpY,
                                                        size_t num_sites) {
+  __shared__ cu_cmplx_PRECISION sharedPrpY[6 * diracCommonBlockSize];
+  auto localPrpY = sharedPrpY + 6 * threadIdx.x;
+  // advance prpY to first element of block
+  prpY += 6 * blockDim.x * blockIdx.x;
+  copyChunksToConsecutiveAsBlock(sharedPrpY, prpY, 6, 0,
+                                 min(diracCommonBlockSize, num_sites - blockDim.x * blockIdx.x));
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= num_sites) {
     // there is no more site for this index
     return;
   }
   auto caEta = ComponentAccess(eta + idx, num_sites);
-  prpY += 6 * idx;
-  caEta[0] -= prpY[0];
-  caEta[1] -= prpY[1];
-  caEta[2] -= prpY[2];
-  caEta[3] -= prpY[3];
-  caEta[4] -= prpY[4];
-  caEta[5] -= prpY[5];
-  caEta[6] -= GAMMA_Y_SPIN2_VAL * prpY[3 * GAMMA_Y_SPIN2_CO];
-  caEta[7] -= GAMMA_Y_SPIN2_VAL * prpY[3 * GAMMA_Y_SPIN2_CO + 1];
-  caEta[8] -= GAMMA_Y_SPIN2_VAL * prpY[3 * GAMMA_Y_SPIN2_CO + 2];
-  caEta[9] -= GAMMA_Y_SPIN3_VAL * prpY[3 * GAMMA_Y_SPIN3_CO];
-  caEta[10] -= GAMMA_Y_SPIN3_VAL * prpY[3 * GAMMA_Y_SPIN3_CO + 1];
-  caEta[11] -= GAMMA_Y_SPIN3_VAL * prpY[3 * GAMMA_Y_SPIN3_CO + 2];
+  caEta[0] -= localPrpY[0];
+  caEta[1] -= localPrpY[1];
+  caEta[2] -= localPrpY[2];
+  caEta[3] -= localPrpY[3];
+  caEta[4] -= localPrpY[4];
+  caEta[5] -= localPrpY[5];
+  caEta[6] -= GAMMA_Y_SPIN2_VAL * localPrpY[3 * GAMMA_Y_SPIN2_CO];
+  caEta[7] -= GAMMA_Y_SPIN2_VAL * localPrpY[3 * GAMMA_Y_SPIN2_CO + 1];
+  caEta[8] -= GAMMA_Y_SPIN2_VAL * localPrpY[3 * GAMMA_Y_SPIN2_CO + 2];
+  caEta[9] -= GAMMA_Y_SPIN3_VAL * localPrpY[3 * GAMMA_Y_SPIN3_CO];
+  caEta[10] -= GAMMA_Y_SPIN3_VAL * localPrpY[3 * GAMMA_Y_SPIN3_CO + 1];
+  caEta[11] -= GAMMA_Y_SPIN3_VAL * localPrpY[3 * GAMMA_Y_SPIN3_CO + 2];
 }
 
 __global__ void cuda_pbn_su3_X_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
                                                        cu_cmplx_PRECISION const* prpX,
                                                        size_t num_sites) {
+  __shared__ cu_cmplx_PRECISION sharedPrpX[6 * diracCommonBlockSize];
+  auto localPrpX = sharedPrpX + 6 * threadIdx.x;
+  // advance prpX to first element of block
+  prpX += 6 * blockDim.x * blockIdx.x;
+  copyChunksToConsecutiveAsBlock(sharedPrpX, prpX, 6, 0,
+                                 min(diracCommonBlockSize, num_sites - blockDim.x * blockIdx.x));
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
   if (idx >= num_sites) {
     // there is no more site for this index
@@ -507,16 +548,16 @@ __global__ void cuda_pbn_su3_X_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
   }
   auto caEta = ComponentAccess(eta + idx, num_sites);
   prpX += 6 * idx;
-  caEta[0] -= prpX[0];
-  caEta[1] -= prpX[1];
-  caEta[2] -= prpX[2];
-  caEta[3] -= prpX[3];
-  caEta[4] -= prpX[4];
-  caEta[5] -= prpX[5];
-  caEta[6] -= GAMMA_X_SPIN2_VAL * prpX[3 * GAMMA_X_SPIN2_CO];
-  caEta[7] -= GAMMA_X_SPIN2_VAL * prpX[3 * GAMMA_X_SPIN2_CO + 1];
-  caEta[8] -= GAMMA_X_SPIN2_VAL * prpX[3 * GAMMA_X_SPIN2_CO + 2];
-  caEta[9] -= GAMMA_X_SPIN3_VAL * prpX[3 * GAMMA_X_SPIN3_CO];
-  caEta[10] -= GAMMA_X_SPIN3_VAL * prpX[3 * GAMMA_X_SPIN3_CO + 1];
-  caEta[11] -= GAMMA_X_SPIN3_VAL * prpX[3 * GAMMA_X_SPIN3_CO + 2];
+  caEta[0] -= localPrpX[0];
+  caEta[1] -= localPrpX[1];
+  caEta[2] -= localPrpX[2];
+  caEta[3] -= localPrpX[3];
+  caEta[4] -= localPrpX[4];
+  caEta[5] -= localPrpX[5];
+  caEta[6] -= GAMMA_X_SPIN2_VAL * localPrpX[3 * GAMMA_X_SPIN2_CO];
+  caEta[7] -= GAMMA_X_SPIN2_VAL * localPrpX[3 * GAMMA_X_SPIN2_CO + 1];
+  caEta[8] -= GAMMA_X_SPIN2_VAL * localPrpX[3 * GAMMA_X_SPIN2_CO + 2];
+  caEta[9] -= GAMMA_X_SPIN3_VAL * localPrpX[3 * GAMMA_X_SPIN3_CO];
+  caEta[10] -= GAMMA_X_SPIN3_VAL * localPrpX[3 * GAMMA_X_SPIN3_CO + 1];
+  caEta[11] -= GAMMA_X_SPIN3_VAL * localPrpX[3 * GAMMA_X_SPIN3_CO + 2];
 }

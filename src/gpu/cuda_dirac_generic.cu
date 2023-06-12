@@ -274,7 +274,7 @@ void cuda_d_plus_clover_PRECISION(
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
 
-  constexpr size_t blockSize = 128;  // just a guess
+  constexpr size_t blockSize = diracCommonBlockSize;
   const size_t gridSize = minGridSizeForN(l->num_inner_lattice_sites, blockSize);
 
   const auto pbs = projection_buffer_size(l->num_lattice_site_var, l->num_lattice_sites);

@@ -10,6 +10,10 @@
 #include "cuda_vectors_PRECISION.h"
 #include "global_enums.h"
 
+// Better to have this known in advance, so we can predetermine shared
+// memory requirements.
+constexpr size_t diracCommonBlockSize = 128;
+
 /**
  * \brief Apply the Clover term per lattice site.
  *
