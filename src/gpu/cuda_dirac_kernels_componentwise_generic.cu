@@ -321,10 +321,10 @@ __global__ void cuda_pbp_su3_mvm_componentwise_PRECISION(cu_cmplx_PRECISION* pbu
   neighbors += 4 * lattice_idx + neighbor_offset;
   // We operate in steps of 3 here as the application of D happens as 3x3 matrix vector
   // multiplications. There will be two mvms per lattice site.
-  pbuf += 3 * idx;
+  auto caPbuf = ComponentAccess(pbuf + lattice_idx + (idx % 2 == 0 ? 0 : 3) * num_sites, num_sites);
   const size_t j = 6 * (*neighbors);
   prn_buf += j + (idx % 2 == 0 ? 0 : 3);
-  cuda_mvm_PRECISION(pbuf, D, prn_buf);
+  cuda_mvm_componentwise_PRECISION(caPbuf, D, prn_buf);
 }
 
 __global__ void cuda_pbp_su3_T_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
@@ -336,19 +336,19 @@ __global__ void cuda_pbp_su3_T_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
     return;
   }
   auto caEta = ComponentAccess(eta + idx, num_sites);
-  pbuf += 6 * idx;
-  caEta[0] -= pbuf[0];
-  caEta[1] -= pbuf[1];
-  caEta[2] -= pbuf[2];
-  caEta[3] -= pbuf[3];
-  caEta[4] -= pbuf[4];
-  caEta[5] -= pbuf[5];
-  caEta[6] += GAMMA_T_SPIN2_VAL * pbuf[3 * GAMMA_T_SPIN2_CO];
-  caEta[7] += GAMMA_T_SPIN2_VAL * pbuf[3 * GAMMA_T_SPIN2_CO + 1];
-  caEta[8] += GAMMA_T_SPIN2_VAL * pbuf[3 * GAMMA_T_SPIN2_CO + 2];
-  caEta[9] += GAMMA_T_SPIN3_VAL * pbuf[3 * GAMMA_T_SPIN3_CO];
-  caEta[10] += GAMMA_T_SPIN3_VAL * pbuf[3 * GAMMA_T_SPIN3_CO + 1];
-  caEta[11] += GAMMA_T_SPIN3_VAL * pbuf[3 * GAMMA_T_SPIN3_CO + 2];
+  auto caPbuf = ComponentAccess(pbuf + idx, num_sites);
+  caEta[0] -= caPbuf[0];
+  caEta[1] -= caPbuf[1];
+  caEta[2] -= caPbuf[2];
+  caEta[3] -= caPbuf[3];
+  caEta[4] -= caPbuf[4];
+  caEta[5] -= caPbuf[5];
+  caEta[6] += GAMMA_T_SPIN2_VAL * caPbuf[3 * GAMMA_T_SPIN2_CO];
+  caEta[7] += GAMMA_T_SPIN2_VAL * caPbuf[3 * GAMMA_T_SPIN2_CO + 1];
+  caEta[8] += GAMMA_T_SPIN2_VAL * caPbuf[3 * GAMMA_T_SPIN2_CO + 2];
+  caEta[9] += GAMMA_T_SPIN3_VAL * caPbuf[3 * GAMMA_T_SPIN3_CO];
+  caEta[10] += GAMMA_T_SPIN3_VAL * caPbuf[3 * GAMMA_T_SPIN3_CO + 1];
+  caEta[11] += GAMMA_T_SPIN3_VAL * caPbuf[3 * GAMMA_T_SPIN3_CO + 2];
 }
 
 __global__ void cuda_pbp_su3_Z_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
@@ -360,19 +360,19 @@ __global__ void cuda_pbp_su3_Z_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
     return;
   }
   auto caEta = ComponentAccess(eta + idx, num_sites);
-  pbuf += 6 * idx;
-  caEta[0] -= pbuf[0];
-  caEta[1] -= pbuf[1];
-  caEta[2] -= pbuf[2];
-  caEta[3] -= pbuf[3];
-  caEta[4] -= pbuf[4];
-  caEta[5] -= pbuf[5];
-  caEta[6] += GAMMA_Z_SPIN2_VAL * pbuf[3 * GAMMA_Z_SPIN2_CO];
-  caEta[7] += GAMMA_Z_SPIN2_VAL * pbuf[3 * GAMMA_Z_SPIN2_CO + 1];
-  caEta[8] += GAMMA_Z_SPIN2_VAL * pbuf[3 * GAMMA_Z_SPIN2_CO + 2];
-  caEta[9] += GAMMA_Z_SPIN3_VAL * pbuf[3 * GAMMA_Z_SPIN3_CO];
-  caEta[10] += GAMMA_Z_SPIN3_VAL * pbuf[3 * GAMMA_Z_SPIN3_CO + 1];
-  caEta[11] += GAMMA_Z_SPIN3_VAL * pbuf[3 * GAMMA_Z_SPIN3_CO + 2];
+  auto caPbuf = ComponentAccess(pbuf + idx, num_sites);
+  caEta[0] -= caPbuf[0];
+  caEta[1] -= caPbuf[1];
+  caEta[2] -= caPbuf[2];
+  caEta[3] -= caPbuf[3];
+  caEta[4] -= caPbuf[4];
+  caEta[5] -= caPbuf[5];
+  caEta[6] += GAMMA_Z_SPIN2_VAL * caPbuf[3 * GAMMA_Z_SPIN2_CO];
+  caEta[7] += GAMMA_Z_SPIN2_VAL * caPbuf[3 * GAMMA_Z_SPIN2_CO + 1];
+  caEta[8] += GAMMA_Z_SPIN2_VAL * caPbuf[3 * GAMMA_Z_SPIN2_CO + 2];
+  caEta[9] += GAMMA_Z_SPIN3_VAL * caPbuf[3 * GAMMA_Z_SPIN3_CO];
+  caEta[10] += GAMMA_Z_SPIN3_VAL * caPbuf[3 * GAMMA_Z_SPIN3_CO + 1];
+  caEta[11] += GAMMA_Z_SPIN3_VAL * caPbuf[3 * GAMMA_Z_SPIN3_CO + 2];
 }
 
 __global__ void cuda_pbp_su3_Y_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
@@ -384,19 +384,19 @@ __global__ void cuda_pbp_su3_Y_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
     return;
   }
   auto caEta = ComponentAccess(eta + idx, num_sites);
-  pbuf += 6 * idx;
-  caEta[0] -= pbuf[0];
-  caEta[1] -= pbuf[1];
-  caEta[2] -= pbuf[2];
-  caEta[3] -= pbuf[3];
-  caEta[4] -= pbuf[4];
-  caEta[5] -= pbuf[5];
-  caEta[6] += GAMMA_Y_SPIN2_VAL * pbuf[3 * GAMMA_Y_SPIN2_CO];
-  caEta[7] += GAMMA_Y_SPIN2_VAL * pbuf[3 * GAMMA_Y_SPIN2_CO + 1];
-  caEta[8] += GAMMA_Y_SPIN2_VAL * pbuf[3 * GAMMA_Y_SPIN2_CO + 2];
-  caEta[9] += GAMMA_Y_SPIN3_VAL * pbuf[3 * GAMMA_Y_SPIN3_CO];
-  caEta[10] += GAMMA_Y_SPIN3_VAL * pbuf[3 * GAMMA_Y_SPIN3_CO + 1];
-  caEta[11] += GAMMA_Y_SPIN3_VAL * pbuf[3 * GAMMA_Y_SPIN3_CO + 2];
+  auto caPbuf = ComponentAccess(pbuf + idx, num_sites);
+  caEta[0] -= caPbuf[0];
+  caEta[1] -= caPbuf[1];
+  caEta[2] -= caPbuf[2];
+  caEta[3] -= caPbuf[3];
+  caEta[4] -= caPbuf[4];
+  caEta[5] -= caPbuf[5];
+  caEta[6] += GAMMA_Y_SPIN2_VAL * caPbuf[3 * GAMMA_Y_SPIN2_CO];
+  caEta[7] += GAMMA_Y_SPIN2_VAL * caPbuf[3 * GAMMA_Y_SPIN2_CO + 1];
+  caEta[8] += GAMMA_Y_SPIN2_VAL * caPbuf[3 * GAMMA_Y_SPIN2_CO + 2];
+  caEta[9] += GAMMA_Y_SPIN3_VAL * caPbuf[3 * GAMMA_Y_SPIN3_CO];
+  caEta[10] += GAMMA_Y_SPIN3_VAL * caPbuf[3 * GAMMA_Y_SPIN3_CO + 1];
+  caEta[11] += GAMMA_Y_SPIN3_VAL * caPbuf[3 * GAMMA_Y_SPIN3_CO + 2];
 }
 
 __global__ void cuda_pbp_su3_X_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
@@ -408,19 +408,19 @@ __global__ void cuda_pbp_su3_X_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
     return;
   }
   auto caEta = ComponentAccess(eta + idx, num_sites);
-  pbuf += 6 * idx;
-  caEta[0] -= pbuf[0];
-  caEta[1] -= pbuf[1];
-  caEta[2] -= pbuf[2];
-  caEta[3] -= pbuf[3];
-  caEta[4] -= pbuf[4];
-  caEta[5] -= pbuf[5];
-  caEta[6] += GAMMA_X_SPIN2_VAL * pbuf[3 * GAMMA_X_SPIN2_CO];
-  caEta[7] += GAMMA_X_SPIN2_VAL * pbuf[3 * GAMMA_X_SPIN2_CO + 1];
-  caEta[8] += GAMMA_X_SPIN2_VAL * pbuf[3 * GAMMA_X_SPIN2_CO + 2];
-  caEta[9] += GAMMA_X_SPIN3_VAL * pbuf[3 * GAMMA_X_SPIN3_CO];
-  caEta[10] += GAMMA_X_SPIN3_VAL * pbuf[3 * GAMMA_X_SPIN3_CO + 1];
-  caEta[11] += GAMMA_X_SPIN3_VAL * pbuf[3 * GAMMA_X_SPIN3_CO + 2];
+  auto caPbuf = ComponentAccess(pbuf + idx, num_sites);
+  caEta[0] -= caPbuf[0];
+  caEta[1] -= caPbuf[1];
+  caEta[2] -= caPbuf[2];
+  caEta[3] -= caPbuf[3];
+  caEta[4] -= caPbuf[4];
+  caEta[5] -= caPbuf[5];
+  caEta[6] += GAMMA_X_SPIN2_VAL * caPbuf[3 * GAMMA_X_SPIN2_CO];
+  caEta[7] += GAMMA_X_SPIN2_VAL * caPbuf[3 * GAMMA_X_SPIN2_CO + 1];
+  caEta[8] += GAMMA_X_SPIN2_VAL * caPbuf[3 * GAMMA_X_SPIN2_CO + 2];
+  caEta[9] += GAMMA_X_SPIN3_VAL * caPbuf[3 * GAMMA_X_SPIN3_CO];
+  caEta[10] += GAMMA_X_SPIN3_VAL * caPbuf[3 * GAMMA_X_SPIN3_CO + 1];
+  caEta[11] += GAMMA_X_SPIN3_VAL * caPbuf[3 * GAMMA_X_SPIN3_CO + 2];
 }
 
 __global__ void cuda_pbn_su3_T_componentwise_PRECISION(cu_cmplx_PRECISION* eta,

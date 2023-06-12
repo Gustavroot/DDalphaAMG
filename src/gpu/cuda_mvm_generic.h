@@ -35,6 +35,10 @@ __device__ void cuda_mvm_PRECISION(cu_cmplx_PRECISION *y, cu_cmplx_PRECISION con
 __device__ void cuda_mvmh_PRECISION(cu_cmplx_PRECISION *y, cu_cmplx_PRECISION const *M,
                                     cu_cmplx_PRECISION const *x);
 
+__device__ void cuda_mvm_componentwise_PRECISION(ComponentAccess<cu_cmplx_PRECISION> y,
+                                                 cu_cmplx_PRECISION const *M,
+                                                 cu_cmplx_PRECISION const *x);
+
 __device__ void cuda_mvmh_componentwise_PRECISION(cu_cmplx_PRECISION *y,
                                                   cu_cmplx_PRECISION const *M,
                                                   ComponentAccess<cu_cmplx_PRECISION const> x);
