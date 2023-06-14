@@ -268,11 +268,25 @@ __global__ void cuda_prn_X_componentwise_PRECISION(cu_cmplx_PRECISION* prnX,
   caPrnX[5] = caPhi[5] + GAMMA_X_SPIN1_VAL * caPhi[3 * GAMMA_X_SPIN1_CO + 2];
 }
 
+__device__ void _store_neighbors_precision(cu_cmplx_PRECISION* dst, cu_cmplx_PRECISION const* src,
+                                          int const* neighbors) {
+  constexpr uint chunkSize = 6;
+  for (size_t i = 0; i < chunkSize / 2; i++) {
+    size_t consecutiveIdx = (i * blockDim.x) + threadIdx.x;
+    size_t chunkIdx = neighbors[(consecutiveIdx / chunkSize) * 4];
+    size_t valueIdx = consecutiveIdx % chunkSize;
+    dst[chunkIdx * chunkSize + valueIdx] = src[consecutiveIdx];
+  }
+}
+
 __global__ void cuda_prn_mvmh_componentwise_PRECISION(cu_cmplx_PRECISION* prp_buf,
                                                       cu_cmplx_PRECISION const* D,
                                                       cu_cmplx_PRECISION const* pbuf,
                                                       int const* neighbors, LatticeAxis dim,
                                                       size_t num_sites) {
+  // WARNING! Probably can only be launched with blockSize multiple of 2.
+  __shared__ cu_cmplx_PRECISION sharedPrpBuf[3 * diracCommonBlockSize];
+  auto localPrpBuf = sharedPrpBuf + 3 * threadIdx.x;
   unsigned int neighbor_offset;
   switch (dim) {
     case LatticeAxis::T:
@@ -296,7 +310,9 @@ __global__ void cuda_prn_mvmh_componentwise_PRECISION(cu_cmplx_PRECISION* prp_bu
     return;
   }
 
-  neighbors += 4 * lattice_idx + neighbor_offset;
+  // first neighbor in block
+  // careful with the integer division here:  4 * (3 / 2) == 4 != 4 * 3 / 2 == 6
+  neighbors += 4 * ((blockDim.x * blockIdx.x) / 2) + neighbor_offset;
   // We operate in steps of 3 here as the application of D happens as 3x3 matrix vector
   // multiplications. There will be two mvms per lattice site.
   if (idx % 2 == 1) {
@@ -306,9 +322,20 @@ __global__ void cuda_prn_mvmh_componentwise_PRECISION(cu_cmplx_PRECISION* prp_bu
   }
   auto caD = ComponentAccess(D + lattice_idx, num_sites);
   auto caPbuf = ComponentAccess(pbuf + lattice_idx, num_sites);
-  const size_t j = 6 * (*neighbors);
-  prp_buf += j + (idx % 2 == 0 ? 0 : 3);
-  cuda_mvmh_componentwise_PRECISION(prp_buf, caD, caPbuf);
+  cuda_mvmh_componentwise_PRECISION(localPrpBuf, caD, caPbuf);
+  __syncthreads();
+  _store_neighbors_precision(prp_buf, sharedPrpBuf, neighbors);
+}
+
+__device__ void _load_neighbors_precision(cu_cmplx_PRECISION* dst, cu_cmplx_PRECISION const* src,
+                                          int const* neighbors) {
+  constexpr uint chunkSize = 6;
+  for (size_t i = 0; i < chunkSize / 2; i++) {
+    size_t consecutiveIdx = (i * blockDim.x) + threadIdx.x;
+    size_t chunkIdx = neighbors[(consecutiveIdx / chunkSize) * 4];
+    size_t valueIdx = consecutiveIdx % chunkSize;
+    dst[consecutiveIdx] = src[chunkIdx * chunkSize + valueIdx];
+  }
 }
 
 __global__ void cuda_pbp_su3_mvm_componentwise_PRECISION(cu_cmplx_PRECISION* pbuf,
@@ -316,6 +343,9 @@ __global__ void cuda_pbp_su3_mvm_componentwise_PRECISION(cu_cmplx_PRECISION* pbu
                                                          cu_cmplx_PRECISION const* prn_buf,
                                                          int const* neighbors, LatticeAxis dim,
                                                          size_t num_sites) {
+  // WARNING! Probably can only be launched with blockSize multiple of 2.
+  __shared__ cu_cmplx_PRECISION sharedPrnBuf[3 * diracCommonBlockSize];
+  auto localPrnBuf = sharedPrnBuf + 3 * threadIdx.x;
   unsigned int neighbor_offset;
   switch (dim) {
     case LatticeAxis::T:
@@ -339,14 +369,16 @@ __global__ void cuda_pbp_su3_mvm_componentwise_PRECISION(cu_cmplx_PRECISION* pbu
     return;
   }
 
-  neighbors += 4 * lattice_idx + neighbor_offset;
+  // first neighbor in block
+  // careful with the integer division here:  4 * (3 / 2) == 4 != 4 * 3 / 2 == 6
+  neighbors += 4 * ((blockDim.x * blockIdx.x) / 2) + neighbor_offset;
+  _load_neighbors_precision(sharedPrnBuf, prn_buf, neighbors);
+  __syncthreads();
   // We operate in steps of 3 here as the application of D happens as 3x3 matrix vector
   // multiplications. There will be two mvms per lattice site.
   auto caD = ComponentAccess(D + lattice_idx, num_sites);
   auto caPbuf = ComponentAccess(pbuf + lattice_idx + (idx % 2 == 0 ? 0 : 3) * num_sites, num_sites);
-  const size_t j = 6 * (*neighbors);
-  prn_buf += j + (idx % 2 == 0 ? 0 : 3);
-  cuda_mvm_componentwise_PRECISION(caPbuf, caD, prn_buf);
+  cuda_mvm_componentwise_PRECISION(caPbuf, caD, localPrnBuf);
 }
 
 __global__ void cuda_pbp_su3_T_componentwise_PRECISION(cu_cmplx_PRECISION* eta,
