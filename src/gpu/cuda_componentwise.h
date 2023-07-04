@@ -97,7 +97,7 @@ class ComponentAccess {
  *
  */
 template <typename ElementType>
-__global__ void reorderVectorByComponent(ElementType* dst, ElementType const* src, size_t chunkSize,
+__global__ void reorderArrayByComponent(ElementType* dst, ElementType const* src, size_t chunkSize,
                                          size_t chunkCount) {
   assert(blockDim.x * gridDim.x >= chunkCount);
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
@@ -114,7 +114,7 @@ __global__ void reorderVectorByComponent(ElementType* dst, ElementType const* sr
 }
 
 template <typename ElementType>
-__global__ void reorderVectorWithGapsByComponent(ElementType* dst, ElementType const* src,
+__global__ void reorderArrayWithGapsByComponent(ElementType* dst, ElementType const* src,
                                                  unsigned int chunkSize, unsigned int gapSize,
                                                  unsigned int chunkCount) {
   assert(blockDim.x * gridDim.x >= chunkCount);
@@ -132,7 +132,7 @@ __global__ void reorderVectorWithGapsByComponent(ElementType* dst, ElementType c
 }
 
 template <typename ElementType>
-__global__ void reorderVectorByChunks(ElementType* dst, ElementType const* src, size_t chunkSize,
+__global__ void reorderArrayByChunks(ElementType* dst, ElementType const* src, size_t chunkSize,
                                       size_t chunkCount) {
   assert(blockDim.x * gridDim.x >= chunkCount);
   const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;

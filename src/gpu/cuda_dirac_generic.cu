@@ -603,13 +603,13 @@ extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta,
   
   cuda_vector_PRECISION_copy(phi_gpu, phi, 0, l->inner_vector_size, l, _H2D, _CUDA_SYNC, 0, streams);
   const uint gridSize = minGridSizeForN(l->num_inner_lattice_sites, diracDefaultBlockSize);
-  reorderVectorByComponent<<<gridSize, diracDefaultBlockSize>>>(
+  reorderArrayByComponent<<<gridSize, diracDefaultBlockSize>>>(
     phi_componentwise_gpu, phi_gpu, l->num_lattice_site_var, l->num_inner_lattice_sites);
   cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_d_plus_clover_PRECISION(eta_componentwise_gpu, phi_gpu, phi_componentwise_gpu, op, l, threading);
 
-  reorderVectorByChunks<<<gridSize, diracDefaultBlockSize>>>(
+  reorderArrayByChunks<<<gridSize, diracDefaultBlockSize>>>(
     eta_gpu, eta_componentwise_gpu, l->num_lattice_site_var, l->num_inner_lattice_sites);
   // implicit device synchronize
   cuda_vector_PRECISION_copy(eta, eta_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC, 0, streams);

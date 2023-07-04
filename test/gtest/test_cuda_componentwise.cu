@@ -132,7 +132,7 @@ RC_GTEST_PROP(ReorderVectorByComponentTest, CheckDst, ()) {
   }
 
   RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
-  reorderVectorByComponent<<<gridSize, blockSize>>>(dstCuda, srcCuda, chunkSize, chunkCount);
+  reorderArrayByComponent<<<gridSize, blockSize>>>(dstCuda, srcCuda, chunkSize, chunkCount);
   RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
   RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(dst, dstCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
 
@@ -165,7 +165,7 @@ RC_GTEST_PROP(ReorderVectorByComponentTest, SrcPreserved, ()) {
   }
 
   RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src, arraySize * sizeof(int), cudaMemcpyHostToDevice));
-  reorderVectorByComponent<<<gridSize, blockSize>>>(dstCuda, srcCuda, chunkSize, chunkCount);
+  reorderArrayByComponent<<<gridSize, blockSize>>>(dstCuda, srcCuda, chunkSize, chunkCount);
   RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
   RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(dst, srcCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
 
@@ -194,7 +194,7 @@ RC_GTEST_PROP(ReorderVectorWithGapsByComponentTest, CheckDst, ()) {
   RC_ASSERT_CUDA_SUCCESS(cudaMalloc(&dstCuda, chunkCount * chunkSize * sizeof(int)));
 
   RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(srcCuda, src.data(), arraySize * sizeof(int), cudaMemcpyHostToDevice));
-  reorderVectorWithGapsByComponent<<<gridSize, blockSize>>>(dstCuda, srcCuda, chunkSize, gapSize,
+  reorderArrayWithGapsByComponent<<<gridSize, blockSize>>>(dstCuda, srcCuda, chunkSize, gapSize,
                                                             chunkCount);
   RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
   RC_ASSERT_CUDA_SUCCESS(
@@ -227,9 +227,9 @@ RC_GTEST_PROP(ReorderVectorByChunksTest, SrcRestored, ()) {
 
   RC_ASSERT_CUDA_SUCCESS(
       cudaMemcpy(srcCuda, src.data(), arraySize * sizeof(int), cudaMemcpyHostToDevice));
-  reorderVectorByComponent<<<gridSize, blockSize>>>(srcComponentwiseCuda, srcCuda, chunkSize,
+  reorderArrayByComponent<<<gridSize, blockSize>>>(srcComponentwiseCuda, srcCuda, chunkSize,
                                                     chunkCount);
-  reorderVectorByChunks<<<gridSize, blockSize>>>(dstCuda, srcComponentwiseCuda, chunkSize,
+  reorderArrayByChunks<<<gridSize, blockSize>>>(dstCuda, srcComponentwiseCuda, chunkSize,
                                                  chunkCount);
   RC_ASSERT_CUDA_SUCCESS(cudaDeviceSynchronize());
   RC_ASSERT_CUDA_SUCCESS(cudaMemcpy(dst, dstCuda, arraySize * sizeof(int), cudaMemcpyDeviceToHost));
@@ -266,7 +266,7 @@ RC_GTEST_PROP(ComponentAccessTest, CompareOriginal, ()) {
 
   RC_ASSERT_CUDA_SUCCESS(
       cudaMemcpy(srcCuda, src.data(), arraySize * sizeof(int), cudaMemcpyHostToDevice));
-  reorderVectorByComponent<<<gridSize, blockSize>>>(srcComponentwiseCuda, srcCuda, componentCount,
+  reorderArrayByComponent<<<gridSize, blockSize>>>(srcComponentwiseCuda, srcCuda, componentCount,
                                                     siteCount);
   // note `+ siteIdx` -> we access components for site at siteIdx
   _compareOriginalKernel<<<1, componentCount>>>(dstCuda, srcComponentwiseCuda + siteIdx, siteCount);
