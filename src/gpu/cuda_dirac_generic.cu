@@ -237,6 +237,15 @@ cuda_block_d_plus_clover_PRECISION(				cuda_vector_PRECISION eta, cuda_vector_PR
   }
 }
 
+/** \brief Calculates the self-coupling term eta = D_sc phi.
+ * 
+ * 
+ *  \param[out]   eta           eta in eta = D_sc phi.
+ *  \param[in]    phi           psi in eta = D_sc phi.
+ *  \param[in]    clover        D_sc in eta = D_sc phi.
+ *  \param[in]    num_sites     Number of lattice sites.
+ *  \param[in]    l             The level_struct being passed around everywhere.
+ */
 extern "C" void _cuda_clover_componentwise_PRECISION(cuda_vector_PRECISION eta,
                                                      cuda_vector_PRECISION phi,
                                                      cuda_config_PRECISION clover, int num_sites,
@@ -250,7 +259,16 @@ extern "C" void _cuda_clover_componentwise_PRECISION(cuda_vector_PRECISION eta,
   PROF_PRECISION_STOP_UNTHREADED( _SC, 1);
 }
 
-
+/** \brief Calculates the self-coupling term eta = D_sc phi.
+ * 
+ *  Vectors must be in componentwise ordering.
+ * 
+ *  \param[out]   eta           eta in eta = D_sc phi.
+ *  \param[in]    phi           psi in eta = D_sc phi.
+ *  \param[in]    clover        D_sc in eta = D_sc phi.
+ *  \param[in]    num_sites     Number of lattice sites.
+ *  \param[in]    l             The level_struct being passed around everywhere.
+ */
 extern "C" void _cuda_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
                                        cuda_config_PRECISION clover, int num_sites,
                                        level_struct *l) {
