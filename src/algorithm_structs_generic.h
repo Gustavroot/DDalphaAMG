@@ -23,11 +23,38 @@ typedef struct
 {
     config_PRECISION D, clover, oe_clover;
 #ifdef CUDA_OPT
-    cuda_config_PRECISION clover_gpu, clover_componentwise_gpu, D_gpu;
+    cuda_config_PRECISION
+        /** Self coupling coefficients on the GPU. */
+        clover_gpu,
+        /** Self coupling coefficients in componentwise ordering on the GPU.*/
+        clover_componentwise_gpu,
+        /** Neighbor coupling coefficients on the GPU. */
+        D_gpu;
+    /** Neighbor coupling coefficients in componentwise ordering on the GPU.
+     * 
+     *  This is an array of four pointers to the coefficients in each direction.
+     *  Indices are T, Z, Y and X.
+     */
     cu_cmplx_PRECISION * Ds_componentwise_gpu[4];
 
     // Local vectors to apply the operator w = w + Dx on the GPU.
-    cuda_vector_PRECISION x_gpu, x_componentwise_gpu, w_gpu, w_componentwise_gpu, pbuf_gpu;
+    cuda_vector_PRECISION
+        /** x in D x = w for the iterative solution. */
+        x_gpu,
+        /** x in D x = w for the iterative solution.
+         * 
+         *  Vector is used for a copy of x in componentwise ordering.
+         */
+        x_componentwise_gpu,
+        /** w in D x = w for the iterative solution. */
+        w_gpu,
+        /** w in D x = w for the iterative solution.
+         * 
+         *  Vector is used for a copy of w in componentwise ordering.
+         */
+        w_componentwise_gpu,
+        /** Temporary buffer used to store intermediate results. */
+        pbuf_gpu;
     cuda_vector_PRECISION prpT_gpu, prpZ_gpu, prpY_gpu, prpX_gpu;
     cuda_vector_PRECISION prnT_gpu, prnZ_gpu, prnY_gpu, prnX_gpu;
 
