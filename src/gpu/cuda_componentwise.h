@@ -62,18 +62,29 @@ __device__ void copyChunksToConsecutiveAsBlock(ElementType* dst, ElementType con
 /**
  * \brief Simplifies access to components of a componentwise vector.
  *
- * Objects of this class can be used to access src[i * num_sites]
- * as ComponentAccess(src, num_sites)[i]. The created object is reusable to
+ * Objects of this class can be used to access data[i * num_sites]
+ * as ComponentAccess(data, num_sites)[i]. The created object is reusable to
  * eliminate the excessive writing of the num_sites variable.
  */
 template <typename ElementType>
 class ComponentAccess {
  public:
+  /** Constructs the wrapper object.
+   * 
+   *  Ownership of data is not assumed. Caller must ensure that operator[]
+   *  is never called after data is no longer valid.
+   * 
+   *  \param[in]  data        A pointer to a vector in componentwise ordering.
+   *  \param[out] num_sites   The number of lattice sites which are stored in data.
+   */
   __host__ __device__ ComponentAccess(ElementType* data, size_t num_sites) {
     this->data = data;
     this->num_sites = num_sites;
   }
 
+  /** 
+   *  \returns data[i * num_sites]
+   */
   __device__ ElementType& operator[](size_t i) {
     return data[i * this->num_sites];
   }
@@ -83,17 +94,15 @@ class ComponentAccess {
   size_t num_sites;
 };
 
-/** \brief Reorder a full vector by component using arbitrary block and grid dimensions.
- *
- *  Transforms a vector from chunkwise format to componentwise format.
+ /** \brief Reorder a full vector from chunkwise to componentwise ordering using
+ *          arbitrary block and grid dimensions.
  *
  *  \param[out] dst         The vector that will be set to the componentwise reordering of src.
  *                          Must have at least size chunkSize * chunkCount.
  *  \param[in]  src         The vector in subvector format that will be reordered. Remains
- * unchanged. \param[in]  chunkSize   The count of components in the src vector. \param[in]
- * chunkCount  The count of subvectors/chunks/sites in the src vector. Equivalent to the distance
- * between components +1.
- *
+ *                          unchanged.
+ *  \param[in]  chunkSize   The count of components in the src vector.
+ *  \param[in]  chunkCount  The count of subvectors/chunks/sites in the src vector.
  */
 template <typename ElementType>
 __global__ void reorderArrayByComponent(ElementType* dst, ElementType const* src, size_t chunkSize,
@@ -112,6 +121,17 @@ __global__ void reorderArrayByComponent(ElementType* dst, ElementType const* src
   }
 }
 
+/** \brief Reorder a vector that has gaps (uninteresting elements in between) by component.
+ * 
+ *  \param[out] dst         The vector that will be set to the componentwise reordering of src.
+ *                          Must have at least size chunkSize * chunkCount.
+ *  \param[in]  src         The vector in subvector format that will be reordered. Remains
+ *                          unchanged. Is alternating between chunkSize interesting
+ *                          and gapSize unintersting elements.
+ *  \param[in]  chunkSize   The count of components in the src vector.
+ *  \param[in]  gapSize     The count of elements in between chunks.
+ *  \param[in]  chunkCount  The count of subvectors/chunks/sites in the src vector.
+ */
 template <typename ElementType>
 __global__ void reorderArrayWithGapsByComponent(ElementType* dst, ElementType const* src,
                                                  unsigned int chunkSize, unsigned int gapSize,
@@ -130,6 +150,16 @@ __global__ void reorderArrayWithGapsByComponent(ElementType* dst, ElementType co
   }
 }
 
+/** \brief Reorder a full vector from componentwise to chunkwise ordering using
+ *         arbitrary block and grid dimensions.
+ *
+ *  \param[out] dst         The vector that will be set to the componentwise reordering of src.
+ *                          Must have at least size chunkSize * chunkCount.
+ *  \param[in]  src         The vector in subvector format that will be reordered. Remains
+ *                          unchanged.
+ *  \param[in]  chunkSize   The count of components in the src vector.
+ *  \param[in]  chunkCount  The count of subvectors/chunks/sites in the src vector.
+ */
 template <typename ElementType>
 __global__ void reorderArrayByChunks(ElementType* dst, ElementType const* src, size_t chunkSize,
                                       size_t chunkCount) {
