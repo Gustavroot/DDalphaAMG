@@ -13,11 +13,11 @@
  * \brief Calculate the 3x3 matrix vector product y = M x.
  *
  * \param[out]  y   The vector y that the result will be written to. Must be a
- * pointer to 3 consecutive complex values.
+ *                  pointer to 3 consecutive complex values.
  * \param[in]   M   The matrix M. Must be a pointer to 9 consecutive complex
- * values. Must be in row-major ordering.
+ *                  values. Must be in row-major ordering.
  * \param[in]   x   The vector x. Must be a pointer to 3 consecutive complex
- * values.
+ *                  values.
  */
 __device__ void cuda_mvm_PRECISION(cu_cmplx_PRECISION *y,
                                    cu_cmplx_PRECISION const *M,
@@ -29,11 +29,11 @@ __device__ void cuda_mvm_PRECISION(cu_cmplx_PRECISION *y,
  * Where M' is the hermitian transpose of M.
  *
  * \param[out]  y   The vector y that the result will be written to. Must be a
- * pointer to 3 consecutive complex values.
+ *                  pointer to 3 consecutive complex values.
  * \param[in]   M   The matrix M. Must be a pointer to 9 consecutive complex
- * values. Must be in row-major ordering.
+ *                  values. Must be in row-major ordering.
  * \param[in]   x   The vector x. Must be a pointer to 3 consecutive complex
- * values.
+ *                  values.
  */
 __device__ void cuda_mvmh_PRECISION(cu_cmplx_PRECISION *y,
                                     cu_cmplx_PRECISION const *M,
@@ -48,7 +48,7 @@ __device__ void cuda_mvmh_PRECISION(cu_cmplx_PRECISION *y,
  * \param[in]   M   The matrix M. Must be a ComponentAccess wrapper around a
  *                  componentwise array with at least 9 components.
  * \param[in]   x   The vector x. Must be a pointer to 3 consecutive complex
- * values.
+ *                  values.
  */
 __device__ void cuda_mvm_componentwise_PRECISION(
     ComponentAccess<cu_cmplx_PRECISION> y,
