@@ -283,7 +283,7 @@ extern "C" void _cuda_clover_PRECISION(cuda_vector_PRECISION eta, cuda_vector_PR
 
 
 void cuda_d_plus_clover_PRECISION(
-  cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, cuda_vector_PRECISION phi_componentwise,
+  cuda_vector_PRECISION eta, cuda_vector_PRECISION phi,
   operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
   RangeHandleType profilingRangeOperator = startProfilingRange("d_plus_clover_PRECISION (CUDA)");
 
@@ -302,16 +302,16 @@ void cuda_d_plus_clover_PRECISION(
   if ( g.csw == 0.0 ) {
     cuda_vector_PRECISION_scale(eta, phi, shift, 0, l->inner_vector_size, l, _CUDA_SYNC, 0, streams);
   } else {
-    _cuda_clover_componentwise_PRECISION(eta, phi_componentwise, op->clover_componentwise_gpu, l->num_inner_lattice_sites, l);
+    _cuda_clover_componentwise_PRECISION(eta, phi, op->clover_componentwise_gpu, l->num_inner_lattice_sites, l);
   }
   
   PROF_PRECISION_START_UNTHREADED( _NC );
 
   // Project in positive directions
-  cuda_prp_T_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnT_gpu, phi_componentwise, l->num_inner_lattice_sites);
-  cuda_prp_Z_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnZ_gpu, phi_componentwise, l->num_inner_lattice_sites);
-  cuda_prp_Y_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnY_gpu, phi_componentwise, l->num_inner_lattice_sites);
-  cuda_prp_X_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnX_gpu, phi_componentwise, l->num_inner_lattice_sites);
+  cuda_prp_T_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnT_gpu, phi, l->num_inner_lattice_sites);
+  cuda_prp_Z_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnZ_gpu, phi, l->num_inner_lattice_sites);
+  cuda_prp_Y_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnY_gpu, phi, l->num_inner_lattice_sites);
+  cuda_prp_X_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnX_gpu, phi, l->num_inner_lattice_sites);
   cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_ghost_sendrecv_PRECISION(op->prnT_gpu, T, -1, &(op->cuda_c), _FULL_SYSTEM, l);
@@ -320,22 +320,22 @@ void cuda_d_plus_clover_PRECISION(
   cuda_ghost_sendrecv_PRECISION(op->prnX_gpu, X, -1, &(op->cuda_c), _FULL_SYSTEM, l);
 
   // project plus dir and multiply with U dagger
-  cuda_prn_T_componentwise_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi_componentwise,
+  cuda_prn_T_componentwise_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi,
                                                               l->num_inner_lattice_sites);
   cuda_prn_mvmh_componentwise_PRECISION<<<2*gridSize, blockSize>>>(op->prpT_gpu, op->Ds_componentwise_gpu[T], op->pbuf_gpu,
                                                      op->neighbor_table_gpu, LatticeAxis::T,
                                                      l->num_inner_lattice_sites);
-  cuda_prn_Z_componentwise_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi_componentwise,
+  cuda_prn_Z_componentwise_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi,
                                                               l->num_inner_lattice_sites);
   cuda_prn_mvmh_componentwise_PRECISION<<<2*gridSize, blockSize>>>(op->prpZ_gpu, op->Ds_componentwise_gpu[Z], op->pbuf_gpu,
                                                      op->neighbor_table_gpu, LatticeAxis::Z,
                                                      l->num_inner_lattice_sites);
-  cuda_prn_Y_componentwise_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi_componentwise,
+  cuda_prn_Y_componentwise_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi,
                                                               l->num_inner_lattice_sites);
   cuda_prn_mvmh_componentwise_PRECISION<<<2*gridSize, blockSize>>>(op->prpY_gpu, op->Ds_componentwise_gpu[Y], op->pbuf_gpu,
                                                      op->neighbor_table_gpu, LatticeAxis::Y,
                                                      l->num_inner_lattice_sites);
-  cuda_prn_X_componentwise_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi_componentwise,
+  cuda_prn_X_componentwise_PRECISION<<<gridSize, blockSize>>>(op->pbuf_gpu, phi,
                                                               l->num_inner_lattice_sites);
   cuda_prn_mvmh_componentwise_PRECISION<<<2*gridSize, blockSize>>>(op->prpX_gpu, op->Ds_componentwise_gpu[X], op->pbuf_gpu,
                                                      op->neighbor_table_gpu, LatticeAxis::X,
@@ -625,7 +625,7 @@ extern "C" void cuda_d_plus_clover_PRECISION_vectorwrapper(vector_PRECISION eta,
     phi_componentwise_gpu, phi_gpu, l->num_lattice_site_var, l->num_inner_lattice_sites);
   cuda_safe_call(cudaDeviceSynchronize());
 
-  cuda_d_plus_clover_PRECISION(eta_componentwise_gpu, phi_gpu, phi_componentwise_gpu, op, l, threading);
+  cuda_d_plus_clover_PRECISION(eta_componentwise_gpu, phi_componentwise_gpu, op, l, threading);
 
   reorderArrayByChunks<<<gridSize, diracDefaultBlockSize>>>(
     eta_gpu, eta_componentwise_gpu, l->num_lattice_site_var, l->num_inner_lattice_sites);
