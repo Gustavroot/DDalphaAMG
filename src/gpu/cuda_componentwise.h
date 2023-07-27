@@ -75,7 +75,7 @@ class ComponentAccess {
    *  is never called after data is no longer valid.
    * 
    *  \param[in]  data        A pointer to a vector in componentwise ordering.
-   *  \param[out] num_sites   The number of lattice sites which are stored in data.
+   *  \param[in] num_sites   The number of lattice sites which are stored in data.
    */
   __host__ __device__ ComponentAccess(ElementType* data, size_t num_sites) {
     this->data = data;
