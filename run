@@ -200,12 +200,12 @@ else
   cp $inputfile output/${opf}.txt
   echo "" >> output/${opf}.txt
   echo "" >> output/${opf}.txt
-  echo "+----------------------------------------------------------------------------------+" >> ../output/${opf}.txt
-  echo "|                                  results                                         |" >> ../output/${opf}.txt
-  echo "+----------------------------------------------------------------------------------+" >> ../output/${opf}.txt
+  echo "+----------------------------------------------------------------------------------+" >> output/${opf}.txt
+  echo "|                                  results                                         |" >> output/${opf}.txt
+  echo "+----------------------------------------------------------------------------------+" >> output/${opf}.txt
   echo "" >> output/${opf}.txt
   echo "" >> output/${opf}.txt
   $MPIRUN -default-hostfile $MPI_DEFAULT_HOSTFILE $shareoption -np $np \
     --bind-to board $DBGPROF_LINE \
-    ./$exec $inputfile >> ../output/${opf}.txt || exit $?
+    ./$exec $inputfile >> output/${opf}.txt || exit $?
 fi
