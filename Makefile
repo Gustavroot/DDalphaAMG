@@ -82,7 +82,7 @@ OPT_VERSION_FLAGS_CUDA = -O3 -Xcompiler "-ffast-math"
 DEBUG_VERSION_FLAGS_CUDA = 
 
 
-NVCC_LINK_FLAGS = $(NVCC_ARCHITECTURE_FLAGS) -lmpi -lgomp -lm -ldl
+NVCC_LINK_FLAGS = $(NVCC_ARCHITECTURE_FLAGS) -lmpi -lgomp -lm
 ifdef MPI_LIB
 	NVCC_LINK_FLAGS += -L$(MPI_LIB)
 endif
