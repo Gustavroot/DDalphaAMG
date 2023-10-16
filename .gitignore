@@ -4,7 +4,7 @@ build
 testlogs
 
 # To be adjusted locally
-MakeSettings.mk
+#MakeSettings.mk
 
 # Ignore everything in conf/, except some default code/configs. This allows to add new test configs
 conf/*
