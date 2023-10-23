@@ -14,7 +14,7 @@
 
 
 
-module load GCC OpenMPI MPI-settings/CUDA UCX-settings/RC-CUDA
+module load GCC OpenMPI MPI-settings/CUDA
 
 jutil env activate -p chwu29
 
