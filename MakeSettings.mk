@@ -1,18 +1,19 @@
 # --- COMPILER ----------------------------------------
 
 # if using -std different than gnu11, some changes are needed
-CC = mpicc
+CC = mpicc -std=c11
+CXX = mpicxx -std=c++14
 
 # You may specify MPI_INCLUDE and MPI_LIB if those are not automatically found by your system.
-# MPI_INCLUDE = /usr/include/
-# MPI_LIB = /usr/lib/
+MPI_INCLUDE = /usr/include/x86_64-linux-gnu/mpi
+MPI_LIB = /usr/lib/x86_64-linux-gnu
 
 # NVCC if using CUDA acceleration. Otherwise ignored.
-NVCC = nvcc
+NVCC = /usr/local/cuda-11.1/bin/nvcc
 
 # You may specify CUDA_INCLUDE and CUDA_LIB if those are not automatically found by your system.
-# CUDA_INCLUDE = /opt/cuda/include/
-# CUDA_LIB = /opt/cuda/lib64/
+CUDA_INCLUDE = /usr/local/cuda-11.1/include/
+CUDA_LIB = /usr/local/cuda-11.1/lib64/
 # CUDA architecture for which PTX code will be generated
 CUDA_ARCH = compute_70
 # (optional) CUDA architecture for which a binary image will be compiled
