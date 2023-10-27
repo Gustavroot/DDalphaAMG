@@ -1,5 +1,5 @@
 # --- USER CHANGES SHALL BE MADE IN MakeSettings.mk ---
--include MakeSettings.mk
+-include MakeSettings.mk.intel
 
 # --- DO NOT CHANGE -----------------------------------
 SRCDIR = src
@@ -74,8 +74,9 @@ ifdef CUDA_CODE
 endif
 
 COMPILE_FLAGS_CUDA = $(NVCC_ARCHITECTURE_FLAGS) -rdc=true $(COMMON_COMPILE_FLAGS)
-# COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall"
-COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall" -fPIC  --gcc-toolchain="/opt/rh/devtoolset-7/root/usr/include/c++/7"
+COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall"
+# COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall" -fPIC  --gcc-toolchain="/opt/rh/devtoolset-7/root/usr/include/c++/7"
+# COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall" -fPIC  --gcc-toolchain=/opt/hpc/software/compiler/intel/intel-compiler-2017.5.239/compiler/include
 ifeq ($(SSE_ENABLER),yes)
 	COMPILE_FLAGS_CUDA += -Xcompiler "-msse4.2"
 endif
@@ -90,11 +91,6 @@ endif
 
 #-include test/gtest/Makefile
 
-# --- FLAGS FOR LIME ---------------------------------
-LIMEDIR=/public/home/kelong/software/usqcd/c-lime
-LIMEH=-DHAVE_LIME -I$(LIMEDIR)/include
-LIMELIB= -L$(LIMEDIR)/lib -llime
-
 all: wilson library library_db #documentation gtest
 
 .PHONY: all wilson library library_db #documentation gtest
@@ -107,18 +103,18 @@ wilson: dd_alpha_amg dd_alpha_amg_db
 
 ifeq ($(CUDA_ENABLER),yes)
 dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
-	$(NVCC) $(NVCC_LINK_FLAGS) $(LIMEH) -o $@ $(OBJ) $(OBJ_CUDA) $(LIMELIB)
+	$(NVCC) $(NVCC_LINK_FLAGS) -o $@ $(OBJ) $(OBJ_CUDA)
 else
 dd_alpha_amg : $(OBJ)
-	$(CC) $(LINK_FLAGS) $(LIMEH) -o $@ $(OBJ) $(LIMELIB)
+	$(CC) $(LINK_FLAGS) -o $@ $(OBJ)
 endif
 
 ifeq ($(CUDA_ENABLER),yes)
 dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
-	$(NVCC) -g $(NVCC_LINK_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(OBJ_CUDADB) $(LIMELIB)
+	$(NVCC) -g $(NVCC_LINK_FLAGS) -o $@ $(OBJDB) $(OBJ_CUDADB)
 else
 dd_alpha_amg_db : $(OBJDB)
-	$(CC) -g $(LINK_FLAGS) $(LIMEH) -o $@ $(OBJDB) $(LIMELIB)
+	$(CC) -g $(LINK_FLAGS) -o $@ $(OBJDB)
 endif
 
 ######
@@ -180,11 +176,11 @@ doc/doxygen: src/* src/gpu/* doxygen.conf
 # Object compilation (host)
 $(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(GHEA)
 	@mkdir -p $(@D)
-	$(CC) $(COMPILE_FLAGS) $(OPT_VERSION_FLAGS) $(LIMEH) -c $< -o $@ -lm
+	$(CC) $(COMPILE_FLAGS) $(OPT_VERSION_FLAGS) -c $< -o $@ -lm
 
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(GHEA)
 	@mkdir -p $(@D)
-	$(CC) -g $(COMPILE_FLAGS) $(DEBUG_VERSION_FLAGS) $(LIMEH) -DDEBUG -c $< -o $@
+	$(CC) -g $(COMPILE_FLAGS) $(DEBUG_VERSION_FLAGS) -DDEBUG -c $< -o $@
 
 # Object compilation (CUDA)
 ifeq ($(CUDA_ENABLER),yes)

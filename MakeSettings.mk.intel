@@ -1,18 +1,22 @@
 # --- COMPILER ----------------------------------------
 
+DTK_PATH="/public/software/compiler/dtk/dtk-23.04"
+CMP_PATH="/opt/hpc/software/compiler/intel/intel-compiler-2017.5.239"
+MPI_PATH="/opt/hpc/software/mpi/hpcx/v2.11.0/intel-2017.5.239"
+
 # if using -std different than gnu11, some changes are needed
-CC = mpicc
+CC =${MPI_PATH}/bin/mpicc -std=c11
 
 # You may specify MPI_INCLUDE and MPI_LIB if those are not automatically found by your system.
-# MPI_INCLUDE = /usr/include/
-# MPI_LIB = /usr/lib/
+MPI_INCLUDE = ${MPI_PATH}/include/
+MPI_LIB = ${MPI_PATH}/lib
 
 # NVCC if using CUDA acceleration. Otherwise ignored.
-NVCC = nvcc
+NVCC = /public/software/compiler/dtk/dtk-23.04/cuda/bin/nvcc
 
 # You may specify CUDA_INCLUDE and CUDA_LIB if those are not automatically found by your system.
-# CUDA_INCLUDE = /opt/cuda/include/
-# CUDA_LIB = /opt/cuda/lib64/
+CUDA_INCLUDE = ${DTK_PATH}/cuda/include
+CUDA_LIB = ${DTK_PATH}/cuda/lib64
 # CUDA architecture for which PTX code will be generated
 CUDA_ARCH = gfx906
 # (optional) CUDA architecture for which a binary image will be compiled
