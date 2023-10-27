@@ -1634,18 +1634,18 @@ cuda_block_n_hopping_term_PRECISION(				cu_cmplx_PRECISION* out, cu_cmplx_PRECIS
     // hopping term, even sites
     tot_shared_mem = 1*(2*threads_per_cublock)*sizeof(cu_cmplx_PRECISION);
     for( dir=0; dir<4; dir++ ){
-      cuda_block_n_hopping_term_PRECISION_plus_6threads_naive<<< nr_threads/threads_per_cublock,
-      								 threads_per_cublock, tot_shared_mem >>>
-                                                             ( out, in, s, thread_id, csw, nr_threads_per_DD_block,
-                                                               DD_blocks_to_compute, num_latt_site_var, block, dir,
-                                                               sites_to_compute
-                                                              );
-      cuda_block_n_hopping_term_PRECISION_minus_6threads_naive<<< nr_threads/threads_per_cublock,
-      								  threads_per_cublock, tot_shared_mem >>>
-                                                              ( out, in, s, thread_id, csw, nr_threads_per_DD_block,
-                                                                DD_blocks_to_compute, num_latt_site_var, block, dir,
-                                                                sites_to_compute
-                                                               );
+     //  cuda_block_n_hopping_term_PRECISION_plus_6threads_naive<<< nr_threads/threads_per_cublock,
+     //  								 threads_per_cublock, tot_shared_mem >>>
+     //                                                         ( out, in, s, thread_id, csw, nr_threads_per_DD_block,
+     //                                                           DD_blocks_to_compute, num_latt_site_var, block, dir,
+     //                                                           sites_to_compute
+     //                                                          );
+     //  cuda_block_n_hopping_term_PRECISION_minus_6threads_naive<<< nr_threads/threads_per_cublock,
+     //  								  threads_per_cublock, tot_shared_mem >>>
+     //                                                          ( out, in, s, thread_id, csw, nr_threads_per_DD_block,
+     //                                                            DD_blocks_to_compute, num_latt_site_var, block, dir,
+     //                                                            sites_to_compute
+     //                                                           );
     }
   }
 }
@@ -1663,7 +1663,7 @@ cuda_blocks_vector_copy_noncontig_PRECISION_dyn_dev(		cuda_vector_PRECISION out,
   start = block[block_id].start * num_latt_site_var;
 
   if( threadIdx.x==0 ){
-    cudaMemcpyAsync(out + start, in + start, (s->block_vector_size)*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToDevice);
+   //  cudaMemcpyAsync(out + start, in + start, (s->block_vector_size)*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToDevice);
   }
 
 }

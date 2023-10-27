@@ -138,6 +138,12 @@ void cuda_ghost_sendrecv_PRECISION(cuda_vector_PRECISION phi, const int mu, cons
 
     buffer = c->buffer_gpu[mu_dir];
 
+    cuda_vector_PRECISION h_buffer, h_phi_pt;
+    // MALLOC(h_buffer, cu_cmplx_PRECISION, length[1]);
+    // MALLOC(h_phi_pt, cu_cmplx_PRECISION, length[0]);
+    h_buffer = (cuda_vector_PRECISION)malloc(length[1] * sizeof(cu_cmplx_PRECISION));
+    h_phi_pt = (cuda_vector_PRECISION)malloc(length[0] * sizeof(cu_cmplx_PRECISION));
+
     // dir = senddir
     if (dir == 1) {
       // data to be communicated is stored serially in the vector phi
@@ -148,13 +154,17 @@ void cuda_ghost_sendrecv_PRECISION(cuda_vector_PRECISION phi, const int mu, cons
       phi_pt = phi + comm_start;
       if (length[1] > 0) {
         PROF_PRECISION_START(_OP_COMM);
-        MPI_Irecv(buffer, length[1], MPI_COMPLEX_PRECISION, l->neighbor_rank[2 * mu + 1], 2 * mu,
+        MPI_Irecv(h_buffer, length[1], MPI_COMPLEX_PRECISION, l->neighbor_rank[2 * mu + 1], 2 * mu,
                   g.comm_cart, &(c->rreqs[2 * mu]));
+        cudaMemcpy(buffer, h_buffer, length[1] * sizeof(cu_cmplx_PRECISION),
+                   cudaMemcpyHostToDevice);
         PROF_PRECISION_STOP(_OP_COMM, 1);
       }
       if (length[0] > 0) {
         PROF_PRECISION_START(_OP_COMM);
-        MPI_Isend(phi_pt, length[0], MPI_COMPLEX_PRECISION, l->neighbor_rank[2 * mu], 2 * mu,
+        cudaMemcpy(h_phi_pt, phi_pt, length[0] * sizeof(cu_cmplx_PRECISION),
+                   cudaMemcpyDeviceToHost);
+        MPI_Isend(h_phi_pt, length[0], MPI_COMPLEX_PRECISION, l->neighbor_rank[2 * mu], 2 * mu,
                   g.comm_cart, &(c->sreqs[2 * mu]));
         PROF_PRECISION_STOP(_OP_COMM, 0);
       }
@@ -175,19 +185,29 @@ void cuda_ghost_sendrecv_PRECISION(cuda_vector_PRECISION phi, const int mu, cons
 
       if (length[0] > 0) {
         PROF_PRECISION_START(_OP_COMM);
-        MPI_Irecv(phi_pt, length[0], MPI_COMPLEX_PRECISION, l->neighbor_rank[2 * mu], 2 * mu + 1,
+        MPI_Irecv(h_phi_pt, length[0], MPI_COMPLEX_PRECISION, l->neighbor_rank[2 * mu], 2 * mu + 1,
                   g.comm_cart, &(c->rreqs[2 * mu + 1]));
+        cudaMemcpy(phi_pt, h_phi_pt, length[0] * sizeof(cu_cmplx_PRECISION),
+                   cudaMemcpyHostToDevice);
         PROF_PRECISION_STOP(_OP_COMM, 1);
       }
       if (length[1] > 0) {
         PROF_PRECISION_START(_OP_COMM);
-        MPI_Isend(buffer, length[1], MPI_COMPLEX_PRECISION, l->neighbor_rank[2 * mu + 1],
+        cudaMemcpy(h_buffer, buffer, length[1] * sizeof(cu_cmplx_PRECISION),
+                   cudaMemcpyDeviceToHost);
+        MPI_Isend(h_buffer, length[1], MPI_COMPLEX_PRECISION, l->neighbor_rank[2 * mu + 1],
                   2 * mu + 1, g.comm_cart, &(c->sreqs[2 * mu + 1]));
         PROF_PRECISION_STOP(_OP_COMM, 0);
       }
 
-    } else
+    } else {
       ASSERT(dir == 1 || dir == -1);
+    }
+
+    // FREE(h_buffer, cu_cmplx_PRECISION, length[1]);
+    // FREE(h_phi_pt, cu_cmplx_PRECISION, length[0]);
+    // free(h_buffer);
+    // free(h_phi_pt);
   }
 }
 
@@ -276,10 +296,19 @@ extern "C" void cuda_ghost_update_PRECISION(cuda_vector_PRECISION phi, const int
     c->in_use[mu_dir] = 1;
 
     recv_pt = phi + comm_start;
+
+    cuda_vector_PRECISION h_buffer, h_recv_pt;
+    // MALLOC(h_buffer, cu_cmplx_PRECISION, length);
+    // MALLOC(h_recv_pt, cu_cmplx_PRECISION, length);
+    h_buffer = (cuda_vector_PRECISION)malloc(length * sizeof(cu_cmplx_PRECISION));
+    h_recv_pt= (cuda_vector_PRECISION)malloc(length * sizeof(cu_cmplx_PRECISION));
+
     if (length > 0) {
       PROF_PRECISION_START(_OP_COMM);
-      MPI_Irecv(recv_pt, length, MPI_COMPLEX_PRECISION, l->neighbor_rank[mu_dir], mu_dir,
+      MPI_Irecv(h_recv_pt, length, MPI_COMPLEX_PRECISION, l->neighbor_rank[mu_dir], mu_dir,
                 g.comm_cart, &(c->rreqs[mu_dir]));
+      cudaMemcpy(recv_pt, h_recv_pt, length * sizeof(cu_cmplx_PRECISION),
+                 cudaMemcpyHostToDevice);
       PROF_PRECISION_STOP(_OP_COMM, 1);
     }
     constexpr size_t blockSize = 128;
@@ -291,10 +320,17 @@ extern "C" void cuda_ghost_update_PRECISION(cuda_vector_PRECISION phi, const int
 
     if (length > 0) {
       PROF_PRECISION_START(_OP_COMM);
-      MPI_Isend(buffer, length, MPI_COMPLEX_PRECISION, l->neighbor_rank[inv_mu_dir], mu_dir,
+      cudaMemcpy(h_buffer, buffer, length * sizeof(cu_cmplx_PRECISION),
+                 cudaMemcpyDeviceToHost);
+      MPI_Isend(h_buffer, length, MPI_COMPLEX_PRECISION, l->neighbor_rank[inv_mu_dir], mu_dir,
                 g.comm_cart, &(c->sreqs[mu_dir]));
       PROF_PRECISION_STOP(_OP_COMM, 0);
     }
+
+    // FREE(h_buffer, cu_cmplx_PRECISION, length);
+    // FREE(h_recv_pt, cu_cmplx_PRECISION, length);
+    // free(h_buffer);
+    // free(h_recv_pt);
   }
 }
 
