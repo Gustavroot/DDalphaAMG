@@ -39,7 +39,7 @@ ifdef MPI_INCLUDE
 	COMMON_COMPILE_FLAGS += -I$(MPI_INCLUDE)
 endif
 ifdef CUDA_INCLUDE
-	COMMON_COMPILE_FLAGS += -I$(CUDA_INCLUDE)
+	COMMON_COMPILE_FLAGS += -I$(CUDA_INCLUDE) -I$(MPI_INCLUDE)
 endif
 
 ## Defines
@@ -87,11 +87,11 @@ ifdef MPI_LIB
 	NVCC_LINK_FLAGS += -L$(MPI_LIB)
 endif
 
--include test/gtest/Makefile
+#-include test/gtest/Makefile
 
-all: wilson library library_db documentation gtest
+all: wilson library library_db #documentation gtest
 
-.PHONY: all wilson library library_db documentation gtest
+.PHONY: all wilson library library_db #documentation gtest
 .SUFFIXES:
 .SECONDARY:
 

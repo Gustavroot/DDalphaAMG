@@ -1,0 +1,42 @@
+# --- COMPILER ----------------------------------------
+
+# if using -std different than gnu11, some changes are needed
+CC = mpicc -std=c11
+CXX = mpicxx -std=c++14
+
+# You may specify MPI_INCLUDE and MPI_LIB if those are not automatically found by your system.
+MPI_INCLUDE = /usr/include/x86_64-linux-gnu/mpi
+MPI_LIB = /usr/lib/x86_64-linux-gnu
+
+# NVCC if using CUDA acceleration. Otherwise ignored.
+NVCC = /usr/local/cuda-11.1/bin/nvcc
+
+# You may specify CUDA_INCLUDE and CUDA_LIB if those are not automatically found by your system.
+CUDA_INCLUDE = /usr/local/cuda-11.1/include/
+CUDA_LIB = /usr/local/cuda-11.1/lib64/
+# CUDA architecture for which PTX code will be generated
+CUDA_ARCH = compute_70
+# (optional) CUDA architecture for which a binary image will be compiled
+CUDA_CODE = compute_70
+# NVTX is used to annotate profiling reports. It can be disabled by setting this variable to -DNVTX_DISABLE .
+NVTX_DISABLE = # -DNVTX_DISABLE
+
+
+# --- CUDA Support --------------------------------------
+# This flag must be set to "yes" in order to compile dd_alpha_amg with CUDA acceleration.
+# Note that some functionality is not yet or no longer available in the CUDA version of
+# DD Alpha AMG.
+CUDA_ENABLER = yes
+
+# --- SSE Support --------------------------------------
+# This flag must be set to "yes" in order to compile dd_alpha_amg with SSE acceleration.
+# Note that some functionality is not yet or no longer available in the SSE version of
+# DD Alpha AMG.
+SSE_ENABLER = yes
+
+# --- Unit Testing -------------------------------------
+# If you want to run the unit tests, the gtest library and rapidcheck are required.
+# GTEST_INCLUDE = /usr/include
+# GTEST_LIB = /usr/lib
+# RAPIDCHECK_INCLUDE = /usr/include
+# RAPIDCHECK_LIB = /usr/lib
