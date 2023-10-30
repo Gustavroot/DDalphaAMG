@@ -32,6 +32,10 @@ void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
   for ( int i=0; i<8; i++ ) {
     op->cuda_c.boundary_table_gpu[i] = NULL;
     op->cuda_c.buffer_gpu[i] = NULL;
+#ifdef GPU2GPU_COMMS_VIA_CPUS
+    op->cuda_c.buffer[i] = NULL;
+    op->cuda_c.buffer2[i] = NULL;
+#endif
     op->cuda_c.in_use[i] = 0;
   }
   op->cuda_c.comm = 1;
