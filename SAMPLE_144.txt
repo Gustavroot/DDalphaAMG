@@ -38,7 +38,7 @@ d0 local lattice: 24 24 24 48
 d0 block lattice: 4 4 4 4
 d0 preconditioner cycles: 1
 d0 post smooth iter: 4
-d0 block iter: 6
+d0 block iter: 8
 d0 test vectors: 20
 d0 setup iter: 4
 

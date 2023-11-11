@@ -14,9 +14,9 @@ NVCC = nvcc
 # CUDA_INCLUDE = /opt/cuda/include/
 # CUDA_LIB = /opt/cuda/lib64/
 # CUDA architecture for which PTX code will be generated
-CUDA_ARCH = compute_70
+CUDA_ARCH = compute_80
 # (optional) CUDA architecture for which a binary image will be compiled
-CUDA_CODE = compute_70
+CUDA_CODE = compute_80
 # NVTX is used to annotate profiling reports. It can be disabled by setting this variable to -DNVTX_DISABLE .
 NVTX_DISABLE = # -DNVTX_DISABLE
 
