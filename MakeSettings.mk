@@ -25,7 +25,7 @@ NVTX_DISABLE = # -DNVTX_DISABLE
 # This flag must be set to "yes" in order to compile dd_alpha_amg with CUDA acceleration.
 # Note that some functionality is not yet or no longer available in the CUDA version of
 # DD Alpha AMG.
-CUDA_ENABLER = no
+CUDA_ENABLER = yes
 
 # --- SSE Support --------------------------------------
 # This flag must be set to "yes" in order to compile dd_alpha_amg with SSE acceleration.

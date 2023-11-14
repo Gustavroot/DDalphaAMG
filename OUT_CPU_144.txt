@@ -20,14 +20,14 @@ average plaquette: 1.6403153569947 in [0,3]
 
 +----------------------------------------------------------+
 | read in and set up the parallel dirac operator           |
-| elapsed wall clock time: 9.65796      seconds            |
+| elapsed wall clock time: 14.4538      seconds            |
 +----------------------------------------------------------+
 initial definition --- depth: 0
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 0, time spent for setting up next coarser operator: 1.217511 seconds
+depth: 0, time spent for setting up next coarser operator: 1.597761 seconds
 initial definition --- depth: 1
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.078820 seconds
+depth: 1, time spent for setting up next coarser operator: 0.107358 seconds
 
 initial coarse grid correction is defined
 
@@ -52,7 +52,7 @@ initial coarse grid correction is defined
 initial coarse grid correction is defined
 
 initial coarse grid correction is defined
-elapsed time: 51.899210 seconds
+elapsed time: 58.236458 seconds
 
 running with 12 openmp threads per core
 +----------------------------------------------------------+
@@ -68,28 +68,28 @@ running with 12 openmp threads per core
 |               precision: single                          |
 +---------------------- depth  0 --------------------------+
 |          global lattice: 144 48  48  48                  |
-|           local lattice: 24  24  24  48                  |
+|           local lattice: 36  24  24  48                  |
 |           block lattice: 4   4   4   4                   |
 |        post smooth iter: 4                               |
-|     smoother inner iter: 8                               |
+|     smoother inner iter: 4                               |
 |              setup iter: 4                               |
 |            test vectors: 20                              |
 +---------------------- depth  1 --------------------------+
 |          global lattice: 36  12  12  12                  |
-|           local lattice: 6   6   6   12                  |
-|           block lattice: 2   2   2   2                   |
+|           local lattice: 9   6   6   12                  |
+|           block lattice: 3   2   2   2                   |
 |        post smooth iter: 2                               |
 |     smoother inner iter: 4                               |
 |              setup iter: 4                               |
 |            test vectors: 24                              |
 +---------------------- depth  2 --------------------------+
-|          global lattice: 18  6   6   6                   |
+|          global lattice: 12  6   6   6                   |
 |           local lattice: 3   3   3   6                   |
 |           block lattice: 1   1   1   1                   |
 |      coarge grid solver: odd even GMRES                  |
 |              iterations: 30                              |
 |                  cycles: 50                              |
-|               tolerance: 2e-01                           |
+|               tolerance: 1e-01                           |
 +----------------------------------------------------------+
 |          K-cycle length: 5                               |
 |        K-cycle restarts: 2                               |
@@ -102,91 +102,91 @@ running with 12 openmp threads per core
 +----------------------------------------------------------+
 | depth:   0 / level:   2                time    ( count ) |
 +----------------------------------------------------------+
-|    global inner product, float:     0.103651(        20) |
-| 2 flop vector operations, floa:     0.262672(        19) |
-| 8 flop vector operations, floa:     1.078631(       135) |
-|         copy operations, float:     1.837757(        83) |
-|    set value operations, float:     7.063152(    438140) |
-| interpolation and restriction,:     0.790563(        20) |
-|                smoother, float:    36.800470(       200) |
-|      operator comm init, float:     0.022077(      2040) |
-|      operator comm wait, float:     0.964047(      2040) |
-|              allreduces, float:     0.045416(        20) |
-| Gram-Schmidt on aggregates, fl:     0.995570(         1) |
-| smoother - pt 3, res comm, flo:     2.201224(     43800) |
-| smoother - pt 4, solve comm, f:    30.373973(     43800) |
+|    global inner product, float:     0.080273(        20) |
+| 2 flop vector operations, floa:     0.441529(        18) |
+| 8 flop vector operations, floa:     0.819501(        67) |
+|         copy operations, float:     2.871069(        83) |
+|    set value operations, float:    10.225404(    391340) |
+| interpolation and restriction,:     1.179755(        20) |
+|                smoother, float:    36.486721(       200) |
+|      operator comm init, float:     0.023486(      2040) |
+|      operator comm wait, float:     0.845520(      2040) |
+|              allreduces, float:     0.004021(        20) |
+| Gram-Schmidt on aggregates, fl:     1.470382(         1) |
+| smoother - pt 3, res comm, flo:     3.389494(     65200) |
+| smoother - pt 4, solve comm, f:    27.681823(     65200) |
 +----------------------------------------------------------+
 | depth:   1 / level:   1                time    ( count ) |
 +----------------------------------------------------------+
-|    global inner product, float:     0.002470(        24) |
-| 2 flop vector operations, floa:     0.006284(        29) |
-| 8 flop vector operations, floa:     0.023184(       213) |
-|         copy operations, float:     0.052923(       259) |
-|    set value operations, float:     0.119342(      9868) |
-|                smoother, float:     3.437666(       240) |
-|      operator comm init, float:     0.016719(      2448) |
-|      operator comm wait, float:     0.157533(      2448) |
-|              allreduces, float:     0.000606(        24) |
-| Gram-Schmidt on aggregates, fl:     0.010567(         1) |
-| smoother - pt 3, res comm, flo:     0.844217(      4320) |
-| smoother - pt 4, solve comm, f:     2.329452(      4320) |
+|    global inner product, float:     0.003191(        24) |
+| 2 flop vector operations, floa:     0.008667(        29) |
+| 8 flop vector operations, floa:     0.034215(       213) |
+|         copy operations, float:     0.070684(       242) |
+|    set value operations, float:     0.175753(     11884) |
+|                smoother, float:     5.243756(       240) |
+|      operator comm init, float:     0.015683(      2448) |
+|      operator comm wait, float:     0.159899(      2448) |
+|              allreduces, float:     0.000616(        24) |
+| Gram-Schmidt on aggregates, fl:     0.015867(         1) |
+| smoother - pt 3, res comm, flo:     1.186285(      4320) |
+| smoother - pt 4, solve comm, f:     3.756664(      4320) |
 +----------------------------------------------------------+
 | depth:   2 / level:   0                time    ( count ) |
 +----------------------------------------------------------+
 +----------------------------------------------------------+
-| flop/lattice site:  3.66e+06                             |
-| flop/s/MPIprocess:  4.68e+10                             |
+| flop/lattice site:  2.41e+06                             |
+| flop/s/MPIprocess:  4.12e+10                             |
 +----------------------------------------------------------+
 
 depth: 0, bootstrap step number 1...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 0, time spent for setting up next coarser operator: 1.215442 seconds
-depth: 1, time spent for setting up next coarser operator: 0.092325 seconds
+depth: 0, time spent for setting up next coarser operator: 1.527642 seconds
+depth: 1, time spent for setting up next coarser operator: 0.097147 seconds
 depth: 1, bootstrap step number 1...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.069351 seconds
+depth: 1, time spent for setting up next coarser operator: 0.099280 seconds
 depth: 0, bootstrap step number 2...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 0, time spent for setting up next coarser operator: 1.192412 seconds
-depth: 1, time spent for setting up next coarser operator: 0.075084 seconds
+depth: 0, time spent for setting up next coarser operator: 1.528718 seconds
+depth: 1, time spent for setting up next coarser operator: 0.096607 seconds
 depth: 1, bootstrap step number 1...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.063672 seconds
+depth: 1, time spent for setting up next coarser operator: 0.094766 seconds
 depth: 1, bootstrap step number 2...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.063828 seconds
+depth: 1, time spent for setting up next coarser operator: 0.094651 seconds
 depth: 0, bootstrap step number 3...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 0, time spent for setting up next coarser operator: 1.188406 seconds
-depth: 1, time spent for setting up next coarser operator: 0.069406 seconds
+depth: 0, time spent for setting up next coarser operator: 1.523702 seconds
+depth: 1, time spent for setting up next coarser operator: 0.098071 seconds
 depth: 1, bootstrap step number 1...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.063937 seconds
+depth: 1, time spent for setting up next coarser operator: 0.094802 seconds
 depth: 1, bootstrap step number 2...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.063687 seconds
+depth: 1, time spent for setting up next coarser operator: 0.094636 seconds
 depth: 1, bootstrap step number 3...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.063506 seconds
+depth: 1, time spent for setting up next coarser operator: 0.094993 seconds
 depth: 0, bootstrap step number 4...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 0, time spent for setting up next coarser operator: 1.205502 seconds
-depth: 1, time spent for setting up next coarser operator: 0.072300 seconds
+depth: 0, time spent for setting up next coarser operator: 1.528982 seconds
+depth: 1, time spent for setting up next coarser operator: 0.095998 seconds
 depth: 1, bootstrap step number 1...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.063675 seconds
+depth: 1, time spent for setting up next coarser operator: 0.094733 seconds
 depth: 1, bootstrap step number 2...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.064576 seconds
+depth: 1, time spent for setting up next coarser operator: 0.094903 seconds
 depth: 1, bootstrap step number 3...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.063063 seconds
+depth: 1, time spent for setting up next coarser operator: 0.094740 seconds
 depth: 1, bootstrap step number 4...
 [0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
-depth: 1, time spent for setting up next coarser operator: 0.063211 seconds
+depth: 1, time spent for setting up next coarser operator: 0.094896 seconds
 
 performed 4 iterative setup steps
-elapsed time: 111.883977 seconds (13.789807 seconds on coarse grid)
+elapsed time: 143.324309 seconds (27.812720 seconds on coarse grid)
 
 
 +----------------------------------------------------------+
@@ -194,93 +194,93 @@ elapsed time: 111.883977 seconds (13.789807 seconds on coarse grid)
 +----------------------------------------------------------+
 | depth:   0 / level:   2                time    ( count ) |
 +----------------------------------------------------------+
-|    global inner product, float:     0.542170(       160) |
-|   process inner product, float:     2.913906(       760) |
-| 2 flop vector operations, floa:     1.021036(        47) |
-| 8 flop vector operations, floa:     5.943505(       280) |
-| other vector operations, float:     7.955142(         4) |
-|         copy operations, float:     2.102186(       121) |
-|    set value operations, float:     1.136345(    700800) |
-| interpolation and restriction,:     6.671983(       160) |
-|                smoother, float:    61.115637(       320) |
-|      operator comm init, float:     0.025504(      3840) |
-|      operator comm wait, float:     1.650821(      3840) |
-|              allreduces, float:     0.396482(       236) |
-| Gram-Schmidt on aggregates, fl:     3.978247(         4) |
-| smoother - pt 3, res comm, flo:     6.397785(     70080) |
-| smoother - pt 4, solve comm, f:    48.053288(     70080) |
+|    global inner product, float:     0.588913(       160) |
+|   process inner product, float:     4.329029(       760) |
+| 2 flop vector operations, floa:     1.662243(        47) |
+| 8 flop vector operations, floa:     7.677817(       171) |
+| other vector operations, float:    11.435470(         4) |
+|         copy operations, float:     3.421870(       121) |
+|    set value operations, float:     1.146035(    625920) |
+| interpolation and restriction,:     9.954577(       160) |
+|                smoother, float:    62.107811(       320) |
+|      operator comm init, float:     0.027181(      3840) |
+|      operator comm wait, float:     1.313445(      3840) |
+|              allreduces, float:     0.100245(       236) |
+| Gram-Schmidt on aggregates, fl:     5.878152(         4) |
+| smoother - pt 3, res comm, flo:    10.051916(    104320) |
+| smoother - pt 4, solve comm, f:    43.775225(    104320) |
 +----------------------------------------------------------+
 | depth:   1 / level:   1                time    ( count ) |
 +----------------------------------------------------------+
-|    global inner product, float:     0.500826(       900) |
-|   process inner product, float:     0.043990(      3340) |
-| 2 flop vector operations, floa:     0.070054(       245) |
-| 6 flop vector operations, floa:     0.004380(         7) |
-| 8 flop vector operations, floa:     0.125025(      1182) |
-| other vector operations, float:     0.092401(        10) |
-|         copy operations, float:     0.195342(      1063) |
-|    set value operations, float:     0.048456(     93416) |
-| interpolation and restriction,:     0.690960(      1000) |
-|           self coupling, float:     0.262128(       260) |
-|       neighbor coupling, float:     2.420431(       260) |
-|                smoother, float:    15.848010(      1000) |
-|      operator comm init, float:     0.062338(     13560) |
-|      operator comm wait, float:     0.576920(     13560) |
-|              allreduces, float:     0.759746(      1390) |
-| Gram-Schmidt on aggregates, fl:     0.295283(        28) |
-| smoother - pt 3, res comm, flo:     6.115561(     18000) |
-| smoother - pt 4, solve comm, f:     8.507929(     18000) |
-|    Hessenberg: qr update float:     0.000150(      3480) |
-|   Hessenberg: bkwd subst float:     0.000029(       840) |
+|    global inner product, float:     0.473286(      1021) |
+|   process inner product, float:     0.083039(      3732) |
+| 2 flop vector operations, floa:     0.114051(       294) |
+| 6 flop vector operations, floa:     0.005765(         7) |
+| 8 flop vector operations, floa:     0.229853(      1408) |
+| other vector operations, float:     0.109740(        10) |
+|         copy operations, float:     0.300584(      1079) |
+|    set value operations, float:     0.078959(    125433) |
+| interpolation and restriction,:     1.221228(      1208) |
+|           self coupling, float:     0.602636(       381) |
+|       neighbor coupling, float:     5.268422(       381) |
+|                smoother, float:    29.617634(      1208) |
+|      operator comm init, float:     0.078759(     16782) |
+|      operator comm wait, float:     0.711398(     16782) |
+|              allreduces, float:     0.636604(      1615) |
+| Gram-Schmidt on aggregates, fl:     0.443130(        28) |
+| smoother - pt 3, res comm, flo:    11.244934(     21744) |
+| smoother - pt 4, solve comm, f:    17.060762(     21744) |
+|    Hessenberg: qr update float:     0.000167(      5832) |
+|   Hessenberg: bkwd subst float:     0.000033(      1336) |
 +----------------------------------------------------------+
 | depth:   2 / level:   0                time    ( count ) |
 +----------------------------------------------------------+
-|    global inner product, float:     0.194238(      3373) |
-|   process inner product, float:     0.037443(     31398) |
-| 2 flop vector operations, floa:     0.009839(       336) |
-| 6 flop vector operations, floa:     0.000796(        25) |
-| 8 flop vector operations, floa:     0.030347(      3382) |
-|         copy operations, float:     0.001035(        25) |
-|    set value operations, float:     0.068802(     21987) |
-|           self coupling, float:     0.233511(      6746) |
-|       neighbor coupling, float:     3.290799(      6746) |
-|      operator comm init, float:     0.128923(     80952) |
-|      operator comm wait, float:     0.292738(     80952) |
-|              allreduces, float:     0.517405(     12937) |
-|    Hessenberg: qr update float:     0.001766(    376776) |
-|   Hessenberg: bkwd subst float:     0.000407(     68987) |
+|    global inner product, float:     0.187094(      5312) |
+|   process inner product, float:     0.059653(     52853) |
+| 2 flop vector operations, floa:     0.014010(       529) |
+| 6 flop vector operations, floa:     0.000730(        30) |
+| 8 flop vector operations, floa:     0.054437(      5680) |
+|         copy operations, float:     0.001485(        30) |
+|    set value operations, float:     0.115498(     34809) |
+|           self coupling, float:     0.350869(     10624) |
+|       neighbor coupling, float:     4.995743(     10624) |
+|      operator comm init, float:     0.169020(    127488) |
+|      operator comm wait, float:     0.424821(    127488) |
+|              allreduces, float:     0.380978(     20549) |
+|    Hessenberg: qr update float:     0.004539(    634236) |
+|   Hessenberg: bkwd subst float:     0.000610(    115631) |
 +----------------------------------------------------------+
-| flop/lattice site:  7.49e+06                             |
-| flop/s/MPIprocess:  4.44e+10                             |
+| flop/lattice site:  5.99e+06                             |
+| flop/s/MPIprocess:  4.16e+10                             |
 +----------------------------------------------------------+
 
 rhs = random
 +----------------------------------------------------------+
-| approx. rel. res. after  1      iterations: 7.960681e-02 |
-| approx. rel. res. after  2      iterations: 1.745490e-02 |
-| approx. rel. res. after  3      iterations: 4.058816e-03 |
-| approx. rel. res. after  4      iterations: 9.690940e-04 |
-| approx. rel. res. after  5      iterations: 2.427490e-04 |
-| approx. rel. res. after  6      iterations: 6.183785e-05 |
-| approx. rel. res. after  7      iterations: 1.594891e-05 |
-| approx. rel. res. after  8      iterations: 4.141853e-06 |
-| approx. rel. res. after  9      iterations: 1.078547e-06 |
-| approx. rel. res. after  10     iterations: 2.834783e-07 |
-| approx. rel. res. after  11     iterations: 7.522516e-08 |
-| approx. rel. res. after  12     iterations: 1.980238e-08 |
-| approx. rel. res. after  13     iterations: 5.222473e-09 |
-| approx. rel. res. after  14     iterations: 1.361361e-09 |
-| approx. rel. res. after  15     iterations: 3.520812e-10 |
-| approx. rel. res. after  16     iterations: 9.087531e-11 |
+| approx. rel. res. after  1      iterations: 7.939232e-02 |
+| approx. rel. res. after  2      iterations: 1.809935e-02 |
+| approx. rel. res. after  3      iterations: 4.198922e-03 |
+| approx. rel. res. after  4      iterations: 1.011692e-03 |
+| approx. rel. res. after  5      iterations: 2.541316e-04 |
+| approx. rel. res. after  6      iterations: 6.425589e-05 |
+| approx. rel. res. after  7      iterations: 1.644168e-05 |
+| approx. rel. res. after  8      iterations: 4.230915e-06 |
+| approx. rel. res. after  9      iterations: 1.100427e-06 |
+| approx. rel. res. after  10     iterations: 2.885787e-07 |
+| approx. rel. res. after  11     iterations: 7.598436e-08 |
+| approx. rel. res. after  12     iterations: 2.003207e-08 |
+| approx. rel. res. after  13     iterations: 5.300169e-09 |
+| approx. rel. res. after  14     iterations: 1.391979e-09 |
+| approx. rel. res. after  15     iterations: 3.679012e-10 |
+| approx. rel. res. after  16     iterations: 9.677935e-11 |
 +----------------------------------------------------------+
 
 +----------------------------------------------------------+
-|       FGMRES iterations: 16     coarse average: 52.69    |
-| exact relative residual: ||r||/||b|| = 9.087531e-11      |
-| elapsed wall clock time: 21.5755  seconds                |
-|        coarse grid time: 2.5583   seconds (11.9%)        |
-|  consumed core minutes*: 1.04e+02 (solve only)           |
-|    max used mem/MPIproc: 2.27e+01 GB                     |
+|       FGMRES iterations: 16     coarse average: 61.44    |
+| exact relative residual: ||r||/||b|| = 9.677935e-11      |
+| elapsed wall clock time: 26.1927  seconds                |
+|        coarse grid time: 3.6012   seconds (13.7%)        |
+|  consumed core minutes*: 8.38e+01 (solve only)           |
+|    max used mem/MPIproc: 3.38e+01 GB                     |
 +----------------------------------------------------------+
 *: only correct if #MPIprocs*#threads == #CPUs
 
@@ -290,69 +290,69 @@ rhs = random
 +----------------------------------------------------------+
 | depth:   0 / level:   2                time    ( count ) |
 +----------------------------------------------------------+
-|   global inner product, double:     0.175537(        18) |
-|  process inner product, double:     1.019177(       136) |
-| 2 flop vector operations, doub:     0.239078(         1) |
-| 6 flop vector operations, doub:     0.015059(         0) |
-| 8 flop vector operations, doub:     1.696415(        13) |
-|        copy operations, double:     0.015123(         0) |
-|          self coupling, double:     0.453431(        17) |
-|      neighbor coupling, double:     1.673039(        17) |
-|     operator comm init, double:     0.003471(       102) |
-|     operator comm wait, double:     0.027907(       102) |
-|             allreduces, double:     0.143877(        34) |
-|   Hessenberg: qr update double:     0.000014(       816) |
+|   global inner product, double:     0.156975(        18) |
+|  process inner product, double:     1.526615(       136) |
+| 2 flop vector operations, doub:     0.379783(         1) |
+| 6 flop vector operations, doub:     0.024595(         0) |
+| 8 flop vector operations, doub:     2.545204(        13) |
+|        copy operations, double:     0.022549(         0) |
+|          self coupling, double:     0.669106(        17) |
+|      neighbor coupling, double:     2.498997(        17) |
+|     operator comm init, double:     0.003890(       102) |
+|     operator comm wait, double:     0.044732(       102) |
+|             allreduces, double:     0.088784(        34) |
+|   Hessenberg: qr update double:     0.000012(       816) |
 |  Hessenberg: bkwd subst double:     0.000002(       152) |
-| 2 flop vector operations, floa:     0.081974(         7) |
-| 8 flop vector operations, floa:     0.346602(        43) |
-|         copy operations, float:     0.421575(        24) |
-|    set value operations, float:     0.227611(    140160) |
-| interpolation and restriction,:     1.363714(        32) |
-|                smoother, float:    12.110430(        64) |
-|      operator comm init, float:     0.005112(       768) |
-|      operator comm wait, float:     0.223579(       768) |
-| smoother - pt 3, res comm, flo:     1.286450(     14016) |
-| smoother - pt 4, solve comm, f:     9.612351(     14016) |
+| 2 flop vector operations, floa:     0.135509(         7) |
+| 8 flop vector operations, floa:     0.263966(        21) |
+|         copy operations, float:     0.683942(        24) |
+|    set value operations, float:     0.229647(    125184) |
+| interpolation and restriction,:     2.035469(        32) |
+|                smoother, float:    12.383544(        64) |
+|      operator comm init, float:     0.005371(       768) |
+|      operator comm wait, float:     0.239452(       768) |
+| smoother - pt 3, res comm, flo:     2.010309(     20864) |
+| smoother - pt 4, solve comm, f:     8.750156(     20864) |
 +----------------------------------------------------------+
 | depth:   1 / level:   1                time    ( count ) |
 +----------------------------------------------------------+
-|    global inner product, float:     0.071119(        61) |
-|   process inner product, float:     0.002856(        88) |
-| 2 flop vector operations, floa:     0.005573(        20) |
-| 6 flop vector operations, floa:     0.000687(         1) |
-| 8 flop vector operations, floa:     0.008392(        90) |
-|         copy operations, float:     0.010013(        39) |
-|    set value operations, float:     0.003628(      1646) |
-| interpolation and restriction,:     0.060380(        90) |
-|           self coupling, float:     0.045307(        45) |
-|       neighbor coupling, float:     0.401938(        45) |
-|                smoother, float:     1.424530(        90) |
-|      operator comm init, float:     0.006181(      1350) |
-|      operator comm wait, float:     0.025205(      1350) |
-|              allreduces, float:     0.102727(       106) |
-| smoother - pt 3, res comm, flo:     0.520330(      1620) |
-| smoother - pt 4, solve comm, f:     0.694758(      1620) |
-|    Hessenberg: qr update float:     0.000027(       528) |
-|   Hessenberg: bkwd subst float:     0.000007(       133) |
+|    global inner product, float:     0.011464(        61) |
+|   process inner product, float:     0.004337(        88) |
+| 2 flop vector operations, floa:     0.007533(        20) |
+| 6 flop vector operations, floa:     0.001112(         1) |
+| 8 flop vector operations, floa:     0.014878(        90) |
+|         copy operations, float:     0.014721(        39) |
+|    set value operations, float:     0.004923(      1644) |
+| interpolation and restriction,:     0.089302(        90) |
+|           self coupling, float:     0.071312(        45) |
+|       neighbor coupling, float:     0.622803(        45) |
+|                smoother, float:     2.200879(        90) |
+|      operator comm init, float:     0.006367(      1350) |
+|      operator comm wait, float:     0.055947(      1350) |
+|              allreduces, float:     0.031254(       106) |
+| smoother - pt 3, res comm, flo:     0.838655(      1620) |
+| smoother - pt 4, solve comm, f:     1.269803(      1620) |
+|    Hessenberg: qr update float:     0.000022(       528) |
+|   Hessenberg: bkwd subst float:     0.000005(       133) |
 +----------------------------------------------------------+
 | depth:   2 / level:   0                time    ( count ) |
 +----------------------------------------------------------+
-|    global inner product, float:     0.027118(       444) |
-|   process inner product, float:     0.005303(      4621) |
-| 2 flop vector operations, floa:     0.001232(        44) |
-| 6 flop vector operations, floa:     0.000070(         2) |
-| 8 flop vector operations, floa:     0.004095(       496) |
-|         copy operations, float:     0.000097(         2) |
-|    set value operations, float:     0.009053(      2915) |
-|           self coupling, float:     0.028906(       888) |
-|       neighbor coupling, float:     0.413654(       888) |
-|      operator comm init, float:     0.015335(     10656) |
-|      operator comm wait, float:     0.031172(     10656) |
-|              allreduces, float:     0.046013(      1731) |
-|    Hessenberg: qr update float:     0.000248(     55452) |
-|   Hessenberg: bkwd subst float:     0.000039(     10085) |
+|    global inner product, float:     0.016592(       514) |
+|   process inner product, float:     0.006414(      5900) |
+| 2 flop vector operations, floa:     0.001433(        51) |
+| 6 flop vector operations, floa:     0.000055(         2) |
+| 8 flop vector operations, floa:     0.006003(       629) |
+|         copy operations, float:     0.000122(         2) |
+|    set value operations, float:     0.011096(      3382) |
+|           self coupling, float:     0.032913(      1028) |
+|       neighbor coupling, float:     0.476352(      1028) |
+|      operator comm init, float:     0.015776(     12336) |
+|      operator comm wait, float:     0.040503(     12336) |
+|              allreduces, float:     0.033130(      2011) |
+|    Hessenberg: qr update float:     0.000474(     70800) |
+|   Hessenberg: bkwd subst float:     0.000070(     12783) |
 +----------------------------------------------------------+
-| flop/lattice site:  1.32e+06                             |
-| flop/s/MPIprocess:  4.05e+10                             |
+| flop/lattice site:  9.09e+05                             |
+| flop/s/MPIprocess:  3.45e+10                             |
 +----------------------------------------------------------+
 
