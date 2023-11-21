@@ -43,7 +43,7 @@ ifdef CUDA_INCLUDE
 endif
 
 ## Defines
-COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE)
+COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE) #-DGPU2GPU_COMMS_VIA_CPUS
 ifeq ($(SSE_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DSSE
 endif
@@ -87,11 +87,11 @@ ifdef MPI_LIB
 	NVCC_LINK_FLAGS += -L$(MPI_LIB)
 endif
 
--include test/gtest/Makefile
+#-include test/gtest/Makefile
 
-all: wilson library library_db documentation gtest
+all: wilson library library_db #documentation gtest
 
-.PHONY: all wilson library library_db documentation gtest
+.PHONY: all wilson library library_db #documentation gtest
 .SUFFIXES:
 .SECONDARY:
 
