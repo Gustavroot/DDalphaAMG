@@ -112,7 +112,15 @@
 #include "sse_interpolation_double.h"
 #include "sse_schwarz_float.h"
 #include "sse_schwarz_double.h"
-#else
+#endif
+
+#if defined(AVX2)
+// #include "vectorized_blas.h"
+// #include "vectorized_blas_avx.h"
+#include "vectorized_coarse_operator_float.h"
+#endif
+
+#if !defined(SSE) && ! defined(AVX2)
 //no intrinsics
 #include "interpolation_float.h"
 #include "interpolation_double.h"

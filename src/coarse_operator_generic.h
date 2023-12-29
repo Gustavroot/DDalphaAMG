@@ -22,7 +22,7 @@
 #ifndef COARSE_OPERATOR_PRECISION_HEADER
   #define COARSE_OPERATOR_PRECISION_HEADER
 
-  #include "blas_vectorized.h"
+  #include "vectorized_blas.h"
 
   struct Thread;
   
