@@ -8,7 +8,9 @@
 #include <mpi.h>
 
 #include "cuda_vectors_PRECISION.h"
-
+#ifdef GPU2GPU_COMMS_VIA_CPUS
+typedef PRECISION _Complex *vector_PRECISION;
+#endif
 /**
  * \brief CUDA version of comm_PRECISION_struct.
  * 
@@ -40,6 +42,9 @@ typedef struct {
    *  The other communication party can send/receive directly to the projection vector.
    */
   cuda_vector_PRECISION buffer_gpu[8];
+#ifdef GPU2GPU_COMMS_VIA_CPUS
+  vector_PRECISION buffer[8],buffer2[8];
+#endif
   MPI_Request
       /** \brief Send request handles of MPI. */
       sreqs[8],

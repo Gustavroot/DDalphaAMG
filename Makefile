@@ -48,7 +48,7 @@ ifeq ($(SSE_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DSSE
 endif
 ifeq ($(CUDA_ENABLER),yes)
-	COMMON_COMPILE_FLAGS += -DCUDA_OPT
+	COMMON_COMPILE_FLAGS += -DCUDA_OPT -DGPU2GPU_COMMS_VIA_CPUS
 endif
 
 COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_COMPILE_FLAGS)
@@ -91,7 +91,7 @@ endif
 #-include test/gtest/Makefile
 
 # --- FLAGS FOR LIME ---------------------------------
-LIMEDIR=/public/home/kelong/software/usqcd/c-lime
+LIMEDIR= /public/home/kelong/software/soft.usqcd/version-dtk23.04/gcc-7.3.1
 LIMEH=-DHAVE_LIME -I$(LIMEDIR)/include
 LIMELIB= -L$(LIMEDIR)/lib -llime
 

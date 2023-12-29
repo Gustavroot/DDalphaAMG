@@ -23,6 +23,9 @@ typedef struct
     cuda_vector_PRECISION buffer_gpu[8];
 #endif
     vector_PRECISION buffer[8];
+#ifdef GPU2GPU_COMMS_VIA_CPUS
+    vector_PRECISION buffer2[8];
+#endif
     MPI_Request sreqs[8], rreqs[8];
 } comm_PRECISION_struct;
 

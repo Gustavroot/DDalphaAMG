@@ -120,6 +120,10 @@ void ghost_alloc_PRECISION( int buffer_size, comm_PRECISION_struct *c, level_str
       c->max_length[mu] = factor*buffer_size;
       MALLOC( c->buffer[2*mu], complex_PRECISION, factor*buffer_size );
       MALLOC( c->buffer[2*mu+1], complex_PRECISION, factor*buffer_size );
+#ifdef GPU2GPU_COMMS_VIA_CPUS
+      MALLOC( c->buffer2[2*mu], complex_PRECISION, factor*buffer_size );
+      MALLOC( c->buffer2[2*mu+1], complex_PRECISION, factor*buffer_size );
+#endif
       c->in_use[2*mu] = 0;
       c->in_use[2*mu+1] = 0;
     }
@@ -128,6 +132,10 @@ void ghost_alloc_PRECISION( int buffer_size, comm_PRECISION_struct *c, level_str
       c->max_length[mu] = buffer_size;
       MALLOC( c->buffer[2*mu], complex_PRECISION, buffer_size );
       MALLOC( c->buffer[2*mu+1], complex_PRECISION, buffer_size );
+#ifdef GPU2GPU_COMMS_VIA_CPUS
+      MALLOC( c->buffer2[2*mu], complex_PRECISION, buffer_size );
+      MALLOC( c->buffer2[2*mu+1], complex_PRECISION, buffer_size );
+#endif
     }
   }
   
@@ -141,9 +149,13 @@ void ghost_free_PRECISION( comm_PRECISION_struct *c, level_struct *l ) {
   
   int mu;
   
-  for ( mu=0; mu<4; mu++ ) {    
+  for ( mu=0; mu<4; mu++ ) {  
     FREE( c->buffer[2*mu], complex_PRECISION, c->max_length[mu] );
     FREE( c->buffer[2*mu+1], complex_PRECISION, c->max_length[mu] );
+#ifdef GPU2GPU_COMMS_VIA_CPUS
+    FREE( c->buffer2[2*mu], complex_PRECISION, c->max_length[mu] );
+    FREE( c->buffer2[2*mu+1], complex_PRECISION, c->max_length[mu] );
+#endif
   }
   
   if ( l->vbuf_PRECISION[8] != NULL ) {
