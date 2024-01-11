@@ -133,16 +133,14 @@ void coarse_diag_ee_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_
   coarse_self_couplings_PRECISION( y+start*offset, x+start*offset, op->clover+start*(offset*offset+offset)/2, (end-start)*offset, l );
 #else
 
-#if defined(AVX2)
+#if defined(AVX_COARSE_SELF_OPERATOR_PRECISION)
 #if defined(DEBUG)
-  printf("======AVX2: entry vectorized_coarse_self_couplings_PRECISION() ... %s : %d\n", __FILE__, __LINE__);
+  printf(" DEBUG: AVX2: entry vectorized_coarse_self_couplings_PRECISION() ... %s : %d\n", __FILE__, __LINE__);
 #endif
   if(op->clover_vectorized == NULL) { printf("======================  eta is NULL\n"); }
   vectorized_coarse_self_couplings_PRECISION(y, x, op->clover_vectorized, start, end, l );
-#elif defined(SSE)
+#else // use SSE SIMD self_coupling
   coarse_self_couplings_PRECISION_vectorized( y, x, op->clover_vectorized, start, end, l );
-// #else
-// #error "defined(VECTORIZED_PRECISION), but neither defined(AVX2) nor defined(SSE)"
 #endif
 
 #endif

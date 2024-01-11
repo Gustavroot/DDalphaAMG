@@ -24,7 +24,7 @@
 
 #ifdef SSE
 
-#define SIMD_LENGTH_float 4
+#define SIMD_LENGTH_float  4
 #define SIMD_LENGTH_double 2
 
 #define INTERPOLATION_OPERATOR_LAYOUT_OPTIMIZED_float
@@ -44,6 +44,10 @@
 
 
 #if defined(AVX2)
+#if !defined(SSE)
+#error(SSE Not Defined! Now AVX2 requires SSE support, please set SSE_ENABLER = yes.)
+#endif
+
 #ifndef SIMD_LENGTH_float
 #define SIMD_LENGTH_float 8
 #endif
@@ -51,10 +55,12 @@
 #define SIMD_LENGTH_double 4
 #endif
 
-#define AVX_LENGTH_float 8
+#define AVX_LENGTH_float  8
 #define AVX_LENGTH_double 4
 
-#define AVX_COARSE_OPERATOR_float
+// #define AVX_COARSE_OPERATOR_float // to control all COASE_OPERATOR support, but not now.
+#define AVX_COARSE_SELF_OPERATOR_float
+#define AVX_COARSE_HOPING_OPERATOR_float
 
 #define AVX_BLAS_float
 
@@ -74,10 +80,10 @@
 #endif
 
 
-#define OPERATOR_COMPONENT_OFFSET_float  (SIMD_LENGTH_float *((l->num_eig_vect+SIMD_LENGTH_float -1)/SIMD_LENGTH_float ))
-#define OPERATOR_COMPONENT_OFFSET_double (SIMD_LENGTH_double*((l->num_eig_vect+SIMD_LENGTH_double-1)/SIMD_LENGTH_double))
+#define OPERATOR_COMPONENT_OFFSET_float  (SIMD_LENGTH_float * ((l->num_eig_vect + SIMD_LENGTH_float - 1) / SIMD_LENGTH_float))
+#define OPERATOR_COMPONENT_OFFSET_double (SIMD_LENGTH_double * ((l->num_eig_vect + SIMD_LENGTH_double - 1) / SIMD_LENGTH_double))
 
-#define OPERATOR_TYPE_float float
+#define OPERATOR_TYPE_float  float
 #define OPERATOR_TYPE_double double
 
 #endif // VECTORIZATION_CONTROL_H

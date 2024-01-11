@@ -37,7 +37,7 @@ void (*coarse_hopp)(vector_PRECISION eta, vector_PRECISION phi, OPERATOR_TYPE_PR
 
 
 ## II . **`[TODO]`** DataLayout and Coupling with SSE
-**`[TODO]` ** vectorized_coarse_operator_PRECISION_set_couplings
+**`[TODO]`** vectorized_coarse_operator_PRECISION_set_couplings
 
 
 
