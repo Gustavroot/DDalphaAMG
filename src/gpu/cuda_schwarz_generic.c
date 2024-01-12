@@ -1,8 +1,8 @@
+#ifdef CUDA_OPT
+
 #include "main.h"
 #include "cuda_ghost_PRECISION.h"
 
-
-#ifdef CUDA_OPT
 
 void smoother_PRECISION_def_CUDA( level_struct *l ) {
   if ( g.method >= 0 )

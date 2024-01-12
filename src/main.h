@@ -24,6 +24,10 @@
   #include <cuda_runtime.h>
 #endif
 
+#ifdef HALF_PREC_STORAGE
+  #include <stdint.h>
+#endif
+
 #include <stdio.h>
 #include <malloc.h>
 #include <stdlib.h>
@@ -198,4 +202,8 @@
   #include "gpu/cuda_coarse_operator_double.h"
   #include "miscellaneous.h"
   #include "gpu/cuda_miscellaneous.h"
+#endif
+
+#ifdef HALF_PREC_STORAGE
+  #include "utils_half_precision.h"
 #endif

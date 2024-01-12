@@ -10,7 +10,7 @@
 #include "linalg_PRECISION.h"
 #include "operator.h"
 
-void d_plus_clover_PRECISION(vector_PRECISION eta, complex_PRECISION const * phi,
+void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
                              operator_PRECISION_struct *op, level_struct *l,
                              struct Thread *threading)
 {

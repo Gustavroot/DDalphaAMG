@@ -61,6 +61,8 @@ endif
 COMPILE_FLAGS += -Wall -Werror-implicit-function-declaration
 LINK_FLAGS = -lgomp -lm -ldl
 
+LINK_FLAGS += -DHALF_PREC_STORAGE
+
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
 OPT_VERSION_FLAGS = -O3 -ffast-math
@@ -89,22 +91,22 @@ endif
 
 #-include test/gtest/Makefile
 
-all: wilson library library_db #documentation gtest
+all: wilson #library library_db #documentation gtest
 
-.PHONY: all wilson library library_db #documentation gtest
+.PHONY: all wilson #library library_db #documentation gtest
 .SUFFIXES:
 .SECONDARY:
 
 
 # Linking of dd_alpha_amg application
-wilson: dd_alpha_amg dd_alpha_amg_db
+wilson: dd_alpha_amg #dd_alpha_amg_db
 
 ifeq ($(CUDA_ENABLER),yes)
 dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
 	$(NVCC) $(NVCC_LINK_FLAGS) -o $@ $(OBJ) $(OBJ_CUDA)
 else
 dd_alpha_amg : $(OBJ)
-	$(CC) $(LINK_FLAGS) -o $@ $(OBJ)
+	$(CC) -o $@ $(OBJ) $(LINK_FLAGS)
 endif
 
 ifeq ($(CUDA_ENABLER),yes)
@@ -174,7 +176,7 @@ doc/doxygen: src/* src/gpu/* doxygen.conf
 # Object compilation (host)
 $(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(GHEA)
 	@mkdir -p $(@D)
-	$(CC) $(COMPILE_FLAGS) $(OPT_VERSION_FLAGS) -c $< -o $@ -lm
+	$(CC) $(COMPILE_FLAGS) $(OPT_VERSION_FLAGS) -c $< -o $@ $(LINK_FLAGS)
 
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(GHEA)
 	@mkdir -p $(@D)

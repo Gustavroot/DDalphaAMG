@@ -178,6 +178,12 @@ void interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_
             __m128 phi_re = _mm_setzero_ps();
             __m128 phi_im = _mm_setzero_ps();
             
+            // let's test if casting to half and re-casting to float degrades convergence
+            //uint16_t buff_operator_half_prec[2*offset];
+            //singles2halfp( (void*)buff_operator_half_prec, (void*)operator, 2*offset );
+            //memset( operator, 0, 2*offset*sizeof(float) );
+            //halfp2singles( (void*)operator, (void*)buff_operator_half_prec, 2*offset );
+            
             __m128 operator_re = _mm_load_ps((float *)operator);
             __m128 operator_im = _mm_load_ps((float *)operator+offset);
             __m128 phi_c_re = _mm_load_ps(tmp_phi_c_re+j+low_high_offset);
@@ -263,6 +269,12 @@ void interpolate3_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level
             __m128 phi_re = _mm_setzero_ps();
             __m128 phi_im = _mm_setzero_ps();
 
+            // let's test if casting to half and re-casting to float degrades convergence
+            //uint16_t buff_operator_half_prec[2*offset];
+            //singles2halfp( (void*)buff_operator_half_prec, (void*)operator, 2*offset );
+            //memset( operator, 0, 2*offset*sizeof(float) );
+            //halfp2singles( (void*)operator, (void*)buff_operator_half_prec, 2*offset );
+
             __m128 operator_re = _mm_load_ps((float *)operator);
             __m128 operator_im = _mm_load_ps((float *)operator+offset);
             __m128 phi_c_re = _mm_load_ps(tmp_phi_c_re+j+low_high_offset);
@@ -307,23 +319,47 @@ void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_str
   SYNC_CORES(threading)
   SYNC_HYPERTHREADS(threading)
 
+#ifdef HALF_PREC_STORAGE
+  uint16_t* operator_half_prec_bare=NULL;
+  size_t size_malloc_hugepages_half_prec_operator = OPERATOR_COMPONENT_OFFSET_PRECISION * l->vector_size;
+  MALLOC_HUGEPAGES( operator_half_prec_bare, uint16_t, 2*size_malloc_hugepages_half_prec_operator, 128 );
+
+  START_MASTER(threading)
+  singles2halfp( (void*)operator_half_prec_bare, (void*)(l->is_PRECISION.op), 2*size_malloc_hugepages_half_prec_operator );
+  END_MASTER(threading)
+
+  uint16_t* operator_half_prec = operator_half_prec_bare;
+#endif
+
   PROF_PRECISION_START( _PR, threading );
   int i, j, k, k1, k2, num_aggregates = l->is_PRECISION.num_agg, num_eig_vect = l->num_eig_vect,
       num_parent_eig_vect = l->num_lattice_site_var/2, aggregate_sites = l->num_inner_lattice_sites / num_aggregates;
+#ifdef HALF_PREC_STORAGE
+  complex_PRECISION *phi_pt = phi, *phi_c_pt = l->next_level->gs_PRECISION.transfer_buffer;
+#else
   complex_PRECISION *operator = l->is_PRECISION.op, *phi_pt = phi,
                     *phi_c_pt = l->next_level->gs_PRECISION.transfer_buffer;
+#endif
+
+  int offset = SIMD_LENGTH_PRECISION;
+#ifdef HALF_PREC_STORAGE
+  float buff_operator_single_prec[2*offset];
+#endif
 
   for ( i=threading->n_thread*threading->core + threading->thread; i<num_aggregates; i+=threading->n_core*threading->n_thread ) {
     
     phi_pt   = phi + i*2*num_parent_eig_vect*aggregate_sites;
     phi_c_pt = l->next_level->gs_PRECISION.transfer_buffer + i*2*num_eig_vect;
 
-    int offset = SIMD_LENGTH_PRECISION;
     // loop over blocks of SIMD_LENGTH_PRECISION vectors
     for ( j=0; j<num_eig_vect; j+=offset ) {
       phi_pt   = phi + i*2*num_parent_eig_vect*aggregate_sites;
       phi_c_pt = l->next_level->gs_PRECISION.transfer_buffer + i*2*num_eig_vect;
+#ifdef HALF_PREC_STORAGE
+      operator_half_prec = operator_half_prec_bare + 2*(j*l->vector_size + i*2*offset*num_parent_eig_vect*aggregate_sites);
+#else
       operator = l->is_PRECISION.op + j*l->vector_size + i*2*offset*num_parent_eig_vect*aggregate_sites;
+#endif
 
       // temporary, so we can used aligned load/store, and don't have to mess around with deinterleaving
       // complex components and masking
@@ -345,8 +381,18 @@ void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_str
             __m128 phi_re = _mm_set1_ps(((float *)phi_pt)[0]);
             __m128 phi_im = _mm_set1_ps(((float *)phi_pt)[1]);
 
+            // let's test if casting to half and re-casting to float degrades convergence
+            //float buff_operator_single_prec[2*offset];
+            //singles2halfp( (void*)buff_operator_half_prec, (void*)operator, 2*offset );
+            //memset( operator, 0, 2*offset*sizeof(float) );
+#ifdef HALF_PREC_STORAGE
+            halfp2singles( (void*)buff_operator_single_prec, (void*)operator_half_prec, 2*offset );
+            __m128 operator_re = _mm_load_ps((float *)buff_operator_single_prec);
+            __m128 operator_im = _mm_load_ps((float *)buff_operator_single_prec+offset);
+#else
             __m128 operator_re = _mm_load_ps((float *)operator);
             __m128 operator_im = _mm_load_ps((float *)operator+offset);
+#endif
             __m128 phi_c_re = _mm_load_ps(tmp_phi_c_re+low_high_offset);
             __m128 phi_c_im = _mm_load_ps(tmp_phi_c_im+low_high_offset);
 
@@ -355,7 +401,12 @@ void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_str
             _mm_store_ps(tmp_phi_c_re+low_high_offset, phi_c_re);
             _mm_store_ps(tmp_phi_c_im+low_high_offset, phi_c_im);
             // skip to next real line of matrix
+#ifdef HALF_PREC_STORAGE
+            operator_half_prec += 2*offset;
+#else
             operator += offset;
+#endif
+
             phi_pt++;
           }
           low_high_offset = offset;
@@ -375,12 +426,16 @@ void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_str
       }
     }
   }
-  
+
   SYNC_HYPERTHREADS(threading)
   START_LOCKED_MASTER(threading)
   vector_PRECISION_gather( phi_c, l->next_level->gs_PRECISION.transfer_buffer, l->next_level );
   END_LOCKED_MASTER(threading)
   PROF_PRECISION_STOP( _PR, 1, threading );
+
+#ifdef HALF_PREC_STORAGE
+  FREE_HUGEPAGES( operator_half_prec_bare, uint16_t, 2*size_malloc_hugepages_half_prec_operator );
+#endif
 }
 
 #endif // defined( SSE ) && defined( INTERPOLATION_OPERATOR_LAYOUT_OPTIMIZED_PRECISION )
