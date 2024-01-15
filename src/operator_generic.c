@@ -42,7 +42,7 @@ void cpu_operator_PRECISION_init( operator_PRECISION_struct *op ) {
   }
   op->c.comm = 1;
   op->buffer = NULL;
-#if defined(VECTORIZE_COARSE_OPERATOR_PRECISION) && defined(AVX_COARSE_OPERATOR_PRECISION) 
+#ifdef VECTORIZE_COARSE_OPERATOR_PRECISION
   op->D_vectorized = NULL;
   op->D_transformed_vectorized = NULL;
   op->clover_vectorized = NULL;
