@@ -48,34 +48,14 @@
 #error(SSE Not Defined! Now AVX2 requires SSE support, please set SSE_ENABLER = yes.)
 #endif
 
-#ifndef SIMD_LENGTH_float
-#define SIMD_LENGTH_float 8
-#endif
-#ifndef SIMD_LENGTH_double
-#define SIMD_LENGTH_double 4
-#endif
-
 #define AVX_LENGTH_float  8
 #define AVX_LENGTH_double 4
 
 // #define AVX_COARSE_OPERATOR_float // to control all COASE_OPERATOR support, but not now.
-#define AVX_COARSE_SELF_OPERATOR_float
-#define AVX_COARSE_HOPING_OPERATOR_float
+#define AVX_COARSE_SELF_OPERATOR_float     // Self-coupling
+#define AVX_COARSE_HOPPING_OPERATOR_float  // Hopping term
 
 #define AVX_BLAS_float
-
-// #define INTERPOLATION_OPERATOR_LAYOUT_OPTIMIZED_float
-// #define INTERPOLATION_SETUP_LAYOUT_OPTIMIZED_float
-// #define VECTORIZE_COARSE_OPERATOR_float
-// #define GRAM_SCHMIDT_VECTORIZED_float
-// #define OPTIMIZED_NEIGHBOR_COUPLING_float
-// #define OPTIMIZED_SELF_COUPLING_float
-// #define OPTIMIZED_NEIGHBOR_COUPLING_double
-// #define OPTIMIZED_LINALG_float
-// #define OPTIMIZED_LINALG_double
-
-// // #include "sse_complex_float_intrinsic.h"
-// // #include "sse_complex_double_intrinsic.h"
 
 #endif
 

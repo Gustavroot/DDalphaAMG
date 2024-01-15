@@ -23,6 +23,32 @@
 #define VECTORIZED_BLAS_H
 
 // Macro Flag to switch simd version
+
+
+/**
+ * @brief A: op, A is a lda-N matrix, stored of column-major with discrete real and imag in differen column.
+ *             re im   re im   re im   re im   re im
+ *           | r | i | r | i | r | i | r | i | r | i |
+ *           | r | i | r | i | r | i | r | i | r | i |
+ *           | r | i | r | i | r | i | r | i | r | i |
+ * A[i][j] = | r | i | r | i | r | i | r | i | r | i |,  stored of column-major, Are_ij = A+2*j*lda+i, Aim_ij = A+(2*j+1)*lda+i
+ *           | r | i | r | i | r | i | r | i | r | i |
+ *           | r | i | r | i | r | i | r | i | r | i | 
+ *           | r | i | r | i | r | i | r | i | r | i |
+ *           | r | i | r | i | r | i | r | i | r | i | 
+ * 
+ */
+
+/**
+ * @brief B: complex vector, with re and im interleaved, e.g: Bre_j = B[2*j]
+ * @brief C: complex vector, with re and im interleaved, e.g: Cre_j = C[2*j]
+ * 
+ */
+
+
+
+#ifdef AVX_BLAS_float
+
 #include "vectorized_blas_avx.h"
 
 // BLAS naming convention: LDA = leading dimension of A
@@ -68,5 +94,6 @@ static inline void vectorized_cgem_inverse(const int N, OPERATOR_TYPE_float *A_i
     simd_cgem_inverse(N, A_inverse, A, lda);
 }
 
+#endif // endif AVX_LENGTH_float
 
 #endif // VECTORIZED_BLAS_H

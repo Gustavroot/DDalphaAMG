@@ -24,9 +24,11 @@
 #ifndef VECTORIZED_COARSE_OPERATOR_PRECISION_HEADER
 #define VECTORIZED_COARSE_OPERATOR_PRECISION_HEADER
 
-#include "vectorized_blas.h"
 #include <assert.h>
-static int coarse_self_couplings_PRECISION_count = 0;
+#include "main.h"
+#include "vectorized_blas.h"
+#include "vectorization_control.h"
+
 
 /**
  * @brief vectorized_coarse_self_couplings_PRECISION(); AVX2 defibed by vectorized_cgemv() in vectorized_blas.h/vectorized_blas_avx.h
@@ -43,10 +45,6 @@ static inline void vectorized_coarse_self_couplings_PRECISION(vector_PRECISION e
                                                               level_struct *l)
 {
 #if defined DEBUG
-    if (coarse_self_couplings_PRECISION_count == 0) {
-        printf("========== vectorized_coarse_self_couplings_PRECISION() called\n");
-        coarse_self_couplings_PRECISION_count++;
-    }
     assert(eta);
     assert(phi);
     assert(clover);
@@ -62,9 +60,6 @@ static inline void vectorized_coarse_self_couplings_PRECISION(vector_PRECISION e
     }
 }
 
-
-// void vectorized_coarse_operator_PRECISION_set_couplings(operator_PRECISION_struct *op, level_struct *l, struct Thread *threading);
-
 /**
  * @brief 
  * 
@@ -76,7 +71,7 @@ static inline void vectorized_coarse_self_couplings_PRECISION(vector_PRECISION e
 static inline void vectorized_coarse_hopp_PRECISION(vector_PRECISION eta, vector_PRECISION phi, OPERATOR_TYPE_PRECISION *D,
                                                     level_struct *l)
 {
-#ifdef VECTORIZE_COARSE_OPERATOR_PRECISION
+#ifdef VECTORIZE_BLAS_PRECISION
     int lda = SIMD_LENGTH_PRECISION * ((l->num_lattice_site_var + SIMD_LENGTH_PRECISION - 1) / SIMD_LENGTH_PRECISION);
     vectorized_cgenmv(l->num_lattice_site_var, D, lda, (float *) phi, (float *) eta);
 #endif
