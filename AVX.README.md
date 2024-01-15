@@ -26,7 +26,7 @@ defined in  *vectorized_blas.h / vectorized_blas_avx.h*
 #endif
 ```
 
-### 5. coarse_n_hopping_term_PRECISION( out, tmp[1], op, _EVEN_SITES, l, threading );
+### 5.**`[DONE]`** coarse_n_hopping_term_PRECISION( out, tmp[1], op, _EVEN_SITES, l, threading );
 ```C++
 void (*coarse_hopp)(vector_PRECISION eta, vector_PRECISION phi, OPERATOR_TYPE_PRECISION *D, level_struct *l);
   if(sign == +1)
@@ -34,12 +34,3 @@ void (*coarse_hopp)(vector_PRECISION eta, vector_PRECISION phi, OPERATOR_TYPE_PR
   else
     coarse_hopp = coarse_n_hopp_PRECISION_vectorized;
 ```
-
-
-## II . **`[TODO]`** DataLayout and Coupling with SSE
-**`[TODO]`** vectorized_coarse_operator_PRECISION_set_couplings
-
-
-
-### **`[TODO, find where called]`** coarse_n_hopping_term_PRECISION_vectorized
-### **`[TODO]`** if only AVX2 alloewd, solving part ignored. FIXME
