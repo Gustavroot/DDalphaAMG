@@ -11,7 +11,8 @@
 
 #include "timer.h"
 #include "benchmark_vectorized_blas_sse.h"
-#include "benchmark_vectorized_blas_avx.h"
+// #include "benchmark_vectorized_blas_avx.h"
+#include "benchmark_vectorized_blas_avx_v2.h"
 
 int main(int argc, char const *argv[])
 {
@@ -19,7 +20,7 @@ int main(int argc, char const *argv[])
 
     watch.reset();
 
-    const int LOOP = 100;
+    const int LOOP = 1000;
 
     int lda = 48;
     int N   = 48;
@@ -48,28 +49,42 @@ int main(int argc, char const *argv[])
     }
     printf(" Csse vs Cavx init: sum_diff_norm2: %12.4g\n", sum_diff_norm2);
 
+// here's a check for _mm256_permutevar8x32_ps(__m256, __m256i);
+#if 0
+    {
+        float VA[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+        __m256i idx = _mm256_setr_epi32(0, 1, 4, 5, 2, 3, 6, 7);
+        __m256 va   = _mm256_loadu_ps(VA);
+        va          = _mm256_permutevar8x32_ps(va, idx);
+        _mm256_storeu_ps(VA, va);
+        for (size_t i = 0; i < 8; i++) { printf("%8.0f", VA[i]); }
+        printf("\n");
+    }
+#endif
+
 #if 1
     {
         printf("==============================\n");
 
+
         watch.reset();
-        sse_cgemv(N, A, lda, B, Csse);
+        for (size_t i = 0; i < LOOP; i++) { sse_cgemv(N, A, lda, B, Csse); }
         time_sse = watch.use_usec();
 
         watch.reset();
-        simd_cgemv(N, A, lda, B, Cavx);
+        for (size_t i = 0; i < LOOP; i++) { simd_cgemv(N, A, lda, B, Cavx); }
         time_avx = watch.use_usec();
 
         sum_diff_norm2 = 0.0;
         for (size_t i = 0; i < lda; i++) {
-            if (i % 4 == 0) { printf("\n"); }
+            if (i % 8 == 0) { printf("\n"); }
             diff_re = Csse[2 * i] - Cavx[2 * i];
             diff_im = Csse[2 * i + 1] - Cavx[2 * i + 1];
             // diff_re = diff_re < 1.0e-6 ? 0.0 : diff_re;
             // diff_im = diff_im < 1.0e-6 ? 0.0 : diff_im;
 
             sum_diff_norm2 += diff_re * diff_re + diff_im * diff_im;
-            printf("%12.6f%12.6f |%12.6f%12.6f |%12.6f%12.6f\n", Csse[2 * i], Csse[2 * i + 1], Cavx[2 * i], Cavx[2 * i + 1],
+            printf("(%10.4f,%12.4f) | (%10.4f,%12.4f) | (%10.4f,%12.4f)\n", Csse[2 * i], Csse[2 * i + 1], Cavx[2 * i], Cavx[2 * i + 1],
                    diff_re, diff_im);
         }
         printf("-----------------------------\n");
@@ -78,7 +93,7 @@ int main(int argc, char const *argv[])
     }
 #endif
 
-#if 0
+#if 1
     {
         printf("==============================\n");
 
