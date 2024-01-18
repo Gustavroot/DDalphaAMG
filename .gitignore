@@ -20,3 +20,4 @@ mpi_err_*
 
 # Editor settings
 .vscode
+benchmark/a.out

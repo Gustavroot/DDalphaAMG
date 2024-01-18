@@ -36,6 +36,10 @@
 #define SSE_LENGTH_float 4
 #endif
 
+#ifndef AVX_BLAS_VERSION_02
+#define AVX_BLAS_VERSION_03
+#endif
+
 static inline void simd_cgem_inverse(const int N, float *A_inverse, float *A, int lda)
 {
     // generate LU decomp in A
@@ -105,6 +109,9 @@ static inline void simd_cgem_inverse(const int N, float *A_inverse, float *A, in
     }
 }
 
+
+#if defined(AVX_BLAS_VERSION_03)
+
 /**
  * @brief 
  * 
@@ -114,6 +121,145 @@ static inline void simd_cgem_inverse(const int N, float *A_inverse, float *A, in
  * @param B B[j], N complex elems 
  * @param C 
  */
+static inline void simd_cgemv(const int N, const float *A, int lda, const float *B, float *C)
+{
+    int i, j;
+    __m256i idxA = _mm256_setr_epi32(0, 1, 4, 5, 2, 3, 6, 7);
+    // here is a trick to keep the data order of result consist with _mm256_unpacklo/hi_ps
+
+    __m256 A_re;
+    __m256 A_im;
+    __m256 B_re;
+    __m256 B_im;
+    __m256 C_re[lda / AVX_LENGTH_float];
+    __m256 C_im[lda / AVX_LENGTH_float];
+
+
+    // load Cre Cim
+    for (i = 0; i < lda; i += AVX_LENGTH_float) {
+        __m128 cvl0 = _mm_loadu_ps(&C[2 * i]); //idxe * 4 bytes
+        __m128 cvl1 = _mm_loadu_ps(&C[2 * i + SSE_LENGTH_float]);
+        __m128 cvh2 = _mm_loadu_ps(&C[2 * i + SSE_LENGTH_float * 2]);
+        __m128 cvh3 = _mm_loadu_ps(&C[2 * i + SSE_LENGTH_float * 3]);
+        cvl0        = _mm_permute_ps(cvl0, 0b11011000);
+        cvl1        = _mm_permute_ps(cvl1, 0b11011000);
+        cvh2        = _mm_permute_ps(cvh2, 0b11011000);
+        cvh3        = _mm_permute_ps(cvh3, 0b11011000);
+
+        __m128 cvlre = _mm_movelh_ps(cvl0, cvl1);
+        __m128 cvhre = _mm_movelh_ps(cvh2, cvh3);
+        __m128 cvlim = _mm_movehl_ps(cvl1, cvl0);
+        __m128 cvhim = _mm_movehl_ps(cvh3, cvh2);
+
+        C_re[i / AVX_LENGTH_float] = _mm256_set_m128(cvhre, cvlre);
+        C_im[i / AVX_LENGTH_float] = _mm256_set_m128(cvhim, cvlim);
+    }
+
+    // apply cgemv with out-product method;
+    for (j = 0; j < N; j++) {
+        // load the j-th complex number in B
+        B_re = _mm256_set1_ps(B[2 * j]);
+        B_im = _mm256_set1_ps(B[2 * j + 1]);
+        for (i = 0; i < lda; i += AVX_LENGTH_float) {
+            A_re = _mm256_loadu_ps(A + 2 * j * lda + i);
+            A_im = _mm256_loadu_ps(A + (2 * j + 1) * lda + i);
+
+            // C += A*B
+            C_re[i / AVX_LENGTH_float] = _mm256_fmsub_ps(A_re, B_re, _mm256_fmsub_ps(A_im, B_im, C_re[i / AVX_LENGTH_float]));
+            C_im[i / AVX_LENGTH_float] = _mm256_fmadd_ps(A_im, B_re, _mm256_fmadd_ps(A_re, B_im, C_im[i / AVX_LENGTH_float]));
+        }
+    }
+
+    // store to float *C; it has to do some unpack and permute operation; be carefull about A's data ordering.
+    for (i = 0; i < lda; i += AVX_LENGTH_float) {
+        __m128 rel = _mm256_castps256_ps128(C_re[i / AVX_LENGTH_float]);
+        __m128 iml = _mm256_castps256_ps128(C_im[i / AVX_LENGTH_float]);
+        __m128 vl0 = _mm_unpacklo_ps(rel, iml);
+        __m128 vl1 = _mm_unpackhi_ps(rel, iml);
+        _mm_storeu_ps(C + 2 * i, vl0);
+        _mm_storeu_ps(C + 2 * i + SSE_LENGTH_float, vl1);
+
+        __m128 reh = _mm256_extractf128_ps(C_re[i / AVX_LENGTH_float], 0b01);
+        __m128 imh = _mm256_extractf128_ps(C_im[i / AVX_LENGTH_float], 0b01);
+        __m128 vh0 = _mm_unpacklo_ps(reh, imh);
+        __m128 vh1 = _mm_unpackhi_ps(reh, imh);
+        _mm_storeu_ps(C + 2 * i + 2 * SSE_LENGTH_float, vh0);
+        _mm_storeu_ps(C + 2 * i + 3 * SSE_LENGTH_float, vh1);
+    }
+}
+
+
+static inline void simd_cgenmv(const int N, const float *A, int lda, const float *B, float *C)
+{
+    int i, j;
+
+    __m256i idxe = _mm256_setr_epi32(0, 2, 4, 6, 8, 10, 12, 14); // addr of bytes
+    __m256i idxo = _mm256_setr_epi32(1, 3, 5, 7, 9, 11, 13, 15);
+
+    __m256 A_re;
+    __m256 A_im;
+    __m256 B_re;
+    __m256 B_im;
+    __m256 C_re[lda / AVX_LENGTH_float];
+    __m256 C_im[lda / AVX_LENGTH_float];
+
+    // load Cre Cim
+    for (i = 0; i < lda; i += AVX_LENGTH_float) {
+        __m128 cvl0 = _mm_loadu_ps(&C[2 * i]); //idxe * 4 bytes
+        __m128 cvl1 = _mm_loadu_ps(&C[2 * i + SSE_LENGTH_float]);
+        __m128 cvh2 = _mm_loadu_ps(&C[2 * i + SSE_LENGTH_float * 2]);
+        __m128 cvh3 = _mm_loadu_ps(&C[2 * i + SSE_LENGTH_float * 3]);
+        cvl0        = _mm_permute_ps(cvl0, 0b11011000);
+        cvl1        = _mm_permute_ps(cvl1, 0b11011000);
+        cvh2        = _mm_permute_ps(cvh2, 0b11011000);
+        cvh3        = _mm_permute_ps(cvh3, 0b11011000);
+
+        __m128 cvlre = _mm_movelh_ps(cvl0, cvl1);
+        __m128 cvhre = _mm_movelh_ps(cvh2, cvh3);
+        __m128 cvlim = _mm_movehl_ps(cvl1, cvl0);
+        __m128 cvhim = _mm_movehl_ps(cvh3, cvh2);
+
+        C_re[i / AVX_LENGTH_float] = _mm256_set_m128(cvhre, cvlre);
+        C_im[i / AVX_LENGTH_float] = _mm256_set_m128(cvhim, cvlim);
+    }
+
+    for (j = 0; j < N; j++) {
+        B_re = _mm256_set1_ps(B[2 * j]);
+        B_im = _mm256_set1_ps(B[2 * j + 1]);
+
+        for (i = 0; i < lda; i += AVX_LENGTH_float) {
+            A_re = _mm256_loadu_ps(A + 2 * j * lda + i);
+            A_im = _mm256_loadu_ps(A + (2 * j + 1) * lda + i);
+
+            // C -= A*B
+            C_re[i / AVX_LENGTH_float] = _mm256_fnmadd_ps(A_re, B_re, _mm256_fmadd_ps(A_im, B_im, C_re[i / AVX_LENGTH_float]));
+            C_im[i / AVX_LENGTH_float] = _mm256_fnmadd_ps(A_re, B_im, _mm256_fnmadd_ps(A_im, B_re, C_im[i / AVX_LENGTH_float]));
+        }
+    }
+
+    // store to float *C; it has to do some unpack and permute operation; be carefull about A's data ordering.
+    for (i = 0; i < lda; i += AVX_LENGTH_float) {
+        __m128 rel = _mm256_castps256_ps128(C_re[i / AVX_LENGTH_float]);
+        __m128 iml = _mm256_castps256_ps128(C_im[i / AVX_LENGTH_float]);
+        __m128 vl0 = _mm_unpacklo_ps(rel, iml);
+        __m128 vl1 = _mm_unpackhi_ps(rel, iml);
+        _mm_storeu_ps(C + 2 * i, vl0);
+        _mm_storeu_ps(C + 2 * i + SSE_LENGTH_float, vl1);
+
+        __m128 reh = _mm256_extractf128_ps(C_re[i / AVX_LENGTH_float], 0b01);
+        __m128 imh = _mm256_extractf128_ps(C_im[i / AVX_LENGTH_float], 0b01);
+        __m128 vh0 = _mm_unpacklo_ps(reh, imh);
+        __m128 vh1 = _mm_unpackhi_ps(reh, imh);
+        _mm_storeu_ps(C + 2 * i + 2 * SSE_LENGTH_float, vh0);
+        _mm_storeu_ps(C + 2 * i + 3 * SSE_LENGTH_float, vh1);
+    }
+}
+
+#endif
+
+
+#if defined(AVX_BLAS_VERSION_02)
+
 static inline void simd_cgemv(const int N, const float *A, int lda, const float *B, float *C)
 {
     int i, j;
@@ -208,5 +354,7 @@ static inline void simd_cgenmv(const int N, const float *A, int lda, const float
         _mm256_storeu_ps(C + 2 * i + AVX_LENGTH_float, B_im);
     }
 }
+
+#endif 
 
 #endif
