@@ -167,7 +167,7 @@ void diag_ee_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_PRECISI
   config_PRECISION sc = op->clover;
   x += start; y += start;
   if ( g.csw ) {
-#ifdef OPTIMIZED_SELF_COUPLING_PRECISION
+#if !defined(GMRES_ON_GPUS) && defined(OPTIMIZED_SELF_COUPLING_PRECISION)
     PRECISION *sc_pt = op->clover_vectorized + 2*2*(3*start);
     PRECISION *x_pt = (PRECISION*)x;
     PRECISION *y_pt = (PRECISION*)y;
@@ -255,7 +255,7 @@ void diag_oo_inv_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_PRE
   x += start; y += start;
   // inverse diagonal blocks applied to the odd sites
   if ( g.csw ) {
-#ifdef OPTIMIZED_SELF_COUPLING_PRECISION
+#if !defined(GMRES_ON_GPUS) && defined(OPTIMIZED_SELF_COUPLING_PRECISION)
     PRECISION *sc_pt = op->clover_vectorized + 2*2*(3*start);
     PRECISION *x_pt = (PRECISION*)x;
     PRECISION *y_pt = (PRECISION*)y;
@@ -599,10 +599,10 @@ void block_to_oddeven_PRECISION( vector_PRECISION out, vector_PRECISION in, leve
   SYNC_CORES(threading)  
 }
 
-#ifndef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
+#if defined(GMRES_ON_GPUS) || !defined(OPTIMIZED_NEIGHBOR_COUPLING_PRECISION)
 void hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                              const int amount, level_struct *l, struct Thread *threading ) {
-  
+
   int start_even, end_even, start_odd, end_odd;
   compute_core_start_end_custom(0, op->num_even_sites, &start_even, &end_even, l, threading, 1 );
   compute_core_start_end_custom(op->num_even_sites, op->num_even_sites+op->num_odd_sites, &start_odd, &end_odd, l, threading, 1 );
