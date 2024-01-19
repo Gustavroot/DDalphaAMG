@@ -47,7 +47,7 @@ struct Thread;
   void block_diag_ee_PRECISION( vector_PRECISION eta, vector_PRECISION phi,
                                 int start, schwarz_PRECISION_struct *s, level_struct *l, struct Thread *threading );
   
-  void apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading );
+  void apply_schur_complement_PRECISION_cpu( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading );
   void solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading );
   void g5D_apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading );
   void g5D_solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading );

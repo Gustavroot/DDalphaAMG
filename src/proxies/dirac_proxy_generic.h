@@ -38,6 +38,10 @@ void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
                              operator_PRECISION_struct *op, level_struct *l,
                              struct Thread *threading);
 
+void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
+                                      operator_PRECISION_struct *op, level_struct *l,
+                                      struct Thread *threading);
+
 #ifdef __cplusplus
 }
 #endif

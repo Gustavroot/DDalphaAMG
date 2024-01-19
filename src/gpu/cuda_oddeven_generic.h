@@ -58,5 +58,18 @@ struct Thread;
                                                                 int* DD_blocks_to_compute, cudaStream_t *streams, int stream_id,
                                                                 int sites_to_solve );
 
+#ifdef __cplusplus
+
+void cuda_apply_schur_complement_PRECISION(cuda_vector_PRECISION out,
+                                           cuda_vector_PRECISION in,
+                                           operator_PRECISION_struct *op,
+                                           level_struct *l, struct Thread *threading );
+
+#endif  // __cplusplus
+
+extern void cuda_apply_schur_complement_PRECISION_vectorwrapper(
+    vector_PRECISION out, vector_PRECISION in,
+    operator_PRECISION_struct *op, level_struct *l, struct Thread *threading);
+
 #endif
 #endif

@@ -720,7 +720,7 @@ void hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operato
 }
 #endif
 
-void apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op,
+void apply_schur_complement_PRECISION_cpu( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op,
     level_struct *l, struct Thread *threading ) {
 
 /*********************************************************************************
