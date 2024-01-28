@@ -115,6 +115,9 @@ typedef struct
     void (*preconditioner)();
     void (*eval_operator)(vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                           struct level_struct *l, struct Thread *threading);
+#ifdef GCR_SMOOTHER
+    int use_gcr;
+#endif
 } gmres_PRECISION_struct;
 
 typedef struct
