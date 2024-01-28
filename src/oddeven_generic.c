@@ -777,10 +777,11 @@ void solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_stru
   PROF_PRECISION_START( _NC, threading );
   hopping_term_PRECISION( p->b, tmp, op, _EVEN_SITES, l, threading );
   PROF_PRECISION_STOP( _NC, 0, threading );
-  
+
   if ( g.method == 4 )
 #ifdef GCR_SMOOTHER
-    if ( p->use_gcr == 1 ) {
+    // restricting GCR to be used as smoother at the finest level only
+    if ( p->use_gcr == 1 && l->depth==0 ) {
       fgcr_PRECISION( p, l, threading );
     }
     else {
