@@ -779,10 +779,15 @@ void solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_stru
   PROF_PRECISION_STOP( _NC, 0, threading );
 
   if ( g.method == 4 )
+#if defined(GCR_SMOOTHER) || defined(RICHARDSON_SMOOTHER)
+    // restricting GCR and Richardson to be used as smoothers at the finest level only
 #ifdef GCR_SMOOTHER
-    // restricting GCR to be used as smoother at the finest level only
     if ( p->use_gcr == 1 && l->depth==0 ) {
       fgcr_PRECISION( p, l, threading );
+#else
+    if ( p->use_richardson == 1 && l->depth==0 ) {
+      richardson_PRECISION( p, l, threading );
+#endif
     }
     else {
       fgmres_PRECISION( p, l, threading );

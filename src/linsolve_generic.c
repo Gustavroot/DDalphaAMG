@@ -46,6 +46,10 @@ void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
 #ifdef GCR_SMOOTHER
   p->use_gcr = 0;
 #endif
+#ifdef RICHARDSON_SMOOTHER
+  p->use_richardson = 0;
+  p->richardson_update_omega = 1;
+#endif
 }
 
 
@@ -1191,3 +1195,77 @@ void fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *
   }
 
 }
+
+#ifdef RICHARDSON_SMOOTHER
+void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+
+  int start, end, i;
+  PRECISION norm;
+  complex_PRECISION lmax;
+  vector_PRECISION v1=p->w, v2=p->r;
+  compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
+
+  // number of power iteration iters, just rough computation
+  int pi_iters = 10;
+
+  // do a bit of power iteration to roughly estimate the max eigenvalue
+
+  START_MASTER(threading)
+  //vector_PRECISION_define_random( v1, p->v_start, p->v_end, l );
+  vector_PRECISION_define_random( v1, 0, l->inner_vector_size, l );
+  END_MASTER(threading)
+  SYNC_MASTER_TO_ALL(threading)
+  norm = global_norm_PRECISION( v1, p->v_start, p->v_end, l, threading );
+  vector_PRECISION_scale( v1, v1, 1.0/norm, start, end, l );
+
+  for ( i=0; i<pi_iters; i++ ) {
+    // 1. apply D
+    apply_operator_PRECISION( v2, v1, p, l, threading );
+
+    // 2. normalize and copy back to original
+    norm = global_norm_PRECISION( v2, p->v_start, p->v_end, l, threading );
+    vector_PRECISION_scale( v1, v2, 1.0/norm, start, end, l );
+  }
+
+  // compute the Rayleigh quotient
+  apply_operator_PRECISION( v2, v1, p, l, threading );
+  norm = global_norm_PRECISION( v1, p->v_start, p->v_end, l, threading );
+  lmax = global_inner_product_PRECISION( v1, v2, p->v_start, p->v_end, l, threading ) / (norm*norm);
+
+  START_MASTER(threading)
+  p->omega = cabs(lmax);
+  p->omega = 1.0 / (2.0*p->omega / 3.0);
+  END_MASTER(threading)
+  SYNC_MASTER_TO_ALL(threading)
+}
+
+
+// used as smoother at the moment
+void richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+
+  if ( p->richardson_update_omega==1 ) {
+    richardson_update_omega_PRECISION( p, l, threading );
+    START_MASTER(threading)
+    p->richardson_update_omega = 0;
+    END_MASTER(threading)
+  }
+
+  int start, end, i;
+  compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
+  int n = p->num_restart * p->restart_length;
+
+  // FIXME : initial guess, enforcing zero initial guess
+  //if ( res == _NO_RES ) {
+  vector_PRECISION_define( p->x, 0, start, end, l );
+  //}
+
+  for ( i=0; i<n; i++ ) {
+    // 1. compute residual
+    apply_operator_PRECISION( p->w, p->x, p, l, threading );
+    vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
+
+    // 2. update solution
+    vector_PRECISION_saxpy( p->x, p->x, p->r, p->omega, start, end, l );
+  }
+}
+#endif
