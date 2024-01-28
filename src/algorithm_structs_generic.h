@@ -118,6 +118,10 @@ typedef struct
 #ifdef GCR_SMOOTHER
     int use_gcr;
 #endif
+#ifdef RICHARDSON_SMOOTHER
+    int use_richardson,richardson_update_omega;
+    PRECISION omega;
+#endif
 } gmres_PRECISION_struct;
 
 typedef struct
