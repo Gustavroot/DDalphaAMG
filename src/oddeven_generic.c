@@ -779,7 +779,16 @@ void solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_stru
   PROF_PRECISION_STOP( _NC, 0, threading );
   
   if ( g.method == 4 )
+#ifdef GCR_SMOOTHER
+    if ( p->use_gcr == 1 ) {
+      fgcr_PRECISION( p, l, threading );
+    }
+    else {
+      fgmres_PRECISION( p, l, threading );
+    }
+#else
     fgmres_PRECISION( p, l, threading );
+#endif
   else if ( g.method == 5 )
     bicgstab_PRECISION( p, l, threading );
   diag_oo_inv_PRECISION( p->x, p->b, op, l, start, end );
