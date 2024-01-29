@@ -1009,8 +1009,15 @@ void read_solver_parameters( FILE *in, level_struct *l ) {
   save_pt = &(l->real_shift);
   read_parameter( &save_pt, "m0:", "%lf", 1, in, _NO_DEFAULT_SET ); // ensuring downward compatibility
   read_parameter( &save_pt, "solver m0:", "%lf", 1, in, _DEFAULT_SET );
+
   save_pt = &(g.csw);
   read_parameter( &save_pt, "csw:", "%lf", 1, in, _NO_DEFAULT_SET );
+
+#ifdef TM_COARSEST
+  save_pt = &(g.mu_coarsest); g.mu_coarsest = 0.0001;
+  read_parameter( &save_pt, "mu coarsest:", "%lf", 1, in, _DEFAULT_SET );
+#endif
+
   save_pt = &(g.setup_m0);
   read_parameter( &save_pt, "setup m0:", "%lf", 1, in, _DEFAULT_SET );
   
