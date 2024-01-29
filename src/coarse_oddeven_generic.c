@@ -359,7 +359,7 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
   int n=l->num_inner_lattice_sites, oe_offset=0, mu, nu,
       lu_dec_size = SQUARE(l->num_lattice_site_var),
       nc_size = SQUARE(l->num_lattice_site_var), bs, **bt = NULL,
-      *eot = NULL, *nt = NULL, *tt = NULL, t, z, y, x, le[4], N[4];
+      *eot = NULL, t, z, y, x, le[4], N[4];
   operator_PRECISION_struct *op = &(l->oe_op_PRECISION);
 
   for ( mu=0; mu<4; mu++ ) {
@@ -422,8 +422,6 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
   MALLOC( op->neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->backward_neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->translation_table, int, le[T]*le[Z]*le[Y]*le[X] );
-  nt = op->neighbor_table;
-  tt = op->translation_table;
   
   define_nt_bt_tt_PRECISION(op, NULL, N, l );
   
@@ -490,7 +488,7 @@ void coarse_oddeven_free_PRECISION( level_struct *l ) {
       if ( mu != nu )
         bs *= ll[nu];
       
-      FREE( l->oe_op_PRECISION.c.boundary_table[2*mu], int, bs );
+    FREE( l->oe_op_PRECISION.c.boundary_table[2*mu], int, bs );
     l->oe_op_PRECISION.c.boundary_table[2*mu+1] = NULL;
   }
   
