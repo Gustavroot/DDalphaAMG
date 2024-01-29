@@ -27,11 +27,13 @@
 
 /**
  * @brief A: op, A is a lda-N matrix, stored of column-major with discrete real and imag in differen column.
+ *   eg: Are_ij = A+2*j*lda+i, Aim_ij = A+(2*j+1)*lda+i
+ *  i = [0,lda), j = [0,N)
  *             re im   re im   re im   re im   re im
  *           | r | i | r | i | r | i | r | i | r | i |
  *           | r | i | r | i | r | i | r | i | r | i |
  *           | r | i | r | i | r | i | r | i | r | i |
- * A[i][j] = | r | i | r | i | r | i | r | i | r | i |,  stored of column-major, Are_ij = A+2*j*lda+i, Aim_ij = A+(2*j+1)*lda+i
+ * A[i][j] = | r | i | r | i | r | i | r | i | r | i |
  *           | r | i | r | i | r | i | r | i | r | i |
  *           | r | i | r | i | r | i | r | i | r | i | 
  *           | r | i | r | i | r | i | r | i | r | i |
@@ -49,7 +51,25 @@
 
 #ifdef AVX_BLAS_float
 
+#ifdef AVX512
+
+#include "vectorized_blas_avx512.h"
+#define simd_cgemv        avx512_cgemv
+#define simd_cgenmv       avx512_cgenmv
+#define simd_cgem_inverse avx512_cgem_inverse
+
+#else
+
+#ifdef AVX2
+
 #include "vectorized_blas_avx.h"
+#define simd_cgemv        avx_cgemv
+#define simd_cgenmv       avx_cgenmv
+#define simd_cgem_inverse avx_cgem_inverse
+
+#endif
+
+#endif
 
 // BLAS naming convention: LDA = leading dimension of A
 

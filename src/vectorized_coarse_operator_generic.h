@@ -31,7 +31,7 @@
 
 
 /**
- * @brief vectorized_coarse_self_couplings_PRECISION(); AVX2 defibed by vectorized_cgemv() in vectorized_blas.h/vectorized_blas_avx.h
+ * @brief vectorized_coarse_self_couplings_PRECISION(); vectorized_cgemv() in vectorized_blas.h/vectorized_blas_avx.h
  * 
  * @param eta 
  * @param phi 
@@ -71,10 +71,8 @@ static inline void vectorized_coarse_self_couplings_PRECISION(vector_PRECISION e
 static inline void vectorized_coarse_hopp_PRECISION(vector_PRECISION eta, vector_PRECISION phi, OPERATOR_TYPE_PRECISION *D,
                                                     level_struct *l)
 {
-#ifdef VECTORIZE_BLAS_PRECISION
     int lda = SIMD_LENGTH_PRECISION * ((l->num_lattice_site_var + SIMD_LENGTH_PRECISION - 1) / SIMD_LENGTH_PRECISION);
     vectorized_cgenmv(l->num_lattice_site_var, D, lda, (float *) phi, (float *) eta);
-#endif
 }
 
 /**
@@ -86,11 +84,20 @@ static inline void vectorized_coarse_hopp_PRECISION(vector_PRECISION eta, vector
  * @param l 
  */
 static inline void vectorized_coarse_n_hopp_PRECISION(vector_PRECISION eta, vector_PRECISION phi, OPERATOR_TYPE_PRECISION *D,
-                                                          level_struct *l)
+                                                      level_struct *l)
 {
 
-    int lda = AVX_LENGTH_float * ((l->num_lattice_site_var + AVX_LENGTH_float - 1) / AVX_LENGTH_float);
+    int lda = SIMD_LENGTH_float * ((l->num_lattice_site_var + SIMD_LENGTH_float - 1) / SIMD_LENGTH_float);
     vectorized_cgemv(l->num_lattice_site_var, D, lda, (float *) phi, (float *) eta);
 }
+
+
+static inline void vectorised_coarse_hopp_PRECISION(vector_PRECISION eta, vector_PRECISION phi, OPERATOR_TYPE_PRECISION *D,
+                                                    level_struct *l)
+{
+    int lda = SIMD_LENGTH_PRECISION * ((l->num_lattice_site_var + SIMD_LENGTH_PRECISION - 1) / SIMD_LENGTH_PRECISION);
+    vectorized_cgenmv(l->num_lattice_site_var, D, lda, (float *) phi, (float *) eta);
+}
+
 
 #endif

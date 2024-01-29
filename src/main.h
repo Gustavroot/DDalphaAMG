@@ -114,8 +114,8 @@
 #include "sse_schwarz_double.h"
 #endif
 
-#if defined(AVX2)
-// #include "vectorized_blas.h"
+#if defined(AVX2) || defined(AVX512)
+#include "vectorized_blas.h"
 // #include "vectorized_blas_avx.h"
 #include "vectorized_coarse_operator_float.h"
 #endif

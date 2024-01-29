@@ -79,6 +79,9 @@ void prof_PRECISION_init( level_struct *l ) {
     
     sprintf( l->prof_PRECISION.name[_SMALL1], "Hessenberg: qr update PRECISION" );
     sprintf( l->prof_PRECISION.name[_SMALL2], "Hessenberg: bkwd subst PRECISION" );
+    sprintf( l->prof_PRECISION.name[_HOPPING], "coarse,schur:  hop term PRECISION" );
+    sprintf( l->prof_PRECISION.name[_NHOPPING], "coarse,schur: nhop term PRECISION" );
+    sprintf( l->prof_PRECISION.name[_SOlV_NC], "coarse,slove: fgmres PRECISION" );
   }
 }
 

@@ -42,21 +42,27 @@
 
 #endif
 
-
-#if defined(AVX2)
+#if defined(AVX512) || defined(AVX2)
 #if !defined(SSE)
-#error(SSE Not Defined! Now AVX2 requires SSE support, please set SSE_ENABLER = yes.)
+#error(SSE Not Defined! Now AVX? requires SSE support, please set SSE_ENABLER = yes.)
+#endif
 #endif
 
+#if defined(AVX512) || defined(AVX2)
+// #define AVX_COARSE_OPERATOR_float // to control all COASE_OPERATOR support, but not now.
+#define AVX_COARSE_SELF_OPERATOR_float    // Self-coupling
+#define AVX_COARSE_HOPPING_OPERATOR_float // Hopping term
+#define AVX_BLAS_float
+#endif
+
+#if defined(AVX512)
+#define AVX_LENGTH_float  16
+#define AVX_LENGTH_double 8
+#else 
+#if defined(AVX2)
 #define AVX_LENGTH_float  8
 #define AVX_LENGTH_double 4
-
-// #define AVX_COARSE_OPERATOR_float // to control all COASE_OPERATOR support, but not now.
-#define AVX_COARSE_SELF_OPERATOR_float     // Self-coupling
-#define AVX_COARSE_HOPPING_OPERATOR_float  // Hopping term
-
-#define AVX_BLAS_float
-
+#endif
 #endif
 
 
