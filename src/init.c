@@ -1016,6 +1016,12 @@ void read_solver_parameters( FILE *in, level_struct *l ) {
   
   save_pt = &(g.method); g.method = 2;
   read_parameter( &save_pt, "method:", "%d", 1, in, _DEFAULT_SET );
+#if defined(GCR_SMOOTHER) || defined(RICHARDSON_SMOOTHER)
+  // GCR and Richardson can only be used as smoothers in combination with g.method=4
+  if ( g.method != 4 ) {
+    error0( "GCR and/or Richardson can only be used as smoothers in combination with g.method=4\n" );
+  }
+#endif
   save_pt = &(g.restart); g.restart = 10;
   read_parameter( &save_pt, "iterations between restarts:", "%d", 1, in, _DEFAULT_SET );
   save_pt = &(g.max_restart); g.max_restart = 100;

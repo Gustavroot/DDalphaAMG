@@ -159,7 +159,7 @@ void cuda_ghost_sendrecv_PRECISION(cuda_vector_PRECISION phi, const int mu, cons
     }
 
 #ifdef GPU2GPU_COMMS_VIA_CPUS
-    // buffer = c->buffer_gpu[mu_dir];
+    //buffer = c->buffer_gpu[mu_dir];
 #else
     buffer = c->buffer_gpu[mu_dir];
 #endif
@@ -251,7 +251,7 @@ void cuda_ghost_wait_PRECISION(cuda_vector_PRECISION phi, const int mu, const in
     int mu_dir = 2 * mu - MIN(dir, 0);
     int *table, offset = c->offset, length[2] = {0, 0}, table_start = 0;
 #ifdef GPU2GPU_COMMS_VIA_CPUS
-    // cuda_vector_PRECISION buffer;
+    //cuda_vector_PRECISION buffer;
 #else
     cuda_vector_PRECISION buffer;
 #endif
@@ -291,7 +291,7 @@ void cuda_ghost_wait_PRECISION(cuda_vector_PRECISION phi, const int mu, const in
       int num_boundary_sites = length[0] / offset;
 
 #ifdef GPU2GPU_COMMS_VIA_CPUS
-      // buffer = c->buffer_gpu[mu_dir];
+      //buffer = c->buffer_gpu[mu_dir];
 #else
       buffer = c->buffer_gpu[mu_dir];
 #endif
@@ -352,7 +352,7 @@ extern "C" void cuda_ghost_update_PRECISION(cuda_vector_PRECISION phi, const int
     length = c->num_boundary_sites[mu_dir] * l->num_lattice_site_var;
     num_boundary_sites = c->num_boundary_sites[mu_dir];
 #ifdef GPU2GPU_COMMS_VIA_CPUS
-    // buffer = (cuda_vector_PRECISION)c->buffer_gpu[mu_dir];
+    //buffer = (cuda_vector_PRECISION)c->buffer_gpu[mu_dir];
 #else
     buffer = (cuda_vector_PRECISION)c->buffer_gpu[mu_dir];
 #endif
@@ -414,7 +414,7 @@ extern "C" void cuda_ghost_update_wait_PRECISION(cuda_vector_PRECISION phi, cons
   if (l->global_splitting[mu] > 1) {
     int mu_dir = 2 * mu - MIN(dir, 0),
 #ifdef GPU2GPU_COMMS_VIA_CPUS
-        length = c->num_boundary_sites[mu_dir] * l->num_lattice_site_var, nu;
+        length = c->num_boundary_sites[mu_dir] * l->num_lattice_site_var,nu;
 #else
         length = c->num_boundary_sites[mu_dir] * l->num_lattice_site_var;
 #endif

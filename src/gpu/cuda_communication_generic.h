@@ -11,6 +11,7 @@
 #ifdef GPU2GPU_COMMS_VIA_CPUS
 typedef PRECISION _Complex *vector_PRECISION;
 #endif
+
 /**
  * \brief CUDA version of comm_PRECISION_struct.
  * 

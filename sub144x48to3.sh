@@ -1,20 +1,20 @@
 #!/bin/bash
 
-#SBATCH --account=hwu29
-#SBATCH --nodes=6
+#SBATCH --account=mul-tra
+#SBATCH --nodes=4
 #SBATCH --ntasks-per-node=4
-#SBATCH --cpus-per-task=10
+#SBATCH --cpus-per-task=12
 #SBATCH --threads-per-core=1
 #SBATCH --output=mpi_out_%j.txt
 #SBATCH --error=mpi_err_%j.txt
 #SBATCH --time=00:59:00
-#SBATCH --gres=gpu:4 --partition=gpus
+#SBATCH --gres=gpu:4 --partition=booster
 
 
 
 
 
-module load GCC ParaStationMPI MPI-settings/CUDA UCX-settings/RC-CUDA
+module load CUDA GCC OpenMPI MPI-settings/CUDA
 
 jutil env activate -p chwu29
 

@@ -149,7 +149,7 @@ void ghost_free_PRECISION( comm_PRECISION_struct *c, level_struct *l ) {
   
   int mu;
   
-  for ( mu=0; mu<4; mu++ ) {  
+  for ( mu=0; mu<4; mu++ ) {
     FREE( c->buffer[2*mu], complex_PRECISION, c->max_length[mu] );
     FREE( c->buffer[2*mu+1], complex_PRECISION, c->max_length[mu] );
 #ifdef GPU2GPU_COMMS_VIA_CPUS
