@@ -112,7 +112,7 @@ dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
 	$(NVCC) $(NVCC_LINK_FLAGS) -o $@ $(OBJ) $(OBJ_CUDA)
 else
 dd_alpha_amg : $(OBJ)
-	$(CC) $(LINK_FLAGS) -o $@ $(OBJ)
+	$(CC) $(LINK_FLAGS) -o $@ $(OBJ) -lmpi -lgomp -lm
 endif
 
 ifeq ($(CUDA_ENABLER),yes)
@@ -120,7 +120,7 @@ dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
 	$(NVCC) -g $(NVCC_LINK_FLAGS) -o $@ $(OBJDB) $(OBJ_CUDADB)
 else
 dd_alpha_amg_db : $(OBJDB)
-	$(CC) -g $(LINK_FLAGS) -o $@ $(OBJDB)
+	$(CC) -g $(LINK_FLAGS) -o $@ $(OBJDB) -lmpi -lgomp -lm
 endif
 
 ######
