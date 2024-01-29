@@ -1,5 +1,5 @@
 # --- USER CHANGES SHALL BE MADE IN MakeSettings.mk ---
--include MakeSettings.mk.intel
+-include MakeSettings.mk
 
 # --- DO NOT CHANGE -----------------------------------
 SRCDIR = src
@@ -63,7 +63,7 @@ ifeq ($(SSE_ENABLER),yes)
 endif
 # Extra Warnings that developers should fix but don't.
 # This is a C only flag as implicit function declaration is forbidden in C++ anyways.
-COMPILE_FLAGS += -Wall -Werror-implicit-function-declaration -fPIC
+COMPILE_FLAGS += -Wall -Werror-implicit-function-declaration
 LINK_FLAGS = -lgomp -lm -ldl
 
 # -DSINGLE_ALLREDUCE_ARNOLDI
@@ -80,8 +80,6 @@ endif
 
 COMPILE_FLAGS_CUDA = $(NVCC_ARCHITECTURE_FLAGS) -rdc=true $(COMMON_COMPILE_FLAGS)
 COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall"
-# COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall" -fPIC  --gcc-toolchain="/opt/rh/devtoolset-7/root/usr/include/c++/7"
-# COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall" -fPIC  --gcc-toolchain=/opt/hpc/software/compiler/intel/intel-compiler-2017.5.239/compiler/include
 ifeq ($(SSE_ENABLER),yes)
 	COMPILE_FLAGS_CUDA += -Xcompiler "-msse4.2"
 endif
@@ -89,7 +87,7 @@ OPT_VERSION_FLAGS_CUDA = -O3 -Xcompiler "-ffast-math"
 DEBUG_VERSION_FLAGS_CUDA = 
 
 
-NVCC_LINK_FLAGS = $(NVCC_ARCHITECTURE_FLAGS) -lmpi -lgomp -lm -ldl
+NVCC_LINK_FLAGS = $(NVCC_ARCHITECTURE_FLAGS) -lmpi -lgomp -lm
 ifdef MPI_LIB
 	NVCC_LINK_FLAGS += -L$(MPI_LIB)
 endif
