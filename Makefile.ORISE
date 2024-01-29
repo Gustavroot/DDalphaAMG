@@ -1,5 +1,5 @@
 # --- USER CHANGES SHALL BE MADE IN MakeSettings.mk ---
--include MakeSettings.mk
+-include MakeSettings.mk.ORISE
 
 # --- DO NOT CHANGE -----------------------------------
 SRCDIR = src
