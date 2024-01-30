@@ -40,36 +40,41 @@
 #include "sse_complex_float_intrinsic.h"
 #include "sse_complex_double_intrinsic.h"
 
-#endif
-
-#if defined(AVX512) || defined(AVX2)
-#if !defined(SSE)
-#error(SSE Not Defined! Now AVX? requires SSE support, please set SSE_ENABLER = yes.)
-#endif
-#endif
-
-#if defined(AVX512) || defined(AVX2)
-// #define AVX_COARSE_OPERATOR_float // to control all COASE_OPERATOR support, but not now.
-#define AVX_COARSE_SELF_OPERATOR_float    // Self-coupling
-#define AVX_COARSE_HOPPING_OPERATOR_float // Hopping term
-#define AVX_BLAS_float
-#endif
-
-#if defined(AVX512)
-#define AVX_LENGTH_float  16
-#define AVX_LENGTH_double 8
-#else 
-#if defined(AVX2)
-#define AVX_LENGTH_float  8
-#define AVX_LENGTH_double 4
-#endif
-#endif
-
+#endif // SSE
 
 #define OPERATOR_COMPONENT_OFFSET_float  (SIMD_LENGTH_float * ((l->num_eig_vect + SIMD_LENGTH_float - 1) / SIMD_LENGTH_float))
 #define OPERATOR_COMPONENT_OFFSET_double (SIMD_LENGTH_double * ((l->num_eig_vect + SIMD_LENGTH_double - 1) / SIMD_LENGTH_double))
 
 #define OPERATOR_TYPE_float  float
 #define OPERATOR_TYPE_double double
+
+
+/**
+ * @brief AVX/AVX512 is based on SSE
+ * @brief The option judgment priority of AVX512 should be higher than that of AVX, 
+ * because when the -mavx512vl/-mavx512f option is turned on during compilation, 
+ * it will be backward compatible with AVX and SSE.
+ */
+
+#if defined(AVX512) || defined(AVX2) || defined(AVX)
+
+#if !defined(SSE)
+#error(SSE Not Defined! Now AVX? requires SSE support, please set SSE_ENABLER = yes.)
+#endif
+
+#if defined(AVX512)
+
+#define AVX_LENGTH_float  16
+#define AVX_LENGTH_double 8
+#include "vectorized_blas_avx512.h"
+
+#elif defined(AVX2) || defined(AVX)
+
+#define AVX_LENGTH_float  8
+#define AVX_LENGTH_double 4
+#include "vectorized_blas_avx.h"
+
+#endif // if AVX512 else AVX2
+#endif // defined(AVX512) || defined(AVX2) || defined(AVX)
 
 #endif // VECTORIZATION_CONTROL_H
