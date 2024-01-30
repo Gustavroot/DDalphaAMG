@@ -81,7 +81,29 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
           if ( l->depth == 0 ) g5D_solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
           else g5D_coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
         } else {
-          if ( l->depth == 0 ) solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+          if ( l->depth == 0 ) {
+#ifdef GCR_SMOOTHER
+            START_MASTER(threading)
+            l->sp_PRECISION.use_gcr = 1;
+            END_MASTER(threading)
+#endif
+#ifdef RICHARDSON_SMOOTHER
+            START_MASTER(threading)
+            l->sp_PRECISION.use_richardson = 1;
+            END_MASTER(threading)
+#endif
+            solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+#ifdef GCR_SMOOTHER
+            START_MASTER(threading)
+            l->sp_PRECISION.use_gcr = 0;
+            END_MASTER(threading)
+#endif
+#ifdef RICHARDSON_SMOOTHER
+            START_MASTER(threading)
+            l->sp_PRECISION.use_richardson = 0;
+            END_MASTER(threading)
+#endif
+           }
           else coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
         }
         if ( res == _NO_RES ) {

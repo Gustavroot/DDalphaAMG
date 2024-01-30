@@ -33,7 +33,10 @@
   void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *l );
   
   int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
-  void fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l );
+  void fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
+#ifdef RICHARDSON_SMOOTHER
+  void richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
+#endif
   void cgn_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
   void bicgstab_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *threading );
   void local_minres_PRECISION( vector_PRECISION phi, vector_PRECISION eta, vector_PRECISION latest_iter,
