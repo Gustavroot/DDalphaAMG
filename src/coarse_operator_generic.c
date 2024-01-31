@@ -385,8 +385,8 @@ void apply_coarse_operator_PRECISION( vector_PRECISION eta, vector_PRECISION phi
                                       level_struct *l, struct Thread *threading ) {
 
   // this function is supposed to be called from the intermediate levels only
-  if (l->depth==0 || l->level==0)
-    error0("apply_coarse_operator_PRECISION(...) is supposed to be called from intermediate levels. Is odd-even not being applied to the coarsest-level?");
+  //if (l->depth==0 || l->level==0)
+  //  error0("apply_coarse_operator_PRECISION(...) is supposed to be called from intermediate levels. Is odd-even not being applied to the coarsest-level?");
 
   // RE-ENABLE CUDA_OPT !!
 
