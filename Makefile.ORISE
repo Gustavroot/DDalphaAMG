@@ -96,7 +96,7 @@ endif
 #-include test/gtest/Makefile
 
 # --- FLAGS FOR LIME ---------------------------------
-LIMEDIR= /public/home/kelong/software/soft.usqcd/version-dtk23.04/gcc-7.3.1
+LIMEDIR=/public/home/kelong/software/soft.usqcd/version-cpu/gcc-7.3.1/qdpxx/double/
 LIMEH=-DHAVE_LIME -I$(LIMEDIR)/include
 LIMELIB= -L$(LIMEDIR)/lib -llime
 
