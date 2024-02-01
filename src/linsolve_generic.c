@@ -1103,9 +1103,6 @@ void fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *
 *********************************************************************************/
 
   int i, j=-1, iter=0, il, ol, start, end;
-  //complex_PRECISION beta = 0, alpha;
-  //double norm_r0=0, t0=0, t1=0, norm_r, prev_rel_res=1.0;
-  double norm_r0=0, norm_r, prev_rel_res=1.0;
 
   compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
 
@@ -1123,7 +1120,7 @@ void fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *
   SYNC_MASTER_TO_ALL(threading)
 
   vector_PRECISION_define( p->x, 0, start, end, l );
-  norm_r0 = global_norm_PRECISION( p->b, p->v_start, p->v_end, l, threading );
+  //norm_r0 = global_norm_PRECISION( p->b, p->v_start, p->v_end, l, threading );
 
   for ( ol=0;ol<p->num_restart;ol++ ) {
 
@@ -1133,67 +1130,40 @@ void fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *
       apply_operator_PRECISION( p->w, p->x, p, l, threading ); // compute w = D*x
       vector_PRECISION_minus( p->r, p->b, p->w, start, end, l ); // compute r = b - w
     }
+
     // IMPORTANT : p_{j} are stored in p->V[j], Ap_{j} are stored in p->Z[j]
 
-    vector_PRECISION_copy( p->V[0], p->r, start, end, l );
-
-    // we store here <Ap_{j},Ap_{j}>
-    complex_PRECISION dot_prod_den[p->restart_length];
-
     complex_PRECISION alphas[p->restart_length];
-    complex_PRECISION betas[p->restart_length];
-    complex_PRECISION dot_prod_num;
+
+    // Check Alg. 3.3 in https://d-nb.info/1141193531/34 , here
+    // we p->V are the u_{k}'s and p->Z the c_{k}'s
 
     for ( il=0;il<p->restart_length;il++ ) {
       j = il; iter++;
 
-      // compute Ap_{j} here at the first iteration only, otherwise it's computed
-      // at the end of the iteration
-      if ( j==0 ) {
-        apply_operator_PRECISION( p->Z[j], p->V[j], p, l, threading );
+      // store the residual in the current p->V[j]
+      vector_PRECISION_copy( p->V[j], p->r, start, end, l );
+
+      apply_operator_PRECISION( p->Z[j], p->V[j], p, l, threading );
+
+      for ( i=0;i<=(j-1);i++ ) {
+        alphas[i] = global_inner_product_PRECISION( p->Z[i], p->Z[j], p->v_start, p->v_end, l, threading );
+        vector_PRECISION_saxpy( p->Z[j], p->Z[j], p->Z[i], -alphas[i], start, end, l );
+        vector_PRECISION_saxpy( p->V[j], p->V[j], p->V[i], -alphas[i], start, end, l );
       }
 
-      // compute alpha_{j}
-      // the following two dot products could be merged into one
-      dot_prod_den[j] = global_inner_product_PRECISION( p->Z[j], p->Z[j], p->v_start, p->v_end, l, threading );
-      dot_prod_num = global_inner_product_PRECISION( p->r, p->Z[j], p->v_start, p->v_end, l, threading );
-      alphas[j] = dot_prod_num / dot_prod_den[j];
+      double norm_Zj = global_norm_PRECISION( p->Z[j], p->v_start, p->v_end, l, threading );
 
-      vector_PRECISION_saxpy( p->r, p->r, p->Z[j], -alphas[j], start, end, l );
+      vector_PRECISION_scale( p->Z[j], p->Z[j], 1.0/norm_Zj, start, end, l );
+      vector_PRECISION_scale( p->V[j], p->V[j], 1.0/norm_Zj, start, end, l );
 
-      // TODO : this dot product can be merged with another, perhaps .. ?
-      norm_r = global_norm_PRECISION( p->r, p->v_start, p->v_end, l, threading );
+      complex_PRECISION dot_cr = global_inner_product_PRECISION( p->Z[j], p->r, p->v_start, p->v_end, l, threading );
 
-      double rel_res = norm_r/norm_r0;
-      // if the residual is increasing, exit the internal loop
-      if ( rel_res > prev_rel_res ) {
-        break;
-      }
-      prev_rel_res = rel_res;
+      vector_PRECISION_saxpy( p->x, p->x, p->V[j],  dot_cr, start, end, l );
+      vector_PRECISION_saxpy( p->r, p->r, p->Z[j], -dot_cr, start, end, l );
 
-      vector_PRECISION_saxpy( p->x, p->x, p->V[j], alphas[j], start, end, l );
-      if ( (j+1)==p->restart_length ) { break; }
-
-      apply_operator_PRECISION( p->w, p->r, p, l, threading );
-
-      // for fixed j, compute the betas
-      for ( i=0;i<=j;i++ ) {
-        betas[i] = global_inner_product_PRECISION( p->w, p->Z[i], p->v_start, p->v_end, l, threading ) / dot_prod_den[i];
-      }
-
-      // compute the p_{j}'s and Ap_{j}'s for the next iteration
-      vector_PRECISION_copy( p->V[j+1], p->r, start, end, l );
-      for ( i=0;i<=j;i++ ) {
-        vector_PRECISION_saxpy( p->V[j+1], p->V[j+1], p->V[i], betas[i], start, end, l );
-      }
-      vector_PRECISION_copy( p->Z[j+1], p->w, start, end, l );
-      for ( i=0;i<=j;i++ ) {
-        vector_PRECISION_saxpy( p->Z[j+1], p->Z[j+1], p->Z[i], betas[i], start, end, l );
-      }
     }
-
   }
-
 }
 
 #ifdef RICHARDSON_SMOOTHER

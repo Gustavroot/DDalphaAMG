@@ -22,6 +22,27 @@
 #include "main.h"
 #include "proxies/data_layout_proxy_PRECISION.h"
 
+
+#ifdef TM_COARSEST
+void add_tm_shift_PRECISION( const int N, PRECISION *A, int lda ) {
+  // add twisted mass shift directly into the imaginary part
+
+  int i,j;
+
+  for ( j=0; j<N; j++ ) {
+    for ( i=0; i<N; i++ ) {
+      if ( j==i ) {
+        PRECISION g5_sign = 0.0;
+        if ( i >= N/2 ) { g5_sign = 1.0; }
+        else { g5_sign = -1.0; }
+        A[(2*j+1)*lda+i] += g.mu_coarsest*g5_sign;
+      }
+    }
+  }
+}
+#endif
+
+
 void coarse_selfcoupling_LU_decomposition_PRECISION( const config_PRECISION output, config_PRECISION input, level_struct *l ) {
   // input = [ A B      , A=A*, D=D*, C = -B*
   //           C D ]
@@ -305,6 +326,21 @@ void coarse_oddeven_setup_PRECISION_set_couplings( operator_PRECISION_struct *in
       op->clover_vectorized + start*offset_v,
       n_per_core, l->num_lattice_site_var/2);
   SYNC_CORES(threading)
+
+#ifdef TM_COARSEST
+  if ( l->level==0 ) {
+    int nvw = l->num_lattice_site_var / 2;
+    int column_offsetw = SIMD_LENGTH_PRECISION*((2*nvw+SIMD_LENGTH_PRECISION-1)/SIMD_LENGTH_PRECISION);
+    int size_vw = 2*2*nvw*column_offsetw;
+
+    int startw,endw;
+    compute_core_start_end_custom( 0, op->num_odd_sites+op->num_even_sites, &startw, &endw, l, threading, 1);
+
+    for( int iw=startw; iw<endw; iw++ ) {
+      add_tm_shift_PRECISION( 2*nvw, op->clover_vectorized+iw*size_vw, column_offsetw );
+    }
+  }
+#endif
 
   compute_core_start_end_custom(op->num_even_sites, n, &start, &end, l, threading, 1);
   OPERATOR_TYPE_PRECISION tmp[offset_v] __attribute__((aligned(64)));

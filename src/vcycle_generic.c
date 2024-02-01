@@ -116,7 +116,13 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
         START_LOCKED_MASTER(threading)
         l->sp_PRECISION.x = phi; l->sp_PRECISION.b = eta;
         END_LOCKED_MASTER(threading)
+#ifdef GCR_SMOOTHER
+        fgcr_PRECISION( &(l->sp_PRECISION), l, threading );
+#elif RICHARDSON_SMOOTHER
+        richardson_PRECISION( &(l->sp_PRECISION), l, threading );
+#else
         fgmres_PRECISION( &(l->sp_PRECISION), l, threading );
+#endif
       }
     } else if ( g.method == 5 ) {
       vector_PRECISION_copy( l->sp_PRECISION.b, eta, start, end, l );

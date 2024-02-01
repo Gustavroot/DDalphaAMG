@@ -47,6 +47,9 @@ endif
 # Richardson as a smoother
 #COMMON_COMPILE_FLAGS += -DRICHARDSON_SMOOTHER
 
+# include twisted mass term at the coarsest level
+#COMMON_COMPILE_FLAGS += -DTM_COARSEST
+
 ## Defines
 COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE) #-DGPU2GPU_COMMS_VIA_CPUS
 ifeq ($(SSE_ENABLER),yes)
