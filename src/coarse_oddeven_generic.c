@@ -153,7 +153,13 @@ void coarse_diag_ee_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_
   int offset = l->num_lattice_site_var;
   coarse_self_couplings_PRECISION( y+start*offset, x+start*offset, op->clover+start*(offset*offset+offset)/2, (end-start)*offset, l );
 #else
+
+#if defined(AVX_COARSE_SELF_OPERATOR_PRECISION)
+  vectorized_coarse_self_couplings_PRECISION(y, x, op->clover_vectorized, start, end, l );
+#else // use SSE SIMD self_coupling
   coarse_self_couplings_PRECISION_vectorized( y, x, op->clover_vectorized, start, end, l );
+#endif
+
 #endif
 }
 
@@ -185,10 +191,17 @@ void coarse_diag_oo_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_
   // - vectorized, but we have stored oo^{-1}, so we cannot use it
   // - when vectorization is used LU decomposition is not computed, so we also cannot use coarse_LU_multiply_PRECISION
   // => use standard non-vectorized multiplication
-  if ( l->level == 0 )
-    coarse_self_couplings_PRECISION( y, x, sc, (end-start)*offset, l );
-  else
-    coarse_self_couplings_PRECISION_vectorized( y-start*offset, x-start*offset, op->clover_vectorized, start, end, l );
+  if (l->level == 0) {
+      coarse_self_couplings_PRECISION(y, x, sc, (end - start) * offset, l);
+  } else {
+#if defined(AVX_COARSE_SELF_OPERATOR_PRECISION)
+      vectorized_coarse_self_couplings_PRECISION(y - start * offset, x - start * offset, op->clover_vectorized, start, end, l);
+#elif defined(SSE)
+      coarse_self_couplings_PRECISION_vectorized(y - start * offset, x - start * offset, op->clover_vectorized, start, end, l);
+#else
+#error(defined(VECTORIZED_PRECISION), but neither defined(AVX2) nor defined(SSE))
+#endif
+  }
 #endif
 }
 
@@ -215,7 +228,15 @@ void coarse_diag_oo_inv_PRECISION( vector_PRECISION y, vector_PRECISION x, opera
     sc += oss;
   }
 #else
+
+#if defined(AVX_COARSE_SELF_OPERATOR_PRECISION)
+  vectorized_coarse_self_couplings_PRECISION(y, x, op->clover_vectorized, start, end, l );
+#elif defined(SSE)
   coarse_self_couplings_PRECISION_vectorized( y, x, op->clover_vectorized, start, end, l );
+#else
+#error "defined(VECTORIZED_PRECISION), but neither defined(AVX2) nor defined(SSE)"
+#endif
+
 #endif
 }
 
@@ -640,6 +661,7 @@ void coarse_n_hopping_term_PRECISION( vector_PRECISION out, vector_PRECISION in,
                                       const int amount, level_struct *l, struct Thread *threading ) {
 
 #ifdef VECTORIZE_COARSE_OPERATOR_PRECISION
+// *COMM_HIDING_COARSEOP* is only here 
 #ifndef COMM_HIDING_COARSEOP
   int sign = -1;
   coarse_pn_hopping_term_PRECISION_vectorized( out, in, op, amount, l, sign, threading);
@@ -929,6 +951,9 @@ void coarse_pn_hopping_term_PRECISION_vectorized( vector_PRECISION out, vector_P
 #ifdef VECTORIZE_COARSE_OPERATOR_PRECISION
   START_NO_HYPERTHREADS(threading)
 
+  // When SSS, true
+  // printf0("==== entry coarse_pn_hopping_term_PRECISION_vectorized( )\n");
+
   int mu, i, num_site_var=l->num_lattice_site_var,
       start=0, num_lattice_sites=l->num_inner_lattice_sites,
       plus_dir_param=_FULL_SYSTEM, minus_dir_param=_FULL_SYSTEM;
@@ -944,10 +969,17 @@ void coarse_pn_hopping_term_PRECISION_vectorized( vector_PRECISION out, vector_P
   int core_end;
 
   void (*coarse_hopp)(vector_PRECISION eta, vector_PRECISION phi, OPERATOR_TYPE_PRECISION *D, level_struct *l);
+#if defined(AVX_COARSE_HOPPING_OPERATOR_PRECISION)
+  if(sign == +1)
+    coarse_hopp = vectorized_coarse_hopp_PRECISION;
+  else
+    coarse_hopp = vectorized_coarse_n_hopp_PRECISION;
+#else // SSE
   if(sign == +1)
     coarse_hopp = coarse_hopp_PRECISION_vectorized;
   else
     coarse_hopp = coarse_n_hopp_PRECISION_vectorized;
+#endif
 
 
   if ( l->num_processes > 1 && op->c.comm ) {
@@ -1055,6 +1087,9 @@ void coarse_n_hopping_term_PRECISION_vectorized( vector_PRECISION out, vector_PR
 #ifdef VECTORIZE_COARSE_OPERATOR_PRECISION
   START_NO_HYPERTHREADS(threading)
 
+  // when SSE efined, it's not used also. 
+  // printf0("==== entry coarse_n_hopping_term_PRECISION_vectorized( )\n");
+
   int mu, i, index, num_site_var=l->num_lattice_site_var,
       start=0, num_lattice_sites=l->num_inner_lattice_sites,
       plus_dir_param=_FULL_SYSTEM, minus_dir_param=_FULL_SYSTEM;
@@ -1105,7 +1140,14 @@ void coarse_n_hopping_term_PRECISION_vectorized( vector_PRECISION out, vector_PR
     D_vectorized = op->D_transformed_vectorized + 4*vectorized_link_offset*op->neighbor_table[index] + 0*vectorized_link_offset;
     index++;
     out_pt = out + num_site_var*op->neighbor_table[index+T];
-    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l );
+  #if defined(AVX_COARSE_HOPPING_OPERATOR_PRECISION)
+    vectorized_coarse_n_hopp_PRECISION(out_pt, in_pt, D_vectorized, l);
+  #elif defined(SSE)
+    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l);
+  #else
+    printf0("NO SIMD coarse_n_hopp_PRECISION_vectorized() defined, file: %s, line: %d\n", __FILE__, __LINE__);
+    exit(0);
+  #endif
   }
   SYNC_CORES(threading)
   for ( i=core_start; i<core_end; i++ ) {
@@ -1114,7 +1156,14 @@ void coarse_n_hopping_term_PRECISION_vectorized( vector_PRECISION out, vector_PR
     D_vectorized = op->D_transformed_vectorized + 4*vectorized_link_offset*op->neighbor_table[index] + 1*vectorized_link_offset;
     index++;
     out_pt = out + num_site_var*op->neighbor_table[index+Z];
-    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l );
+  #if defined(AVX_COARSE_HOPPING_OPERATOR_PRECISION)
+    vectorized_coarse_n_hopp_PRECISION(out_pt, in_pt, D_vectorized, l);
+  #elif defined(SSE)
+    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l);
+  #else
+    printf0("NO SIMD coarse_n_hopp_PRECISION_vectorized() defined, file: %s, line: %d\n", __FILE__, __LINE__);
+    exit(0);
+  #endif
   }
   SYNC_CORES(threading)
   for ( i=core_start; i<core_end; i++ ) {
@@ -1123,7 +1172,14 @@ void coarse_n_hopping_term_PRECISION_vectorized( vector_PRECISION out, vector_PR
     D_vectorized = op->D_transformed_vectorized + 4*vectorized_link_offset*op->neighbor_table[index] + 2*vectorized_link_offset;
     index++;
     out_pt = out + num_site_var*op->neighbor_table[index+Y];
-    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l );
+  #if defined(AVX_COARSE_HOPPING_OPERATOR_PRECISION)
+    vectorized_coarse_n_hopp_PRECISION(out_pt, in_pt, D_vectorized, l);
+  #elif defined(SSE)
+    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l);
+  #else
+    printf0("NO SIMD coarse_n_hopp_PRECISION_vectorized() defined, file: %s, line: %d\n", __FILE__, __LINE__);
+    exit(0);
+  #endif
   }
   SYNC_CORES(threading)
   for ( i=core_start; i<core_end; i++ ) {
@@ -1132,7 +1188,14 @@ void coarse_n_hopping_term_PRECISION_vectorized( vector_PRECISION out, vector_PR
     D_vectorized = op->D_transformed_vectorized + 4*vectorized_link_offset*op->neighbor_table[index] + 3*vectorized_link_offset;
     index++;
     out_pt = out + num_site_var*op->neighbor_table[index+X];
-    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l );
+  #if defined(AVX_COARSE_HOPPING_OPERATOR_PRECISION)
+    vectorized_coarse_n_hopp_PRECISION(out_pt, in_pt, D_vectorized, l);
+  #elif defined(SSE)
+    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l);
+  #else
+    printf0("NO SIMD coarse_n_hopp_PRECISION_vectorized() defined, file: %s, line: %d\n", __FILE__, __LINE__);
+    exit(0);
+  #endif
   }
 
   START_LOCKED_MASTER(threading)
@@ -1162,19 +1225,47 @@ void coarse_n_hopping_term_PRECISION_vectorized( vector_PRECISION out, vector_PR
     D_vectorized = op->D_vectorized + 4*vectorized_link_offset*op->neighbor_table[index];
     index++;
     in_pt = in + num_site_var*op->neighbor_table[index+T];
-    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l );
+  #if defined(AVX_COARSE_HOPPING_OPERATOR_PRECISION)
+    vectorized_coarse_n_hopp_PRECISION(out_pt, in_pt, D_vectorized, l);
+  #elif defined(SSE)
+    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l);
+  #else
+    printf0("NO SIMD coarse_n_hopp_PRECISION_vectorized() defined, file: %s, line: %d\n", __FILE__, __LINE__);
+    exit(0);
+  #endif
 
     D_vectorized += vectorized_link_offset;
     in_pt = in + num_site_var*op->neighbor_table[index+Z];
-    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l );
+  #if defined(AVX_COARSE_HOPPING_OPERATOR_PRECISION)
+    vectorized_coarse_n_hopp_PRECISION(out_pt, in_pt, D_vectorized, l);
+  #elif defined(SSE)
+    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l);
+  #else
+    printf0("NO SIMD coarse_n_hopp_PRECISION_vectorized() defined, file: %s, line: %d\n", __FILE__, __LINE__);
+    exit(0);
+  #endif
 
     D_vectorized += vectorized_link_offset;
     in_pt = in + num_site_var*op->neighbor_table[index+Y];
-    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l );
+  #if defined(AVX_COARSE_HOPPING_OPERATOR_PRECISION)
+    vectorized_coarse_n_hopp_PRECISION(out_pt, in_pt, D_vectorized, l);
+  #elif defined(SSE)
+    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l);
+  #else
+    printf0("NO SIMD coarse_n_hopp_PRECISION_vectorized() defined, file: %s, line: %d\n", __FILE__, __LINE__);
+    exit(0);
+  #endif
 
     D_vectorized += vectorized_link_offset;
     in_pt = in + num_site_var*op->neighbor_table[index+X];
-    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l );
+  #if defined(AVX_COARSE_HOPPING_OPERATOR_PRECISION)
+    vectorized_coarse_n_hopp_PRECISION(out_pt, in_pt, D_vectorized, l);
+  #elif defined(SSE)
+    coarse_n_hopp_PRECISION_vectorized( out_pt, in_pt, D_vectorized, l);
+  #else
+    printf0("NO SIMD coarse_n_hopp_PRECISION_vectorized() defined, file: %s, line: %d\n", __FILE__, __LINE__);
+    exit(0);
+  #endif
   }
 
   START_LOCKED_MASTER(threading)

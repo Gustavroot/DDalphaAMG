@@ -55,11 +55,15 @@ COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE) #-DGPU2GP
 ifeq ($(SSE_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DSSE
 endif
+ifeq ($(AVX_ENABLER),yes)
+	COMMON_COMPILE_FLAGS += -DAVX2
+	COMMON_COMPILE_FLAGS += -mavx -mavx2 -mfma
+endif
 ifeq ($(CUDA_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DCUDA_OPT
 endif
 
-COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_COMPILE_FLAGS)
+COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST
 COMPILE_FLAGS += -fopenmp -DOPENMP
 ifeq ($(SSE_ENABLER),yes)
 	COMPILE_FLAGS += -msse4.2
@@ -112,7 +116,7 @@ dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
 	$(NVCC) $(NVCC_LINK_FLAGS) -o $@ $(OBJ) $(OBJ_CUDA)
 else
 dd_alpha_amg : $(OBJ)
-	$(CC) $(LINK_FLAGS) -o $@ $(OBJ)
+	$(CC) -o $@ $(OBJ) $(LINK_FLAGS)
 endif
 
 ifeq ($(CUDA_ENABLER),yes)
@@ -120,7 +124,7 @@ dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
 	$(NVCC) -g $(NVCC_LINK_FLAGS) -o $@ $(OBJDB) $(OBJ_CUDADB)
 else
 dd_alpha_amg_db : $(OBJDB)
-	$(CC) -g $(LINK_FLAGS) -o $@ $(OBJDB)
+	$(CC) -g -o $@ $(OBJDB) $(LINK_FLAGS)
 endif
 
 ######

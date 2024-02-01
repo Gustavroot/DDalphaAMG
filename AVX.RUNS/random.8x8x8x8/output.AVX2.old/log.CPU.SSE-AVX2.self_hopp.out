@@ -1,0 +1,113 @@
+
+
++------------------------------------------------------------------------+
+| The DDalphaAMG solver library.                                         |
+| Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, |
+|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.   |
+|                                                                        |
+| This program comes with ABSOLUTELY NO WARRANTY.                        |
++------------------------------------------------------------------------+
+
+configuration: ../conf/8x8x8x8b6.0000id3n1
+
+Desired average plaquette: 1.7772950976130 in [0,3]
+
+Desired average plaquette: 0.5924316992043 in [0,1]
+BASIS0:OPENQCD/DD-HMC BASIS
+antiperiodic boundary conditions in time
+Configuration stored...
+average plaquette: 1.7772950976130 in [0,3]
+
++----------------------------------------------------------+
+| read in and set up the parallel dirac operator           |
+| elapsed wall clock time: 0.0620988    seconds            |
++----------------------------------------------------------+
+initial definition --- depth: 0
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 0.041966 seconds
+
+initial coarse grid correction is defined
+elapsed time: 0.893335 seconds
+
++----------------------------------------------------------+
+| 2-level method                                           |
+| postsmoothing K-cycle                                    |
+| FGMRES + red-black multiplicative Schwarz                |
+|          restart length: 10                              |
+|                      m0: -0.690000                       |
+|                     csw: +1.000000                       |
++----------------------------------------------------------+
+|   preconditioner cycles: 1                               |
+|            inner solver: minimal residual iteration      |
+|               precision: single                          |
++---------------------- depth  0 --------------------------+
+|          global lattice: 8   8   8   8                   |
+|           local lattice: 8   8   8   8                   |
+|           block lattice: 4   4   4   4                   |
+|        post smooth iter: 3                               |
+|     smoother inner iter: 4                               |
+|              setup iter: 4                               |
+|            test vectors: 24                              |
++---------------------- depth  1 --------------------------+
+|          global lattice: 2   2   2   2                   |
+|           local lattice: 2   2   2   2                   |
+|           block lattice: 1   1   1   1                   |
+|      coarge grid solver: odd even GMRES                  |
+|              iterations: 30                              |
+|                  cycles: 5                               |
+|               tolerance: 1e-02                           |
++----------------------------------------------------------+
+|          K-cycle length: 5                               |
+|        K-cycle restarts: 2                               |
+|       K-cycle tolerance: 1e-01                           |
++----------------------------------------------------------+
+
+depth: 0, bootstrap step number 1...
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 0.041169 seconds
+depth: 0, bootstrap step number 2...
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 0.041812 seconds
+depth: 0, bootstrap step number 3...
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 0.041229 seconds
+depth: 0, bootstrap step number 4...
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 0.041359 seconds
+
+performed 4 iterative setup steps
+elapsed time: 2.683496 seconds (1.095776 seconds on coarse grid)
+
+rhs = ones
++----------------------------------------------------------+
+| approx. rel. res. after  1      iterations: 1.287950e-01 |
+| approx. rel. res. after  2      iterations: 4.752288e-02 |
+| approx. rel. res. after  3      iterations: 1.970396e-02 |
+| approx. rel. res. after  4      iterations: 8.673979e-03 |
+| approx. rel. res. after  5      iterations: 3.751175e-03 |
+| approx. rel. res. after  6      iterations: 1.358512e-03 |
+| approx. rel. res. after  7      iterations: 5.161888e-04 |
+| approx. rel. res. after  8      iterations: 2.024491e-04 |
+| approx. rel. res. after  9      iterations: 6.565557e-05 |
+| approx. rel. res. after  10     iterations: 2.753174e-05 |
+| approx. rel. res. after  11     iterations: 1.076624e-05 |
+| approx. rel. res. after  12     iterations: 4.884189e-06 |
+| approx. rel. res. after  13     iterations: 2.037755e-06 |
+| approx. rel. res. after  14     iterations: 8.454262e-07 |
+| approx. rel. res. after  15     iterations: 3.269948e-07 |
+| approx. rel. res. after  16     iterations: 1.191737e-07 |
+| approx. rel. res. after  17     iterations: 4.797296e-08 |
+| approx. rel. res. after  18     iterations: 1.917367e-08 |
+| approx. rel. res. after  19     iterations: 7.160258e-09 |
++----------------------------------------------------------+
+
++----------------------------------------------------------+
+|       FGMRES iterations: 19     coarse average: 49.79    |
+| exact relative residual: ||r||/||b|| = 7.160258e-09      |
+| elapsed wall clock time: 0.5323   seconds                |
+|        coarse grid time: 0.2192   seconds (41.2%)        |
+|  consumed core minutes*: 8.87e-03 (solve only)           |
+|    max used mem/MPIproc: 1.00e-01 GB                     |
++----------------------------------------------------------+
+*: only correct if #MPIprocs*#threads == #CPUs
+
