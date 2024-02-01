@@ -54,20 +54,25 @@ endif
 COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE) #-DGPU2GPU_COMMS_VIA_CPUS
 ifeq ($(SSE_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DSSE
-endif
+	COMMON_COMPILE_FLAGS += -msse4.2 -msse
+ifeq ($(AVX512_ENABLER),yes)
+	COMMON_COMPILE_FLAGS += -DAVX512
+	COMMON_COMPILE_FLAGS += -mavx512vl -mavx512f -mfma
+else 
 ifeq ($(AVX_ENABLER),yes)
-	COMMON_COMPILE_FLAGS += -DAVX2
+	COMMON_COMPILE_FLAGS += -DAVX2 -DAVX
 	COMMON_COMPILE_FLAGS += -mavx -mavx2 -mfma
 endif
+endif
+endif
+
 ifeq ($(CUDA_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DCUDA_OPT
 endif
 
 COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST
 COMPILE_FLAGS += -fopenmp -DOPENMP
-ifeq ($(SSE_ENABLER),yes)
-	COMPILE_FLAGS += -msse4.2
-endif
+
 # Extra Warnings that developers should fix but don't.
 # This is a C only flag as implicit function declaration is forbidden in C++ anyways.
 COMPILE_FLAGS += -Wall -Werror-implicit-function-declaration
