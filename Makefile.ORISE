@@ -47,20 +47,32 @@ endif
 # Richardson as a smoother
 #COMMON_COMPILE_FLAGS += -DRICHARDSON_SMOOTHER
 
+# include twisted mass term at the coarsest level
+#COMMON_COMPILE_FLAGS += -DTM_COARSEST
+
 ## Defines
-COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE)
+COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE) #-DGPU2GPU_COMMS_VIA_CPUS
 ifeq ($(SSE_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DSSE
+COMMON_COMPILE_FLAGS += -msse4.2 -msse
+ifeq ($(AVX512_ENABLER),yes)
+	COMMON_COMPILE_FLAGS += -DAVX512
+	COMMON_COMPILE_FLAGS += -mavx512vl -mavx512f -mfma
+else 
+ifeq ($(AVX_ENABLER),yes)
+	COMMON_COMPILE_FLAGS += -DAVX2 -DAVX
+	COMMON_COMPILE_FLAGS += -mavx -mavx2 -mfma
 endif
+endif
+endif
+
 ifeq ($(CUDA_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DCUDA_OPT -DGPU2GPU_COMMS_VIA_CPUS
 endif
 
-COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_COMPILE_FLAGS)
+COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST
 COMPILE_FLAGS += -fopenmp -DOPENMP
-ifeq ($(SSE_ENABLER),yes)
-	COMPILE_FLAGS += -msse4.2
-endif
+
 # Extra Warnings that developers should fix but don't.
 # This is a C only flag as implicit function declaration is forbidden in C++ anyways.
 COMPILE_FLAGS += -Wall -Werror-implicit-function-declaration -fPIC
