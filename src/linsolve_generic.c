@@ -436,7 +436,7 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
 #endif
 
 #ifdef POLYPREC
-  int d_poly = 10;
+  int d_poly = p->polyprec_PRECISION.d_poly;
   int vl = p->polyprec_PRECISION.syst_size;
   FREE( p->polyprec_PRECISION.Hcc, complex_PRECISION, d_poly*d_poly );
   FREE( p->polyprec_PRECISION.L[0], complex_PRECISION, (d_poly+1)*d_poly );
