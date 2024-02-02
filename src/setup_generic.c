@@ -340,7 +340,41 @@ void re_setup_PRECISION( level_struct *l, struct Thread *threading ) {
       }
       re_setup_PRECISION( l->next_level, threading );
     }
-  }  
+  }
+//#if defined(POLYPREC) || defined(GCRODR) || defined(BLOCK_JACOBI)
+#if defined(POLYPREC) || defined(GCRODR)
+  else {
+
+    SYNC_MASTER_TO_ALL(threading)
+    SYNC_CORES(threading)
+
+    START_MASTER(threading)
+
+    // this runs on level 0 only
+#ifdef POLYPREC
+    l->p_PRECISION.polyprec_PRECISION.update_lejas = 1;
+    l->p_PRECISION.polyprec_PRECISION.preconditioner = NULL;
+#endif
+#ifdef GCRODR
+    l->p_PRECISION.gcrodr_PRECISION.update_CU = 1;
+    l->p_PRECISION.gcrodr_PRECISION.upd_ctr = 0;
+    l->p_PRECISION.gcrodr_PRECISION.CU_usable = 0;
+#endif
+//#ifdef BLOCK_JACOBI
+#if 0
+    l->p_PRECISION.block_jacobi_PRECISION.local_p.polyprec_PRECISION.update_lejas = 1;
+    l->p_PRECISION.block_jacobi_PRECISION.BJ_usable = 0;
+#endif
+
+    //printf0("RESET OF FLAGS FOR : BJ, POLYPREC AND GCRO-DR ***\n");
+
+    END_MASTER(threading)
+
+    SYNC_MASTER_TO_ALL(threading)
+    SYNC_CORES(threading)
+
+  }
+#endif
 }
 
 

@@ -91,6 +91,11 @@ typedef struct level_struct
 
   struct Thread *threading;
 
+#if defined(GCRODR) || defined(POLYPREC)
+  // 'bool', if on H will be copied
+  int dup_H;
+#endif
+
 } level_struct;
 
 #endif // LEVEL_STRUCT_H

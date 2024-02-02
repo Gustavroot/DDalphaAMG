@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include "global_struct.h"
 
+#ifdef CUDA_OPT
+
   // Specification of file and line nr to throw on error check
   #define cuda_safe_call( err ) __cuda_safe_call( err, __FILE__, __LINE__ )
   #define cuda_check_error( check_type ) __cuda_check_error( check_type, __FILE__, __LINE__ )
@@ -46,5 +48,11 @@
 #endif
     //return;
   }
+
+#endif
+
+  void coarsest_level_resets( level_struct* l, struct Thread* threading );
+  void set_some_coarsest_level_improvs_params_for_setup( level_struct* l );
+  void set_some_coarsest_level_improvs_params_for_solve( level_struct* l );
 
 #endif
