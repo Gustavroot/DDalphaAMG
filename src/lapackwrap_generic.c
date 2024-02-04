@@ -184,6 +184,7 @@ void pqr_PRECISION( int mx, int nx, complex_PRECISION **Ax, complex_PRECISION **
   START_MASTER(threading)
   memset( R[0], 0.0, sizeof(complex_PRECISION)*k*k );
   END_MASTER(threading)
+  SYNC_MASTER_TO_ALL(threading)
 
   for( j=0;j<k;j++ ) {
 
@@ -208,8 +209,8 @@ void pqr_PRECISION( int mx, int nx, complex_PRECISION **Ax, complex_PRECISION **
 
       for( int ww=0; ww<j; ww++ ) {
         vector_PRECISION_saxpy( Ax[j], Ax[j], Ax[ww], -R[j][ww], start, end, l );
-        SYNC_MASTER_TO_ALL(threading)
       }
+      SYNC_MASTER_TO_ALL(threading)
 
     }
 

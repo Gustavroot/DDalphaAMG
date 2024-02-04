@@ -118,14 +118,14 @@ int main( int argc, char **argv ) {
     method_setup( NULL, &l, &threading );
     endProfilingRange(rangeHandle);
 
-    set_some_coarsest_level_improvs_params_for_setup( &l );
+    set_some_coarsest_level_improvs_params_for_setup( &l, &threading );
 
     rangeHandle = startProfilingRange("Update");
     // iterative phase
     method_update( l.setup_iter, &l, &threading );
     endProfilingRange(rangeHandle);
 
-    set_some_coarsest_level_improvs_params_for_solve( &l );
+    set_some_coarsest_level_improvs_params_for_solve( &l, &threading );
 
     rangeHandle = startProfilingRange("Solve");
     g.on_solve=1;

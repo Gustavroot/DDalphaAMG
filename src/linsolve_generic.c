@@ -1454,9 +1454,14 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
       
     SYNC_MASTER_TO_ALL(threading)
     SYNC_CORES(threading)
+
     if ( creal_PRECISION(((complex_PRECISION*)threading->workspace)[0]) < 0.)
     {
-      H[j][j+1] = global_norm_PRECISION( w, p->v_start, p->v_end, l, threading );
+      PRECISION tmp3 = global_norm_PRECISION( w, p->v_start, p->v_end, l, threading );
+      START_MASTER(threading)
+      H[j][j+1] = tmp3;
+      END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
     }
     else
     {

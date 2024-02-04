@@ -363,9 +363,6 @@ void flgcrodr_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *l 
 // ASSUMING : right preconditioner (or no preconditioner)
 int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ){
 
-  //printf0( "Entered GCRO-DR\n" );
-  //exit(0);
-
   // in this context, <m> changes! It is not (necessarily) p->restart_length
   int fgmresx_iter=0, m=0, j, ol, k=p->gcrodr_PRECISION.k, i, g_ln, start, end;
   PRECISION beta=0;
@@ -389,6 +386,7 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
   }
   p->gcrodr_PRECISION.hatW[g_ln] = p->V[p->restart_length];
   END_MASTER(threading)
+  SYNC_MASTER_TO_ALL(threading)
 
   // compute start and end indices for core
   // this puts zero for all other hyperthreads, so we can call functions below with all hyperthreads
@@ -409,6 +407,7 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
   // setting the following line for the upcoming call to fgmresx_PRECISION(...)
   p->gamma[0] = beta;
   END_MASTER(threading);
+  SYNC_MASTER_TO_ALL(threading)
 
   if (!p->initial_guess_zero) {
     beta = global_norm_PRECISION( p->b, p->v_start, p->v_end, l, threading );
@@ -455,7 +454,8 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
         apply_operator_PRECISION( p->gcrodr_PRECISION.C[i], p->gcrodr_PRECISION.Yk[i], p, l, threading );
       }
 
-      int i_length = p->v_end - p->v_start;
+      //int i_length = p->v_end - p->v_start;
+      int i_length = end-start;
       pqr_PRECISION( i_length, k, p->gcrodr_PRECISION.C, p->gcrodr_PRECISION.R, p, l, threading );
 
       SYNC_MASTER_TO_ALL(threading);
@@ -482,7 +482,10 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       SYNC_MASTER_TO_ALL(threading);
       SYNC_CORES(threading)
 
+      START_MASTER(threading)
       p->gcrodr_PRECISION.update_CU = 0;
+      END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
 
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
       p->gcrodr_PRECISION.recompute_DPCk_poly = 1;
@@ -539,6 +542,7 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
     l->dup_H = 1;
     p->restart_length = k+1;
     END_MASTER(threading)
+    SYNC_MASTER_TO_ALL(threading)
     m = fgmresx_PRECISION(p, l, threading);
     START_MASTER(threading)
     l->dup_H = 0;
@@ -552,16 +556,27 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
     //if ( m>5 && m<k ) {
     if ( m>k ) {
 
-      double t0, t1;
+      double t0=0, t1=0;
+      START_MASTER(threading)
       t0 = MPI_Wtime();
+      END_MASTER(threading)
 
+      START_MASTER(threading)
       printf0("Quite a lot of iterations. Let's try and construct a deflation/recycling subspace\n");
+      END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
 
       {
 
+        START_MASTER(threading)
         p->initial_guess_zero = 0;
+        END_MASTER(threading)
+        SYNC_MASTER_TO_ALL(threading)
 
-        vector_PRECISION_define_random( p->x, start, end, l );
+        START_MASTER(threading)
+        vector_PRECISION_define_random( p->x, p->v_start, p->v_end, l );
+        END_MASTER(threading)
+        SYNC_MASTER_TO_ALL(threading)
 
         // compute initial residual
         apply_operator_PRECISION( p->w, p->x, p, l, threading ); // compute w = D*x
@@ -574,6 +589,7 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
         // setting the following line for the upcoming call to fgmresx_PRECISION(...)
         p->gamma[0] = beta;
         END_MASTER(threading);
+        SYNC_MASTER_TO_ALL(threading)
 
         beta = global_norm_PRECISION( p->b, p->v_start, p->v_end, l, threading );
 
@@ -597,6 +613,7 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       //}
       l->dup_H = 1;
       END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
 
       m = fgmresx_PRECISION(p, l, threading);
       fgmresx_iter += m;
@@ -609,8 +626,11 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       END_MASTER(threading)
       SYNC_MASTER_TO_ALL(threading);
 
+      START_MASTER(threading)
       t1 = MPI_Wtime();
       printf0("Arnoldi time : %.10f seconds\n", t1-t0);
+      END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
 
     }
     else {
@@ -666,12 +686,18 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
 
     // if m<k, there's not enough information to build the recycling subspace
     if ( m<k ) {
+      START_MASTER(threading)
       p->initial_guess_zero = buff_init_guess;
+      END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
       return m;
     }
 
-    double t0, t1;
+    double t0=0, t1=0;
+    START_MASTER(threading)
     t0 = MPI_Wtime();
+    END_MASTER(threading)
+    SYNC_MASTER_TO_ALL(threading)
 
     if ( p->preconditioner==NULL ) {
       // build the matrices A and B used for generalized-eigensolving
@@ -699,12 +725,16 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       p->gcrodr_PRECISION.update_CU = 0;
       //printf0("SETTING FLAG TO NOT UPDATE C AND U ***\n");
       END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
 
       //printf0("COMPLETED INITIAL CONSTRUCTION OF C AND U ***\n");
     }
 
+    START_MASTER(threading)
     t1 = MPI_Wtime();
     printf0("GEVP time : %.10f\n", t1-t0);
+    END_MASTER(threading)
+    SYNC_MASTER_TO_ALL(threading)
 
     // FIXME : issue when disabling this ...
     START_MASTER(threading)
@@ -719,7 +749,10 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
 
     // check if this first call to fgmresx_PRECISION was enough
     if ( p->gcrodr_PRECISION.finish==1 ) {
+      START_MASTER(threading)
       p->initial_guess_zero = buff_init_guess;
+      END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
       return m;
     }
 
@@ -732,7 +765,10 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
 #endif
 
   if ( g.gcrodr_calling_from_setup==1 ) {
+    START_MASTER(threading)
     p->initial_guess_zero = buff_init_guess;
+    END_MASTER(threading)
+    SYNC_MASTER_TO_ALL(threading)
     return m;
   }
 
@@ -873,6 +909,7 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       START_MASTER(threading)
       p->gcrodr_PRECISION.upd_ctr++;
       END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
 
       //printf0("UPDATED C AND U (INNER, USABLE ALREADY) ***\n");
     }
@@ -881,7 +918,10 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
 
     // check if tolerance has been reached
     if ( p->gcrodr_PRECISION.finish==1 ) {
+      START_MASTER(threading)
       p->initial_guess_zero = buff_init_guess;
+      END_MASTER(threading)
+      SYNC_MASTER_TO_ALL(threading)
       return fgmresx_iter;
     }
 
@@ -890,7 +930,10 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
 
   SYNC_MASTER_TO_ALL(threading);
 
+  START_MASTER(threading)
   p->initial_guess_zero = buff_init_guess;
+  END_MASTER(threading)
+  SYNC_MASTER_TO_ALL(threading)
   return fgmresx_iter;
 }
 
@@ -1351,7 +1394,7 @@ void re_scale_Uk_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct T
   int i;
   int k = p->gcrodr_PRECISION.k;
   int start, end;
-  compute_core_start_end(p->v_start, p->v_end, &start, &end, l, threading);
+  compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
 
   vector_PRECISION *Uk = p->gcrodr_PRECISION.U;
 

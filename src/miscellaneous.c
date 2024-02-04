@@ -88,6 +88,7 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
 #endif
 
 #ifdef GCRODR
+  START_MASTER(threading)
   {
     // setting flag to re-update recycling subspace
     level_struct *lx = l;
@@ -108,6 +109,8 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
       else { lx = lx->next_level; }
     }
   }
+  END_MASTER(threading)
+  SYNC_MASTER_TO_ALL(threading)
 #endif
 
       // calling the coarsest-level solver once on setup
@@ -134,6 +137,7 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
               START_MASTER(threading)
               vector_double_define_random( px->b, px->v_start, px->v_end, lx );
               END_MASTER(threading)
+              SYNC_MASTER_TO_ALL(threading)
 
               START_MASTER(threading)
               g.gcrodr_calling_from_setup = 1;
@@ -177,6 +181,7 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
               START_MASTER(threading)
               vector_float_define_random( px->b, px->v_start, px->v_end, lx );
               END_MASTER(threading)
+              SYNC_MASTER_TO_ALL(threading)
 
               START_MASTER(threading)
               g.gcrodr_calling_from_setup = 1;
@@ -191,8 +196,14 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
               END_MASTER(threading)
               SYNC_MASTER_TO_ALL(threading)
               // call the coarsest-level solver
+              int try_ctr = 0;
               while ( px->gcrodr_float.CU_usable==0 ) {
                 coarse_solve_odd_even_float( px, &(lx->oe_op_float), lx, threading );
+                try_ctr++;
+                if ( try_ctr>=5 ) {
+                  printf0( "Tried 5 times to construct a recycling/deflation subspace, failed\n" );
+                  break;
+                }
               }
               START_MASTER(threading)
               px->tol = buff1x;
@@ -230,9 +241,10 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
 }
 
 
-void set_some_coarsest_level_improvs_params_for_setup( level_struct* l ) {
+void set_some_coarsest_level_improvs_params_for_setup( level_struct* l, struct Thread* threading ) {
 
 #if defined(POLYPREC) || defined(GCRODR)
+    START_MASTER(threading)
     {
       level_struct *lx = l;
       while (1) {
@@ -258,14 +270,17 @@ void set_some_coarsest_level_improvs_params_for_setup( level_struct* l ) {
         else { lx = lx->next_level; }
       }
     }
+    END_MASTER(threading)
+    SYNC_MASTER_TO_ALL(threading)
 #endif
 
 }
 
 
-void set_some_coarsest_level_improvs_params_for_solve( level_struct* l ) {
+void set_some_coarsest_level_improvs_params_for_solve( level_struct* l, struct Thread* threading ) {
 
 #if defined(POLYPREC) || defined(GCRODR)
+    START_MASTER(threading)
     {
       level_struct *lx = l;
       while (1) {
@@ -291,6 +306,8 @@ void set_some_coarsest_level_improvs_params_for_solve( level_struct* l ) {
         else { lx = lx->next_level; }
       }
     }
+    END_MASTER(threading)
+    SYNC_MASTER_TO_ALL(threading)
 #endif
 
 }
