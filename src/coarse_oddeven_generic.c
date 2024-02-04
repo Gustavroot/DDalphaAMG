@@ -22,6 +22,27 @@
 #include "main.h"
 #include "proxies/data_layout_proxy_PRECISION.h"
 
+
+#ifdef TM_COARSEST
+void add_tm_shift_PRECISION( const int N, PRECISION *A, int lda ) {
+  // add twisted mass shift directly into the imaginary part
+
+  int i,j;
+
+  for ( j=0; j<N; j++ ) {
+    for ( i=0; i<N; i++ ) {
+      if ( j==i ) {
+        PRECISION g5_sign = 0.0;
+        if ( i >= N/2 ) { g5_sign = 1.0; }
+        else { g5_sign = -1.0; }
+        A[(2*j+1)*lda+i] += g.mu_coarsest*g5_sign;
+      }
+    }
+  }
+}
+#endif
+
+
 void coarse_selfcoupling_LU_decomposition_PRECISION( const config_PRECISION output, config_PRECISION input, level_struct *l ) {
   // input = [ A B      , A=A*, D=D*, C = -B*
   //           C D ]
@@ -306,6 +327,21 @@ void coarse_oddeven_setup_PRECISION_set_couplings( operator_PRECISION_struct *in
       n_per_core, l->num_lattice_site_var/2);
   SYNC_CORES(threading)
 
+#ifdef TM_COARSEST
+  if ( l->level==0 ) {
+    int nvw = l->num_lattice_site_var / 2;
+    int column_offsetw = SIMD_LENGTH_PRECISION*((2*nvw+SIMD_LENGTH_PRECISION-1)/SIMD_LENGTH_PRECISION);
+    int size_vw = 2*2*nvw*column_offsetw;
+
+    int startw,endw;
+    compute_core_start_end_custom( 0, op->num_odd_sites+op->num_even_sites, &startw, &endw, l, threading, 1);
+
+    for( int iw=startw; iw<endw; iw++ ) {
+      add_tm_shift_PRECISION( 2*nvw, op->clover_vectorized+iw*size_vw, column_offsetw );
+    }
+  }
+#endif
+
   compute_core_start_end_custom(op->num_even_sites, n, &start, &end, l, threading, 1);
   OPERATOR_TYPE_PRECISION tmp[offset_v] __attribute__((aligned(64)));
   for(int a=start; a<end; a++) {
@@ -323,7 +359,7 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
   int n=l->num_inner_lattice_sites, oe_offset=0, mu, nu,
       lu_dec_size = SQUARE(l->num_lattice_site_var),
       nc_size = SQUARE(l->num_lattice_site_var), bs, **bt = NULL,
-      *eot = NULL, *nt = NULL, *tt = NULL, t, z, y, x, le[4], N[4];
+      *eot = NULL, t, z, y, x, le[4], N[4];
   operator_PRECISION_struct *op = &(l->oe_op_PRECISION);
 
   for ( mu=0; mu<4; mu++ ) {
@@ -386,8 +422,6 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
   MALLOC( op->neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->backward_neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->translation_table, int, le[T]*le[Z]*le[Y]*le[X] );
-  nt = op->neighbor_table;
-  tt = op->translation_table;
   
   define_nt_bt_tt_PRECISION(op, NULL, N, l );
   
@@ -454,7 +488,7 @@ void coarse_oddeven_free_PRECISION( level_struct *l ) {
       if ( mu != nu )
         bs *= ll[nu];
       
-      FREE( l->oe_op_PRECISION.c.boundary_table[2*mu], int, bs );
+    FREE( l->oe_op_PRECISION.c.boundary_table[2*mu], int, bs );
     l->oe_op_PRECISION.c.boundary_table[2*mu+1] = NULL;
   }
   
@@ -1162,7 +1196,9 @@ void coarse_n_hopping_term_PRECISION_vectorized( vector_PRECISION out, vector_PR
 
 
 void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
-  
+
+  int fgmres_iters=0;
+
   SYNC_CORES(threading)
   PROF_PRECISION_START( _SC, threading );
   coarse_diag_oo_inv_PRECISION( p->x, p->b, op, l, threading );
@@ -1171,13 +1207,73 @@ void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECIS
   coarse_n_hopping_term_PRECISION( p->b, p->x, op, _EVEN_SITES, l, threading );
   PROF_PRECISION_STOP( _NC, 0, threading );
 
-  //int fgmres_ctr = 0;
-  
-  //fgmres_ctr = fgmres_PRECISION( p, l, threading );
-  fgmres_PRECISION( p, l, threading );
+  int start, end;
+  compute_core_start_end(p->v_start, p->v_end, &start, &end, l, threading);
 
-  //if( l->level == 0 ){ printf0("%d, %d -- ", l->level, fgmres_ctr); }
-  
+//#ifdef BLOCK_JACOBI
+#if 0
+  if ( l->level==0 && l->p_PRECISION.block_jacobi_PRECISION.local_p.polyprec_PRECISION.update_lejas == 1 ) {
+    // re-construct Lejas
+    local_re_construct_lejas_PRECISION( l, threading );
+  }
+#endif
+
+//#ifdef BLOCK_JACOBI
+#if 0
+  // if Block Jacobi is enabled, solve the problem : M^{-1}Ax = M^{-1}b
+  if ( p->block_jacobi_PRECISION.BJ_usable == 1 ) {
+    // create a backup of b
+    vector_PRECISION_copy( p->block_jacobi_PRECISION.b_backup, p->b, start, end, l );
+    block_jacobi_apply_PRECISION( p->b, p->block_jacobi_PRECISION.b_backup, p, l, threading );
+  }
+#endif
+
+#ifdef POLYPREC
+  if ( l->level==0 && l->p_PRECISION.polyprec_PRECISION.update_lejas == 1 ) {
+    // re-construct Lejas
+    re_construct_lejas_PRECISION( l, threading );
+  }
+#endif
+
+#ifdef POLYPREC
+  START_MASTER(threading)
+  p->preconditioner = p->polyprec_PRECISION.preconditioner;
+  END_MASTER(threading)
+
+  SYNC_MASTER_TO_ALL(threading)
+#endif
+
+// LAST STAGE
+#ifdef GCRODR
+//#if 0
+  fgmres_iters = flgcrodr_PRECISION( p, l, threading );
+#else
+  fgmres_iters = fgmres_PRECISION( p, l, threading );
+#endif
+
+  START_MASTER(threading)
+  g.avg_b1 += fgmres_iters;
+  g.avg_b2 += 1;
+  g.avg_crst = g.avg_b1/g.avg_b2;
+  END_MASTER(threading)
+
+  SYNC_MASTER_TO_ALL(threading)
+  SYNC_CORES(threading)
+
+//#ifdef BLOCK_JACOBI
+#if 0
+  // restore the rhs
+  if ( p->block_jacobi_PRECISION.BJ_usable == 1 ) {
+    vector_PRECISION_copy( p->b, p->block_jacobi_PRECISION.b_backup, start, end, l );
+  }
+#endif
+
+  SYNC_MASTER_TO_ALL(threading)
+
+  //START_MASTER(threading)
+  //if (g.my_rank==0) printf("coarsest gmres iters = %d\n", fgmres_iters);
+  //END_MASTER(threading)
+
   // even to odd
   PROF_PRECISION_START( _NC, threading );
   coarse_n_hopping_term_PRECISION( p->b, p->x, op, _ODD_SITES, l, threading );

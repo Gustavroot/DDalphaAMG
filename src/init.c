@@ -652,6 +652,10 @@ void l_init( level_struct *l ) {
   l->x = NULL;
   l->next_level = NULL;
   l->reqs = NULL;
+
+#if defined(GCRODR) || defined(POLYPREC)
+  l->dup_H = 0;
+#endif
 }
 
 
@@ -1006,11 +1010,57 @@ void read_solver_parameters( FILE *in, level_struct *l ) {
   save_pt = &(g.odd_even); g.odd_even = 1;
   read_parameter( &save_pt, "odd even preconditioning:", "%d", 1, in, _DEFAULT_SET );
 
+#ifdef GCRODR
+  save_pt = &(g.gcrodr_k); g.gcrodr_k = 15;
+  read_parameter( &save_pt, "coarse grid gcrodr_k:", "%d", 1, in, _DEFAULT_SET );
+
+  save_pt = &(g.gcrodr_k_setup); g.gcrodr_k_setup = 15;
+  read_parameter( &save_pt, "coarse grid gcrodr_k_setup:", "%d", 1, in, _DEFAULT_SET );
+
+  save_pt = &(g.gcrodr_k_solve); g.gcrodr_k_solve = 15;
+  read_parameter( &save_pt, "coarse grid gcrodr_k_solve:", "%d", 1, in, _DEFAULT_SET );
+
+  save_pt = &(g.gcrodr_upd_itrs_setup); g.gcrodr_upd_itrs_setup = 5;
+  read_parameter( &save_pt, "coarse grid gcrodr_upd_itrs_setup:", "%d", 1, in, _DEFAULT_SET );
+
+  save_pt = &(g.gcrodr_upd_itrs_solve); g.gcrodr_upd_itrs_solve = 5;
+  read_parameter( &save_pt, "coarse grid gcrodr_upd_itrs_solve:", "%d", 1, in, _DEFAULT_SET );
+
+#endif
+
+#ifdef POLYPREC
+  save_pt = &(g.polyprec_d); g.polyprec_d = 5;
+  read_parameter( &save_pt, "coarse grid polyprec_d:", "%d", 1, in, _DEFAULT_SET );
+  g.polyprec_d++;
+
+  save_pt = &(g.polyprec_d_setup); g.polyprec_d_setup = 5;
+  read_parameter( &save_pt, "coarse grid polyprec_d_setup:", "%d", 1, in, _DEFAULT_SET );
+  g.polyprec_d_setup++;
+
+  save_pt = &(g.polyprec_d_solve); g.polyprec_d_solve = 5;
+  read_parameter( &save_pt, "coarse grid polyprec_d_solve:", "%d", 1, in, _DEFAULT_SET );
+  g.polyprec_d_solve++;
+#endif
+
+//#ifdef BLOCK_JACOBI
+#if 0
+  save_pt = &(g.local_polyprec_d); g.local_polyprec_d = 5;
+  read_parameter( &save_pt, "coarse grid local_polyprec_d:", "%d", 1, in, _DEFAULT_SET );
+  g.local_polyprec_d++;
+#endif
+
   save_pt = &(l->real_shift);
   read_parameter( &save_pt, "m0:", "%lf", 1, in, _NO_DEFAULT_SET ); // ensuring downward compatibility
   read_parameter( &save_pt, "solver m0:", "%lf", 1, in, _DEFAULT_SET );
+
   save_pt = &(g.csw);
   read_parameter( &save_pt, "csw:", "%lf", 1, in, _NO_DEFAULT_SET );
+
+#ifdef TM_COARSEST
+  save_pt = &(g.mu_coarsest); g.mu_coarsest = 0.0001;
+  read_parameter( &save_pt, "mu coarsest:", "%lf", 1, in, _DEFAULT_SET );
+#endif
+
   save_pt = &(g.setup_m0);
   read_parameter( &save_pt, "setup m0:", "%lf", 1, in, _DEFAULT_SET );
   

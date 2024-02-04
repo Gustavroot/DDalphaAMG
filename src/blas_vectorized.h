@@ -53,9 +53,9 @@
 
 #define PRINT_MACRO_HELPER(x) #x
 #define PRINT_MACRO(x)        #x "=" PRINT_MACRO_HELPER(x)
-#pragma message(PRINT_MACRO(simd_cgemv))
-#pragma message(PRINT_MACRO(simd_cgenmv))
-#pragma message(PRINT_MACRO(simd_cgem_inverse))
+//#pragma message(PRINT_MACRO(simd_cgemv))
+//#pragma message(PRINT_MACRO(simd_cgenmv))
+//#pragma message(PRINT_MACRO(simd_cgem_inverse))
 
 // C=A*B+C
 static inline void cgemv(const int N, const OPERATOR_TYPE_float *A, int lda, const float *B, float *C)

@@ -53,6 +53,14 @@ void cpu_fgmres_MP_struct_alloc( int m, int n, int vl, double tol, const int pre
   p->double_section.v_start = 0;                             p->float_section.v_start = 0;
   p->double_section.v_end = l->inner_vector_size;            p->float_section.v_end = l->inner_vector_size;
   
+//#ifdef BLOCK_JACOBI
+#if 0
+  if ( l->level==0 ) {
+    //p->dp.block_jacobi_double.local_p.v_end = l->inner_vector_size;
+    p->float_section.block_jacobi_float.local_p.v_end = l->inner_vector_size;
+  }
+#endif
+
   p->double_section.op = &(g.op_double);                     p->float_section.op = &(l->s_float.op);
   
   g.p.op = &(g.op_double);
@@ -285,6 +293,23 @@ int fgmres_MP( gmres_MP_struct *p, level_struct *l, struct Thread *threading ) {
     if ( g.coarse_time > 0 ) 
       printf0("|        coarse grid time: %-8.4lf seconds (%04.1lf%%)        |\n",
               g.coarse_time, 100*(g.coarse_time/(t1-t0)) );
+    printf0("|        coarsest grid time: %-8.4lf seconds (%04.1lf%%)        |\n",
+              g.coarsest_time, 100*(g.coarsest_time/(t1-t0)) );
+    printf0("| coarsest grid matmul time: %-8.4lf seconds (%04.1lf%%)        |\n",
+              g.matmul_time, 100*(g.matmul_time/(t1-t0)) );
+//#ifdef BLOCK_JACOBI
+#if 0
+    printf0("|     coarsest grid BJ time: %-8.4lf seconds (%04.1lf%%)        |\n",
+              g.bj_time, 100*(g.bj_time/(t1-t0)) );
+#endif
+#ifdef GCRODR
+    printf0("| coarsest grid GCRODR LSP time: %-8.4lf seconds (%04.1lf%%)        |\n",
+              g.gcrodr_LSP_time, 100*(g.gcrodr_LSP_time/(t1-t0)) );
+    printf0("| coarsest grid GCRODR AB time: %-8.4lf seconds (%04.1lf%%)        |\n",
+              g.gcrodr_buildAB_time, 100*(g.gcrodr_buildAB_time/(t1-t0)) );
+    printf0("| coarsest grid GCRODR CU time: %-8.4lf seconds (%04.1lf%%)        |\n",
+              g.gcrodr_buildCU_time, 100*(g.gcrodr_buildCU_time/(t1-t0)) );
+#endif
     printf0("|  consumed core minutes*: %-8.2le (solve only)           |\n", ((t1-t0)*g.num_processes*MAX(1,threading->n_core))/60.0 );
     printf0("|    max used mem/MPIproc: %-8.2le GB                     |\n", g.max_storage/1024.0 );
 #ifdef CUDA_OPT
