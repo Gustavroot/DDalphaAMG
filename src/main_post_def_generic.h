@@ -25,11 +25,46 @@
   #include "coarse_oddeven_PRECISION.h"
   #include "dirac_PRECISION.h"
   #include "coarse_operator_PRECISION.h"
+  #include "block_jacobi_PRECISION.h"
 
 
   static inline void apply_operator_PRECISION( vector_PRECISION output, vector_PRECISION input, gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
 
+//#ifdef BLOCK_JACOBI
+#if 0
+
+    if ( l->level==0 && p->block_jacobi_PRECISION.BJ_usable==1 ) {
+
+      //printf0("APPLYING BJ OP\n");
+
+      START_MASTER(threading)
+      g.matmul_time -= MPI_Wtime();
+      END_MASTER(threading)
+      p->eval_operator( l->p_PRECISION.block_jacobi_PRECISION.xtmp, input, p->op, l, threading );
+      START_MASTER(threading)
+      g.matmul_time += MPI_Wtime();
+      END_MASTER(threading)
+      START_MASTER(threading)
+      g.bj_time -= MPI_Wtime();
+      END_MASTER(threading)
+      block_jacobi_apply_PRECISION( output, l->p_PRECISION.block_jacobi_PRECISION.xtmp, p, l, threading );
+      START_MASTER(threading)
+      g.bj_time += MPI_Wtime();
+      END_MASTER(threading)
+    } else {
+      START_MASTER(threading)
+      if ( l->level==0 )
+        g.matmul_time -= MPI_Wtime();
+      END_MASTER(threading)
+      p->eval_operator( output, input, p->op, l, threading );
+      START_MASTER(threading)
+      if ( l->level==0 )
+        g.matmul_time += MPI_Wtime();
+      END_MASTER(threading)
+    }
+#else
     p->eval_operator( output, input, p->op, l, threading );
+#endif
 
 #ifdef CUDA_OPT
     //if (l->depth == 0)

@@ -196,6 +196,36 @@
   #include "gpu/cuda_coarse_oddeven_double.h"
   #include "gpu/cuda_coarse_operator_float.h"
   #include "gpu/cuda_coarse_operator_double.h"
-  #include "miscellaneous.h"
   #include "gpu/cuda_miscellaneous.h"
+#endif
+
+#include "miscellaneous.h"
+
+#ifdef GCRODR
+  #include "gcrodr_double.h"
+  #include "gcrodr_float.h"
+#endif
+
+//#ifdef BLOCK_JACOBI
+#if 0
+  #include "block_jacobi_double.h"
+  #include "block_jacobi_float.h"
+  #include "local_polyprec_double.h"
+  #include "local_polyprec_float.h"
+#endif
+
+#if defined(GCRODR) || defined(POLYPREC)
+  #include <lapacke.h>
+#ifdef GCRODR
+  ////#include <mkl_scalapack.h>
+  ////#include <mkl_blacs.h>
+  ////#include <mkl_pblas.h>
+#endif
+  #include "lapackwrap_double.h"
+  #include "lapackwrap_float.h"
+#endif
+
+#ifdef POLYPREC
+  #include "polyprec_double.h"
+  #include "polyprec_float.h"
 #endif

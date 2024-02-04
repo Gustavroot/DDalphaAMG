@@ -50,6 +50,20 @@ endif
 # include twisted mass term at the coarsest level
 #COMMON_COMPILE_FLAGS += -DTM_COARSEST
 
+# LAPACK is needed for coarsest-level improvements
+#LAPACK_DIR = dependencies/lapack-3.9.0
+#LAPACKE_DIR = $(LAPACK_DIR)/LAPACKE
+#LAPACKE_INCLUDE = $(LAPACKE_DIR)/include
+#BLASLIB      = $(LAPACK_DIR)/librefblas.a
+#LAPACKLIB    = $(LAPACK_DIR)/liblapack.a
+#LAPACKELIB   = $(LAPACK_DIR)/liblapacke.a
+#LAPACK_LIBRARIES = $(LAPACKELIB) $(LAPACKLIB) $(BLASLIB)
+#COMMON_COMPILE_FLAGS += -I$(LAPACKE_INCLUDE)
+
+# coarsest-level improvements
+#COMMON_COMPILE_FLAGS += -DGCRODR
+#COMMON_COMPILE_FLAGS += -DPOLYPREC
+
 ## Defines
 COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE) #-DGPU2GPU_COMMS_VIA_CPUS
 ifeq ($(SSE_ENABLER),yes)
@@ -59,7 +73,7 @@ ifeq ($(CUDA_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DCUDA_OPT
 endif
 
-COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST $(COMMON_COMPILE_FLAGS)
+COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST
 COMPILE_FLAGS += -fopenmp -DOPENMP
 ifeq ($(SSE_ENABLER),yes)
 	COMPILE_FLAGS += -msse4.2
@@ -68,6 +82,7 @@ endif
 # This is a C only flag as implicit function declaration is forbidden in C++ anyways.
 COMPILE_FLAGS += -Wall -Werror-implicit-function-declaration
 LINK_FLAGS = -lgomp -lm -ldl
+
 
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
@@ -109,18 +124,20 @@ wilson: dd_alpha_amg dd_alpha_amg_db
 
 ifeq ($(CUDA_ENABLER),yes)
 dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
-	$(NVCC) $(NVCC_LINK_FLAGS) -o $@ $(OBJ) $(OBJ_CUDA)
+	# TODO : check if putting LAPACK at the end of this nvcc compilation is appropriate
+	$(NVCC) $(NVCC_LINK_FLAGS) -o $@ $(OBJ) $(OBJ_CUDA) $(LAPACK_LIBRARIES) -lgfortran
 else
 dd_alpha_amg : $(OBJ)
-	$(CC) $(LINK_FLAGS) -o $@ $(OBJ)
+	$(CC) $(LINK_FLAGS) -o $@ $(OBJ) -lmpi -lgomp -lm $(LAPACK_LIBRARIES) -lgfortran
 endif
 
 ifeq ($(CUDA_ENABLER),yes)
 dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
-	$(NVCC) -g $(NVCC_LINK_FLAGS) -o $@ $(OBJDB) $(OBJ_CUDADB)
+	# TODO : check if putting LAPACK at the end of this nvcc compilation is appropriate
+	$(NVCC) -g $(NVCC_LINK_FLAGS) -o $@ $(OBJDB) $(OBJ_CUDADB) $(LAPACK_LIBRARIES) -lgfortran
 else
 dd_alpha_amg_db : $(OBJDB)
-	$(CC) -g $(LINK_FLAGS) -o $@ $(OBJDB)
+	$(CC) -g $(LINK_FLAGS) -o $@ $(OBJDB) -lmpi -lgomp -lm $(LAPACK_LIBRARIES) -lgfortran
 endif
 
 ######
