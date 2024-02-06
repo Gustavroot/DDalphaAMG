@@ -488,7 +488,7 @@ void test_vector_PRECISION_update( int i, level_struct *l, struct Thread *thread
   if ( l->level > 1 )
     test_vector_PRECISION_update( i, l->next_level, threading );
 
-  if ( !l->idle ) {
+  if ( !l->idle && i<l->num_eig_vect ) {
 #ifdef CUDA_OPT
     if( l->depth==0 ){
       //printf0("ptr=%p, depth=%d\n", l->p_PRECISION.xtmp, l->depth);

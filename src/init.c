@@ -1222,8 +1222,8 @@ void validate_parameters( int ls, level_struct *l ) {
 #endif
     }
     
-  for ( i=0; i<g.num_levels-2; i++ )
-    ASSERT( g.num_eig_vect[i] <= g.num_eig_vect[i+1] );
+  //for ( i=0; i<g.num_levels-2; i++ )
+  //  ASSERT( g.num_eig_vect[i] <= g.num_eig_vect[i+1] );
   
   if ( g.odd_even ) {
     int coarse_sites_per_core = 1;
