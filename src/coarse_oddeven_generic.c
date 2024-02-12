@@ -1236,6 +1236,8 @@ void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECIS
 #endif
 
 #ifdef POLYPREC
+  // TODO : there should be some sort of check after calling re_construct_lejas_PRECISION(...)
+  //        to make sure that we can do the following function pointer assignment
   START_MASTER(threading)
   p->preconditioner = p->polyprec_PRECISION.preconditioner;
   END_MASTER(threading)
@@ -1243,9 +1245,7 @@ void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECIS
   SYNC_MASTER_TO_ALL(threading)
 #endif
 
-// LAST STAGE
 #ifdef GCRODR
-//#if 0
   fgmres_iters = flgcrodr_PRECISION( p, l, threading );
 #else
   fgmres_iters = fgmres_PRECISION( p, l, threading );

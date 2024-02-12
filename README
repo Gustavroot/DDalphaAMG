@@ -1,7 +1,14 @@
 # DDαAMG
 ----------------------
 
-NOTE : This version of DDαAMG contains some critical parts ported to CUDA (MPI, OpenMP and SSE vectorization are still present throughout). For more information on these improvements, contact : g.ramirez@stimulate-ejd.eu
+NOTE : This version of DDαAMG contains some critical parts ported to CUDA (MPI, OpenMP and SSE vectorization are still present throughout). For more information on these improvements, contact : g.ramirez@math.uni-wuppertal.de
+
+RECOMMENDED USAGE (as used on JUWELS @ JSC):
+
+* modify compile_modules.sh, commenting/uncommenting as needed
+* >$ . setup_env_and_compile.sh
+* take sample_E250.ini and submit_E250.job as the default example, in combination with sample_devel.ini
+* >$ sbatch submit_E250.job
 
 To use this version, run the script (note the dot at the beginning):
 

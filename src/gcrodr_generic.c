@@ -85,6 +85,8 @@ void flgcrodr_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   p->gcrodr_PRECISION.r_aux = NULL;
 #endif
 
+  p->rhs_bk = NULL;
+
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
   p->gcrodr_PRECISION.PC = NULL;
   p->gcrodr_PRECISION.DPC = NULL;
@@ -265,6 +267,10 @@ void flgcrodr_PRECISION_struct_alloc( int m, int n, long int vl, PRECISION tol, 
 
     p->gcrodr_PRECISION.upd_ctr = 0;
 
+    p->was_there_stagnation = 0;
+
+    MALLOC( p->rhs_bk, complex_PRECISION, vl );
+
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
     MALLOC( p->gcrodr_PRECISION.PC, vector_PRECISION, p->gcrodr_PRECISION.k );
     p->gcrodr_PRECISION.PC[0] = NULL;
@@ -348,6 +354,8 @@ void flgcrodr_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *l 
     // ints - ordering
     FREE( p->gcrodr_PRECISION.eigslvr.ordr_idxs, int, g_ln );
     FREE( p->gcrodr_PRECISION.eigslvr.ordr_keyscpy, complex_PRECISION, g_ln );
+
+    FREE( p->rhs_bk, complex_PRECISION, p->gcrodr_PRECISION.syst_size );
 
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
     FREE( p->gcrodr_PRECISION.PC[0], complex_PRECISION, p->gcrodr_PRECISION.syst_size * p->gcrodr_PRECISION.k );
@@ -556,15 +564,15 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
     //if ( m>5 && m<k ) {
     if ( m>k ) {
 
-      double t0=0, t1=0;
-      START_MASTER(threading)
-      t0 = MPI_Wtime();
-      END_MASTER(threading)
+      //double t0=0, t1=0;
+      //START_MASTER(threading)
+      //t0 = MPI_Wtime();
+      //END_MASTER(threading)
 
-      START_MASTER(threading)
-      printf0("Quite a lot of iterations. Let's try and construct a deflation/recycling subspace\n");
-      END_MASTER(threading)
-      SYNC_MASTER_TO_ALL(threading)
+      //START_MASTER(threading)
+      //printf0("Quite a lot of iterations. Let's try and construct a deflation/recycling subspace\n");
+      //END_MASTER(threading)
+      //SYNC_MASTER_TO_ALL(threading)
 
       {
 
@@ -626,11 +634,11 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       END_MASTER(threading)
       SYNC_MASTER_TO_ALL(threading);
 
-      START_MASTER(threading)
-      t1 = MPI_Wtime();
-      printf0("Arnoldi time : %.10f seconds\n", t1-t0);
-      END_MASTER(threading)
-      SYNC_MASTER_TO_ALL(threading)
+      //START_MASTER(threading)
+      //t1 = MPI_Wtime();
+      ////printf0("Arnoldi time : %.10f seconds\n", t1-t0);
+      //END_MASTER(threading)
+      //SYNC_MASTER_TO_ALL(threading)
 
     }
     else {
@@ -693,11 +701,11 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       return m;
     }
 
-    double t0=0, t1=0;
-    START_MASTER(threading)
-    t0 = MPI_Wtime();
-    END_MASTER(threading)
-    SYNC_MASTER_TO_ALL(threading)
+    //double t0=0, t1=0;
+    //START_MASTER(threading)
+    //t0 = MPI_Wtime();
+    //END_MASTER(threading)
+    //SYNC_MASTER_TO_ALL(threading)
 
     if ( p->preconditioner==NULL ) {
       // build the matrices A and B used for generalized-eigensolving
@@ -730,11 +738,11 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       //printf0("COMPLETED INITIAL CONSTRUCTION OF C AND U ***\n");
     }
 
-    START_MASTER(threading)
-    t1 = MPI_Wtime();
-    printf0("GEVP time : %.10f\n", t1-t0);
-    END_MASTER(threading)
-    SYNC_MASTER_TO_ALL(threading)
+    //START_MASTER(threading)
+    //t1 = MPI_Wtime();
+    ////printf0("GEVP time : %.10f\n", t1-t0);
+    //END_MASTER(threading)
+    //SYNC_MASTER_TO_ALL(threading)
 
     // FIXME : issue when disabling this ...
     START_MASTER(threading)
@@ -1135,15 +1143,14 @@ int fgmresx_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread
           // if the residual hasn't changed, exit
           if ( nr1_i == nr2_i ) {
 
-            printf0( "WARNING : stagnation to three significant digits in the residual, the recycling subspace needs to be rebuilt\n" );
-            START_MASTER(threading)
-            p->gcrodr_PRECISION.CU_usable = 0;
-            END_MASTER(threading)
-            SYNC_MASTER_TO_ALL(threading);
+            //printf0( "WARNING : stagnation to three significant digits in the residual, the recycling subspace needs to be rebuilt\n" );
 
             finish = 1;
 
-            //was_there_stagnation = 1;
+            START_MASTER(threading)
+            p->was_there_stagnation = 1;
+            END_MASTER(threading)
+            SYNC_MASTER_TO_ALL(threading)
           }
         }
       }

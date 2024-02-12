@@ -175,7 +175,52 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
             if ( g.method == 6 ) {
               g5D_coarse_solve_odd_even_PRECISION( &(l->next_level->p_PRECISION), &(l->next_level->oe_op_PRECISION), l->next_level, threading );
             } else {
+
+              START_MASTER(threading)
+              g.coarsest_time -= MPI_Wtime();
+              END_MASTER(threading)
+
+#ifdef GCRODR
+              // NOTE : something that shouldn't be happening here happens, namely the RHS is changed
+              //        by the function coarse_solve_odd_even_PRECISION(...). So, we back it up and restore
+              //        it as necessary
+
+              int start,end;
+              compute_core_start_end( l->next_level->p_PRECISION.v_start, l->next_level->p_PRECISION.v_end, &start, &end, l->next_level, threading );
+              vector_PRECISION_copy( l->next_level->p_PRECISION.rhs_bk, l->next_level->p_PRECISION.b, start, end, l->next_level );
+
+              START_MASTER(threading)
+              l->next_level->p_PRECISION.was_there_stagnation = 0;
+              END_MASTER(threading)
+              SYNC_MASTER_TO_ALL(threading)
+
+              while( 1 ) {
+                coarse_solve_odd_even_PRECISION( &(l->next_level->p_PRECISION), &(l->next_level->oe_op_PRECISION), l->next_level, threading );
+                if ( l->next_level->p_PRECISION.was_there_stagnation==0 ) { break; }
+                else if ( l->next_level->p_PRECISION.was_there_stagnation==1 && l->next_level->p_PRECISION.gcrodr_PRECISION.CU_usable==1 ) {
+                  // in case there was stagnation, we need to rebuild the coarsest-level data
+                  double time_bk = g.coarsest_time;
+                  coarsest_level_resets_PRECISION( l->next_level, threading );
+                  START_MASTER(threading)
+                  l->next_level->p_PRECISION.was_there_stagnation = 0;
+                  g.coarsest_time = time_bk;
+                  END_MASTER(threading)
+                  SYNC_MASTER_TO_ALL(threading)
+                  vector_PRECISION_copy( l->next_level->p_PRECISION.b, l->next_level->p_PRECISION.rhs_bk, start, end, l->next_level );
+                }
+                else {
+                  // in this case, there was stagnation but no deflation/recycling subspace is being used
+                  break;
+                }
+              }
+#else
               coarse_solve_odd_even_PRECISION( &(l->next_level->p_PRECISION), &(l->next_level->oe_op_PRECISION), l->next_level, threading );
+#endif
+
+              START_MASTER(threading)
+              g.coarsest_time += MPI_Wtime();
+              END_MASTER(threading)
+
               //fgmres_PRECISION( &(l->next_level->p_PRECISION), l->next_level, threading );
             }
           } else {

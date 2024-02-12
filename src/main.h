@@ -200,6 +200,10 @@
 #endif
 
 #include "miscellaneous.h"
+#if defined(GCRODR) || defined(POLYPREC)
+#include "miscellaneous_double.h"
+#include "miscellaneous_float.h"
+#endif
 
 #ifdef GCRODR
   #include "gcrodr_double.h"

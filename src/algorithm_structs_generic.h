@@ -239,6 +239,8 @@ typedef struct
 
 #ifdef GCRODR
     gcrodr_PRECISION_struct gcrodr_PRECISION;
+    int was_there_stagnation;
+    vector_PRECISION rhs_bk;
 #endif
 #ifdef POLYPREC
     polyprec_PRECISION_struct polyprec_PRECISION;

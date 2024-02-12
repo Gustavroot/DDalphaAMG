@@ -32,6 +32,10 @@ void field_saver( void* phi, int length, char* datatype, char* filename ){
 
 void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
 
+  START_MASTER(threading)
+  g.coarsest_time = 0.0;
+  END_MASTER(threading)
+
 #ifdef POLYPREC
   {
 
@@ -133,11 +137,11 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
 
               gmres_double_struct* px = &(lx->p_double);
 
-              // set RHS to random
-              START_MASTER(threading)
-              vector_double_define_random( px->b, px->v_start, px->v_end, lx );
-              END_MASTER(threading)
-              SYNC_MASTER_TO_ALL(threading)
+              //// set RHS to random
+              //START_MASTER(threading)
+              //vector_double_define_random( px->b, px->v_start, px->v_end, lx );
+              //END_MASTER(threading)
+              //SYNC_MASTER_TO_ALL(threading)
 
               START_MASTER(threading)
               g.gcrodr_calling_from_setup = 1;
@@ -154,6 +158,12 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
               // call the coarsest-level solver
               int try_ctr = 0;
               while ( px->gcrodr_double.CU_usable==0 ) {
+                // set RHS to random
+                START_MASTER(threading)
+                vector_double_define_random( px->b, px->v_start, px->v_end, lx );
+                END_MASTER(threading)
+                SYNC_MASTER_TO_ALL(threading)
+
                 coarse_solve_odd_even_double( px, &(lx->oe_op_double), lx, threading );
                 try_ctr++;
                 if ( try_ctr>=5 ) {
@@ -177,11 +187,11 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
 
               gmres_float_struct* px = &(lx->p_float);
 
-              // set RHS to random
-              START_MASTER(threading)
-              vector_float_define_random( px->b, px->v_start, px->v_end, lx );
-              END_MASTER(threading)
-              SYNC_MASTER_TO_ALL(threading)
+              //// set RHS to random
+              //START_MASTER(threading)
+              //vector_float_define_random( px->b, px->v_start, px->v_end, lx );
+              //END_MASTER(threading)
+              //SYNC_MASTER_TO_ALL(threading)
 
               START_MASTER(threading)
               g.gcrodr_calling_from_setup = 1;
@@ -198,6 +208,12 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
               // call the coarsest-level solver
               int try_ctr = 0;
               while ( px->gcrodr_float.CU_usable==0 ) {
+                // set RHS to random
+                START_MASTER(threading)
+                vector_float_define_random( px->b, px->v_start, px->v_end, lx );
+                END_MASTER(threading)
+                SYNC_MASTER_TO_ALL(threading)
+
                 coarse_solve_odd_even_float( px, &(lx->oe_op_float), lx, threading );
                 try_ctr++;
                 if ( try_ctr>=5 ) {
