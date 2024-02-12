@@ -6,9 +6,11 @@ NOTE : This version of DDαAMG contains some critical parts ported to CUDA (MPI,
 RECOMMENDED USAGE (as used on JUWELS @ JSC):
 
 * modify compile_modules.sh, commenting/uncommenting as needed
+* modify MakeSettings.mk as needed
+* if not done yet, to into dependencies/ and run install_dependencies_01.sh
 * >$ . setup_env_and_compile.sh
-* take sample_E250.ini and submit_E250.job as the default example, in combination with sample_devel.ini
-* >$ sbatch submit_E250.job
+* take sample_E250_xPU.ini and submit_E250_xPU.job as the default example, in combination with sample_devel.ini
+* >$ sbatch submit_E250_xPU.job
 
 To use this version, run the script (note the dot at the beginning):
 

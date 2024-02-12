@@ -111,8 +111,10 @@ void next_level_setup( vector_double *V, level_struct *l, struct Thread *threadi
       }
     }
   }
-  
+
+  START_MASTER(threading)
   if ( l->depth == 0 ) printf0("\ninitial coarse grid correction is defined\n");
+  END_MASTER(threading)
 }
 
 

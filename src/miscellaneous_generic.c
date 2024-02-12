@@ -93,7 +93,9 @@ void coarsest_level_resets_PRECISION( level_struct* l, struct Thread* threading 
                 coarse_solve_odd_even_PRECISION( px, &(lx->oe_op_PRECISION), lx, threading );
                 try_ctr++;
                 if ( try_ctr>=2 && px->gcrodr_PRECISION.CU_usable==0 ) {
+                  START_MASTER(threading)
                   printf0( "Tried 2 times to construct a recycling/deflation subspace, failed\n" );
+                  END_MASTER(threading)
                   break;
                 }
               }
