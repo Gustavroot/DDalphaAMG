@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -137,7 +137,7 @@ void solve_driver( level_struct *l, struct Thread *threading ) {
   
   rhs_define( source, l, threading );
 
-  coarsest_level_resets( l, threading );
+  //coarsest_level_resets( l, threading );
 
   solve( solution, source, l, threading );
 

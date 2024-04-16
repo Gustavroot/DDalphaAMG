@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -500,6 +500,11 @@ void coarse_oddeven_free_PRECISION( level_struct *l ) {
 void coarse_hopping_term_PRECISION( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op,
                                     const int amount, level_struct *l, struct Thread *threading ) {
 
+#ifdef VECTORIZE_COARSE_OPERATOR_PRECISION
+  coarse_hopping_term_PRECISION_vectorized(  out,  in, op, amount, l, threading  );
+
+#else
+
   START_NO_HYPERTHREADS(threading)
 
   int mu, i, index, num_site_var=l->num_lattice_site_var,
@@ -631,6 +636,7 @@ void coarse_hopping_term_PRECISION( vector_PRECISION out, vector_PRECISION in, o
   END_LOCKED_MASTER(threading)
 
   END_NO_HYPERTHREADS(threading)
+#endif
 }
 
 
@@ -1230,6 +1236,8 @@ void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECIS
 #endif
 
 #ifdef POLYPREC
+  // TODO : there should be some sort of check after calling re_construct_lejas_PRECISION(...)
+  //        to make sure that we can do the following function pointer assignment
   START_MASTER(threading)
   p->preconditioner = p->polyprec_PRECISION.preconditioner;
   END_MASTER(threading)
@@ -1237,9 +1245,7 @@ void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECIS
   SYNC_MASTER_TO_ALL(threading)
 #endif
 
-// LAST STAGE
 #ifdef GCRODR
-//#if 0
   fgmres_iters = flgcrodr_PRECISION( p, l, threading );
 #else
   fgmres_iters = fgmres_PRECISION( p, l, threading );
@@ -1310,13 +1316,17 @@ void coarse_apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECI
   vector_PRECISION_define( tmp[0], 0, start, end, l );
   SYNC_CORES(threading)
   PROF_PRECISION_START( _NC, threading );
+  PROF_PRECISION_START( _HOPPING, threading );
   coarse_hopping_term_PRECISION( tmp[0], in, op, _ODD_SITES, l, threading );
+  PROF_PRECISION_STOP( _HOPPING, 1, threading );
   PROF_PRECISION_STOP( _NC, 0, threading );
   PROF_PRECISION_START( _SC, threading );
   coarse_diag_oo_inv_PRECISION( tmp[1], tmp[0], op, l, threading );
   PROF_PRECISION_STOP( _SC, 1, threading );
   PROF_PRECISION_START( _NC, threading );
+  PROF_PRECISION_START( _NHOPPING, threading );
   coarse_n_hopping_term_PRECISION( out, tmp[1], op, _EVEN_SITES, l, threading );
+  PROF_PRECISION_STOP( _NHOPPING, 1, threading );
   PROF_PRECISION_STOP( _NC, 1, threading );
 //#endif
 }

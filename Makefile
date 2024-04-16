@@ -48,36 +48,58 @@ endif
 #COMMON_COMPILE_FLAGS += -DRICHARDSON_SMOOTHER
 
 # include twisted mass term at the coarsest level
-#COMMON_COMPILE_FLAGS += -DTM_COARSEST
+COMMON_COMPILE_FLAGS += -DTM_COARSEST
 
 # LAPACK is needed for coarsest-level improvements
-#LAPACK_DIR = dependencies/lapack-3.9.0
-#LAPACKE_DIR = $(LAPACK_DIR)/LAPACKE
-#LAPACKE_INCLUDE = $(LAPACKE_DIR)/include
-#BLASLIB      = $(LAPACK_DIR)/librefblas.a
-#LAPACKLIB    = $(LAPACK_DIR)/liblapack.a
-#LAPACKELIB   = $(LAPACK_DIR)/liblapacke.a
-#LAPACK_LIBRARIES = $(LAPACKELIB) $(LAPACKLIB) $(BLASLIB)
-#COMMON_COMPILE_FLAGS += -I$(LAPACKE_INCLUDE)
+LAPACK_DIR = dependencies/lapack-3.9.0
+LAPACKE_DIR = $(LAPACK_DIR)/LAPACKE
+LAPACKE_INCLUDE = $(LAPACKE_DIR)/include
+BLASLIB      = $(LAPACK_DIR)/librefblas.a
+LAPACKLIB    = $(LAPACK_DIR)/liblapack.a
+LAPACKELIB   = $(LAPACK_DIR)/liblapacke.a
+LAPACK_LIBRARIES = $(LAPACKELIB) $(LAPACKLIB) $(BLASLIB)
+COMMON_COMPILE_FLAGS += -I$(LAPACKE_INCLUDE)
 
 # coarsest-level improvements
-#COMMON_COMPILE_FLAGS += -DGCRODR
-#COMMON_COMPILE_FLAGS += -DPOLYPREC
+COMMON_COMPILE_FLAGS += -DGCRODR
+COMMON_COMPILE_FLAGS += -DPOLYPREC
 
 ## Defines
 COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE) #-DGPU2GPU_COMMS_VIA_CPUS
 ifeq ($(SSE_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DSSE
+ifeq ($(AVX512_ENABLER),yes)
+	COMMON_COMPILE_FLAGS += -DAVX512
+else 
+ifeq ($(AVX_ENABLER),yes)
+	COMMON_COMPILE_FLAGS += -DAVX2 -DAVX
 endif
+endif
+endif
+
 ifeq ($(CUDA_ENABLER),yes)
 	COMMON_COMPILE_FLAGS += -DCUDA_OPT
 endif
 
 COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTEST
+
+ifeq ($(CUDA_ENABLER),yes)
 COMPILE_FLAGS += -fopenmp -DOPENMP
-ifeq ($(SSE_ENABLER),yes)
-	COMPILE_FLAGS += -msse4.2
+else
+COMPILE_FLAGS += -fopenmp
 endif
+
+ifeq ($(SSE_ENABLER),yes)
+	COMPILE_FLAGS += -msse4.2 -msse
+ifeq ($(AVX512_ENABLER),yes)
+	COMPILE_FLAGS += -mavx512vl -mavx512f -mfma
+else
+ifeq ($(AVX_ENABLER),yes)
+	COMPILE_FLAGS += -mavx -mavx2 -mfma
+endif
+endif
+endif
+
 # Extra Warnings that developers should fix but don't.
 # This is a C only flag as implicit function declaration is forbidden in C++ anyways.
 COMPILE_FLAGS += -Wall -Werror-implicit-function-declaration
@@ -97,7 +119,13 @@ ifdef CUDA_CODE
 endif
 
 COMPILE_FLAGS_CUDA = $(NVCC_ARCHITECTURE_FLAGS) -rdc=true $(COMMON_COMPILE_FLAGS)
+
+ifeq ($(CUDA_ENABLER),yes)
 COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall"
+else
+COMPILE_FLAGS_CUDA += -Xcompiler "-fopenmp -Wall"
+endif
+
 ifeq ($(SSE_ENABLER),yes)
 	COMPILE_FLAGS_CUDA += -Xcompiler "-msse4.2"
 endif
@@ -124,19 +152,19 @@ wilson: dd_alpha_amg dd_alpha_amg_db
 
 ifeq ($(CUDA_ENABLER),yes)
 dd_alpha_amg : $(OBJ) $(OBJ_CUDA)
-	# TODO : check if putting LAPACK at the end of this nvcc compilation is appropriate
 	$(NVCC) $(NVCC_LINK_FLAGS) -o $@ $(OBJ) $(OBJ_CUDA) $(LAPACK_LIBRARIES) -lgfortran
 else
 dd_alpha_amg : $(OBJ)
+#	$(CC) -o $@ $(OBJ) $(LINK_FLAGS)
 	$(CC) $(LINK_FLAGS) -o $@ $(OBJ) -lmpi -lgomp -lm $(LAPACK_LIBRARIES) -lgfortran
 endif
 
 ifeq ($(CUDA_ENABLER),yes)
 dd_alpha_amg_db : $(OBJDB) $(OBJ_CUDADB)
-	# TODO : check if putting LAPACK at the end of this nvcc compilation is appropriate
 	$(NVCC) -g $(NVCC_LINK_FLAGS) -o $@ $(OBJDB) $(OBJ_CUDADB) $(LAPACK_LIBRARIES) -lgfortran
 else
 dd_alpha_amg_db : $(OBJDB)
+#	$(CC) -g -o $@ $(OBJDB) $(LINK_FLAGS)
 	$(CC) -g $(LINK_FLAGS) -o $@ $(OBJDB) -lmpi -lgomp -lm $(LAPACK_LIBRARIES) -lgfortran
 endif
 

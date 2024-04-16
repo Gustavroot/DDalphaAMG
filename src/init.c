@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -111,8 +111,10 @@ void next_level_setup( vector_double *V, level_struct *l, struct Thread *threadi
       }
     }
   }
-  
+
+  START_MASTER(threading)
   if ( l->depth == 0 ) printf0("\ninitial coarse grid correction is defined\n");
+  END_MASTER(threading)
 }
 
 
@@ -1222,8 +1224,8 @@ void validate_parameters( int ls, level_struct *l ) {
 #endif
     }
     
-  for ( i=0; i<g.num_levels-2; i++ )
-    ASSERT( g.num_eig_vect[i] <= g.num_eig_vect[i+1] );
+  //for ( i=0; i<g.num_levels-2; i++ )
+  //  ASSERT( g.num_eig_vect[i] <= g.num_eig_vect[i+1] );
   
   if ( g.odd_even ) {
     int coarse_sites_per_core = 1;

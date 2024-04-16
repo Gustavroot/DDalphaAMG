@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -53,7 +53,7 @@ int main( int argc, char **argv ) {
     printf("\n\n+------------------------------------------------------------------------+\n");
     printf("| The DDalphaAMG solver library.                                         |\n");
     printf("| Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, |\n");
-    printf("|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.   |\n");
+    printf("|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.   |\n");
     printf("|                                                                        |\n");
     printf("| This program comes with ABSOLUTELY NO WARRANTY.                        |\n");
     printf("+------------------------------------------------------------------------+\n\n");

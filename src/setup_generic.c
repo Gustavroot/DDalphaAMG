@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -366,13 +366,14 @@ void re_setup_PRECISION( level_struct *l, struct Thread *threading ) {
     l->p_PRECISION.block_jacobi_PRECISION.BJ_usable = 0;
 #endif
 
-    //printf0("RESET OF FLAGS FOR : BJ, POLYPREC AND GCRO-DR ***\n");
-
     END_MASTER(threading)
+
+    // TODO : some flags being set within this function are redundant as of
+    //        the ones set above
+    coarsest_level_resets_PRECISION( l, threading );
 
     SYNC_MASTER_TO_ALL(threading)
     SYNC_CORES(threading)
-
   }
 #endif
 }
@@ -488,7 +489,7 @@ void test_vector_PRECISION_update( int i, level_struct *l, struct Thread *thread
   if ( l->level > 1 )
     test_vector_PRECISION_update( i, l->next_level, threading );
 
-  if ( !l->idle )
+  if ( !l->idle && i<l->num_eig_vect ) {
 #ifdef CUDA_OPT
     if( l->depth==0 ){
       //printf0("ptr=%p, depth=%d\n", l->p_PRECISION.xtmp, l->depth);
@@ -506,6 +507,7 @@ void test_vector_PRECISION_update( int i, level_struct *l, struct Thread *thread
                                  1.0/global_norm_PRECISION( l->p_PRECISION.x, 0, l->inner_vector_size, l, threading ),
                                  threading->start_index[l->depth], threading->end_index[l->depth], l );
 #endif
+  }
 }
 
 

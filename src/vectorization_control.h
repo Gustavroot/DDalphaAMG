@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -24,7 +24,7 @@
 
 #ifdef SSE
 
-#define SIMD_LENGTH_float 4
+#define SIMD_LENGTH_float  4
 #define SIMD_LENGTH_double 2
 
 #define INTERPOLATION_OPERATOR_LAYOUT_OPTIMIZED_float
@@ -40,12 +40,41 @@
 #include "sse_complex_float_intrinsic.h"
 #include "sse_complex_double_intrinsic.h"
 
+#endif // SSE
+
+#define OPERATOR_COMPONENT_OFFSET_float  (SIMD_LENGTH_float * ((l->num_eig_vect + SIMD_LENGTH_float - 1) / SIMD_LENGTH_float))
+#define OPERATOR_COMPONENT_OFFSET_double (SIMD_LENGTH_double * ((l->num_eig_vect + SIMD_LENGTH_double - 1) / SIMD_LENGTH_double))
+
+#define OPERATOR_TYPE_float  float
+#define OPERATOR_TYPE_double double
+
+
+/**
+ * @brief AVX/AVX512 is based on SSE
+ * @brief The option judgment priority of AVX512 should be higher than that of AVX, 
+ * because when the -mavx512vl/-mavx512f option is turned on during compilation, 
+ * it will be backward compatible with AVX and SSE.
+ */
+
+#if defined(AVX512) || defined(AVX2) || defined(AVX)
+
+#if !defined(SSE)
+#error(SSE Not Defined! Now AVX? requires SSE support, please set SSE_ENABLER = yes.)
 #endif
 
-#define OPERATOR_COMPONENT_OFFSET_float  (SIMD_LENGTH_float *((l->num_eig_vect+SIMD_LENGTH_float -1)/SIMD_LENGTH_float ))
-#define OPERATOR_COMPONENT_OFFSET_double (SIMD_LENGTH_double*((l->num_eig_vect+SIMD_LENGTH_double-1)/SIMD_LENGTH_double))
+#if defined(AVX512)
 
-#define OPERATOR_TYPE_float float
-#define OPERATOR_TYPE_double double
+#define AVX_LENGTH_float  16
+#define AVX_LENGTH_double 8
+#include "vectorized_blas_avx512.h"
+
+#elif defined(AVX2) || defined(AVX)
+
+#define AVX_LENGTH_float  8
+#define AVX_LENGTH_double 4
+#include "vectorized_blas_avx.h"
+
+#endif // if AVX512 else AVX2
+#endif // defined(AVX512) || defined(AVX2) || defined(AVX)
 
 #endif // VECTORIZATION_CONTROL_H

@@ -106,6 +106,9 @@ enum
     _SM4,
     _SMALL1,
     _SMALL2,
+    _HOPPING,
+    _NHOPPING,
+    _SOlV_NC,
     _NUM_PROF
 }; // _NUM_PROF has always to be the last constant!
 enum
