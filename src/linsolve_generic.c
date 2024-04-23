@@ -1679,75 +1679,72 @@ void local_minres_PRECISION( vector_PRECISION phi, vector_PRECISION eta, vector_
 
 
 // used as smoother at the moment
-void fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) { 
+int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) { 
 
 /*********************************************************************************
 * Uses FGCR to solve the system D x = b, where b is taken from p->b and x is 
 * stored in p->x.                                                              
 *********************************************************************************/
 
-  int i, j=-1, iter=0, il, ol, start, end;
+  int k, j, iter=0, ol, start, end;
 
   compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
 
   START_MASTER(threading)
-  //if ( p->timing || p->print ) t0 = MPI_Wtime();
 #if defined(TRACK_RES) && !defined(WILSON_BENCHMARK)  
   if ( p->print ) printf0("+----------------------------------------------------------+\n");
 #endif
   END_MASTER(threading)
 
-  // let's enforce zero initial guess
-  START_MASTER(threading)
-  p->initial_guess_zero = 0;
-  END_MASTER(threading)
-  SYNC_MASTER_TO_ALL(threading)
+  if ( p->initial_guess_zero==1 ) {
+    vector_PRECISION_define( p->x, 0, start, end, l );
+  }
 
-  vector_PRECISION_define( p->x, 0, start, end, l );
-  //norm_r0 = global_norm_PRECISION( p->b, p->v_start, p->v_end, l, threading );
+  // in the notation of the ORISE paper, p->V are the p vectors,
+  // and p->Z the z vectors. Let us make it simpler then by creating
+  // two new pointers
+  vector_PRECISION *Z = p->Z;
+  vector_PRECISION *P = p->V;
 
   for ( ol=0;ol<p->num_restart;ol++ ) {
 
-    if( p->initial_guess_zero ) {
-      vector_PRECISION_copy( p->r, p->b, start, end, l );
-    } else {
-      apply_operator_PRECISION( p->w, p->x, p, l, threading ); // compute w = D*x
-      vector_PRECISION_minus( p->r, p->b, p->w, start, end, l ); // compute r = b - w
-    }
+    // compute the residual
+    apply_operator_PRECISION( p->w, p->x, p, l, threading );
+    vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
 
-    // IMPORTANT : p_{j} are stored in p->V[j], Ap_{j} are stored in p->Z[j]
+    // copy r into P[0]
+    vector_PRECISION_copy( P[0], p->r, start, end, l );
+    // and build the first Z vector
+    apply_operator_PRECISION( Z[0], P[0], p, l, threading );
 
-    complex_PRECISION alphas[p->restart_length];
+    complex_PRECISION alpha;
+    complex_PRECISION betas[p->restart_length];
+    complex_PRECISION deltas[p->restart_length];
 
-    // Check Alg. 3.3 in https://d-nb.info/1141193531/34 , here
-    // we p->V are the u_{k}'s and p->Z the c_{k}'s
+    for ( k=0;k<p->restart_length;k++ ) {
+      // global number of iters
+      iter++;
 
-    for ( il=0;il<p->restart_length;il++ ) {
-      j = il; iter++;
+      deltas[k] = global_inner_product_PRECISION( Z[k], Z[k], p->v_start, p->v_end, l, threading );
+      alpha     = global_inner_product_PRECISION( Z[k], p->r, p->v_start, p->v_end, l, threading ) / deltas[k];
 
-      // store the residual in the current p->V[j]
-      vector_PRECISION_copy( p->V[j], p->r, start, end, l );
+      vector_PRECISION_saxpy( p->x, p->x, P[k], alpha,  start, end, l );
+      vector_PRECISION_saxpy( p->r, p->r, Z[k], -alpha, start, end, l );
 
-      apply_operator_PRECISION( p->Z[j], p->V[j], p, l, threading );
+      apply_operator_PRECISION( p->w, p->r, p, l, threading );
 
-      for ( i=0;i<=(j-1);i++ ) {
-        alphas[i] = global_inner_product_PRECISION( p->Z[i], p->Z[j], p->v_start, p->v_end, l, threading );
-        vector_PRECISION_saxpy( p->Z[j], p->Z[j], p->Z[i], -alphas[i], start, end, l );
-        vector_PRECISION_saxpy( p->V[j], p->V[j], p->V[i], -alphas[i], start, end, l );
+      for ( j=0;j<=k;j++ ) {
+        betas[j] = -global_inner_product_PRECISION( Z[j],p->w, p->v_start, p->v_end, l, threading ) / deltas[j];
       }
 
-      double norm_Zj = global_norm_PRECISION( p->Z[j], p->v_start, p->v_end, l, threading );
-
-      vector_PRECISION_scale( p->Z[j], p->Z[j], 1.0/norm_Zj, start, end, l );
-      vector_PRECISION_scale( p->V[j], p->V[j], 1.0/norm_Zj, start, end, l );
-
-      complex_PRECISION dot_cr = global_inner_product_PRECISION( p->Z[j], p->r, p->v_start, p->v_end, l, threading );
-
-      vector_PRECISION_saxpy( p->x, p->x, p->V[j],  dot_cr, start, end, l );
-      vector_PRECISION_saxpy( p->r, p->r, p->Z[j], -dot_cr, start, end, l );
-
+      vector_PRECISION_copy( P[k+1], p->r, start, end, l );
+      for ( j=0;j<=k;j++ ) { vector_PRECISION_saxpy( P[k+1], P[k+1], P[j], betas[j],  start, end, l ); }
+      vector_PRECISION_copy( Z[k+1], p->w, start, end, l );
+      for ( j=0;j<=k;j++ ) { vector_PRECISION_saxpy( Z[k+1], Z[k+1], Z[j], betas[j],  start, end, l ); }
     }
   }
+
+  return iter;
 }
 
 #ifdef RICHARDSON_SMOOTHER
@@ -1795,7 +1792,7 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
 
 
 // used as smoother at the moment
-void richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+int richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
 
   if ( p->richardson_update_omega==1 ) {
     richardson_update_omega_PRECISION( p, l, threading );
@@ -1821,5 +1818,7 @@ void richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Th
     // 2. update solution
     vector_PRECISION_saxpy( p->x, p->x, p->r, p->omega, start, end, l );
   }
+
+  return n;
 }
 #endif

@@ -86,22 +86,28 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
             START_MASTER(threading)
             l->sp_PRECISION.use_gcr = 1;
             END_MASTER(threading)
+            SYNC_CORES(threading)
 #endif
 #ifdef RICHARDSON_SMOOTHER
             START_MASTER(threading)
             l->sp_PRECISION.use_richardson = 1;
             END_MASTER(threading)
+            SYNC_CORES(threading)
 #endif
+
             solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+
 #ifdef GCR_SMOOTHER
             START_MASTER(threading)
             l->sp_PRECISION.use_gcr = 0;
             END_MASTER(threading)
+            SYNC_CORES(threading)
 #endif
 #ifdef RICHARDSON_SMOOTHER
             START_MASTER(threading)
             l->sp_PRECISION.use_richardson = 0;
             END_MASTER(threading)
+            SYNC_CORES(threading)
 #endif
            }
           else coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
