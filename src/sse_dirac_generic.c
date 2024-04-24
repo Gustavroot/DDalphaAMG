@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -123,7 +123,7 @@ void block_d_plus_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, 
 #if defined(OPTIMIZED_NEIGHBOR_COUPLING_PRECISION) || defined(OPTIMIZED_SELF_COUPLING_PRECISION)
 void sse_clover_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                            int start, int end, level_struct *l, struct Thread *threading );
-void d_plus_clover_PRECISION_cpu(vector_PRECISION eta, complex_PRECISION const * phi,
+void d_plus_clover_PRECISION_cpu(vector_PRECISION eta, complex_PRECISION * phi,
                                  operator_PRECISION_struct *op,
                                  level_struct *l, struct Thread *threading ) {
   RangeHandleType profilingRangeOperator = startProfilingRange("d_plus_clover_PRECISION (SSE)");

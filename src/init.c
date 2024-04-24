@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -111,8 +111,10 @@ void next_level_setup( vector_double *V, level_struct *l, struct Thread *threadi
       }
     }
   }
-  
+
+  START_MASTER(threading)
   if ( l->depth == 0 ) printf0("\ninitial coarse grid correction is defined\n");
+  END_MASTER(threading)
 }
 
 
@@ -652,6 +654,10 @@ void l_init( level_struct *l ) {
   l->x = NULL;
   l->next_level = NULL;
   l->reqs = NULL;
+
+#if defined(GCRODR) || defined(POLYPREC)
+  l->dup_H = 0;
+#endif
 }
 
 
@@ -1006,6 +1012,45 @@ void read_solver_parameters( FILE *in, level_struct *l ) {
   save_pt = &(g.odd_even); g.odd_even = 1;
   read_parameter( &save_pt, "odd even preconditioning:", "%d", 1, in, _DEFAULT_SET );
 
+#ifdef GCRODR
+  save_pt = &(g.gcrodr_k); g.gcrodr_k = 15;
+  read_parameter( &save_pt, "coarse grid gcrodr_k:", "%d", 1, in, _DEFAULT_SET );
+
+  save_pt = &(g.gcrodr_k_setup); g.gcrodr_k_setup = 15;
+  read_parameter( &save_pt, "coarse grid gcrodr_k_setup:", "%d", 1, in, _DEFAULT_SET );
+
+  save_pt = &(g.gcrodr_k_solve); g.gcrodr_k_solve = 15;
+  read_parameter( &save_pt, "coarse grid gcrodr_k_solve:", "%d", 1, in, _DEFAULT_SET );
+
+  save_pt = &(g.gcrodr_upd_itrs_setup); g.gcrodr_upd_itrs_setup = 5;
+  read_parameter( &save_pt, "coarse grid gcrodr_upd_itrs_setup:", "%d", 1, in, _DEFAULT_SET );
+
+  save_pt = &(g.gcrodr_upd_itrs_solve); g.gcrodr_upd_itrs_solve = 5;
+  read_parameter( &save_pt, "coarse grid gcrodr_upd_itrs_solve:", "%d", 1, in, _DEFAULT_SET );
+
+#endif
+
+#ifdef POLYPREC
+  save_pt = &(g.polyprec_d); g.polyprec_d = 5;
+  read_parameter( &save_pt, "coarse grid polyprec_d:", "%d", 1, in, _DEFAULT_SET );
+  g.polyprec_d++;
+
+  save_pt = &(g.polyprec_d_setup); g.polyprec_d_setup = 5;
+  read_parameter( &save_pt, "coarse grid polyprec_d_setup:", "%d", 1, in, _DEFAULT_SET );
+  g.polyprec_d_setup++;
+
+  save_pt = &(g.polyprec_d_solve); g.polyprec_d_solve = 5;
+  read_parameter( &save_pt, "coarse grid polyprec_d_solve:", "%d", 1, in, _DEFAULT_SET );
+  g.polyprec_d_solve++;
+#endif
+
+//#ifdef BLOCK_JACOBI
+#if 0
+  save_pt = &(g.local_polyprec_d); g.local_polyprec_d = 5;
+  read_parameter( &save_pt, "coarse grid local_polyprec_d:", "%d", 1, in, _DEFAULT_SET );
+  g.local_polyprec_d++;
+#endif
+
   save_pt = &(l->real_shift);
   read_parameter( &save_pt, "m0:", "%lf", 1, in, _NO_DEFAULT_SET ); // ensuring downward compatibility
   read_parameter( &save_pt, "solver m0:", "%lf", 1, in, _DEFAULT_SET );
@@ -1179,8 +1224,8 @@ void validate_parameters( int ls, level_struct *l ) {
 #endif
     }
     
-  for ( i=0; i<g.num_levels-2; i++ )
-    ASSERT( g.num_eig_vect[i] <= g.num_eig_vect[i+1] );
+  //for ( i=0; i<g.num_levels-2; i++ )
+  //  ASSERT( g.num_eig_vect[i] <= g.num_eig_vect[i+1] );
   
   if ( g.odd_even ) {
     int coarse_sites_per_core = 1;

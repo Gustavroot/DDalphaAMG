@@ -80,6 +80,36 @@ typedef struct global_struct
     double mu_coarsest;
 #endif
 
+#ifdef GCRODR
+    int gcrodr_k, gcrodr_k_setup, gcrodr_k_solve;
+    int gcrodr_upd_itrs_solve;
+    int gcrodr_upd_itrs_setup;
+    int gcrodr_calling_from_setup;
+#endif
+
+#ifdef POLYPREC
+    int polyprec_d, polyprec_d_setup, polyprec_d_solve;
+#endif
+
+//#ifdef BLOCK_JACOBI
+#if 0
+    int local_polyprec_d;
+#endif
+
+//#ifdef BLOCK_JACOBI
+#if 0
+    double bj_time;
+#endif
+#ifdef GCRODR
+    double gcrodr_LSP_time, gcrodr_buildAB_time, gcrodr_buildCU_time;
+#endif
+
+    double coarsest_time;
+    double matmul_time;
+
+    double avg_b1;
+    double avg_b2;
+    double avg_crst;
 } global_struct;
 
 extern global_struct g;

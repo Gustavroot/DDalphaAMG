@@ -96,6 +96,120 @@ typedef struct
 struct level_struct;
 struct Thread;
 
+#if defined(POLYPREC) || defined(GCRODR)
+  typedef struct
+  {
+    int N, nrhs, lda, ldb, info;
+
+    int *ipiv;
+    vector_PRECISION x, b;
+    complex_PRECISION *Hcc;  
+
+    void (*dirctslvr_PRECISION)();
+
+  } dirctslvr_PRECISION_struct;
+#endif
+
+#if defined(GCRODR) || defined(POLYPREC)
+  // this is both eigensolver and generalized eigensolver
+  typedef struct {
+    char jobvl, jobvr;
+
+    int N, lda, ldb, ldvl, ldvr, info, qr_m, qr_n, qr_lda, qr_k;
+
+    int *ordr_idxs;
+
+    complex_PRECISION *ordr_keyscpy, *qr_tau;
+    vector_PRECISION vl, vr, w, beta, A, B;
+
+    complex_PRECISION **qr_QR, **qr_Q, **qr_R, **qr_Rinv;
+    complex_PRECISION **Hc;
+
+    void (*eigslvr_PRECISION)();
+    void (*gen_eigslvr_PRECISION)();
+  } eigslvr_PRECISION_struct;
+#endif
+
+#ifdef GCRODR
+  typedef struct {
+    int i, k, CU_usable, syst_size, finish, orth_against_Ck, update_CU, recompute_DPCk_poly, recompute_DPCk_plain, upd_ctr;
+
+    PRECISION b_norm, norm_r0;
+
+    vector_PRECISION *Pk, *C, *Cc, *U, *Yk, *hatZ, *hatW;
+//#ifdef BLOCK_JACOBI
+#if 0
+    vector_PRECISION r_aux;
+#endif
+    // Gc is used to copy G
+    complex_PRECISION *lsp_x, *lsp_diag_G, **lsp_H;
+    complex_PRECISION **gev_A, **gev_B, **Bbuff, **QR, **Q, **R, **Rinv, **ort_B, **G, **Gc;
+
+    eigslvr_PRECISION_struct eigslvr;
+
+#if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
+    vector_PRECISION *PC, *DPC;
+#endif
+  } gcrodr_PRECISION_struct;
+#endif
+
+#ifdef POLYPREC
+  typedef struct
+  {
+    int update_lejas;
+    int d_poly;
+    int syst_size;
+      
+    complex_PRECISION **Hc;
+    complex_PRECISION *Hcc;
+    complex_PRECISION **L;
+    complex_PRECISION *col_prods;
+    vector_PRECISION h_ritz;
+    vector_PRECISION lejas;
+    vector_PRECISION random_rhs;
+    vector_PRECISION accum_prod, product, temp, xtmp;
+
+    void (*preconditioner)();
+    void (*preconditioner_bare)();
+
+    eigslvr_PRECISION_struct eigslvr;
+    dirctslvr_PRECISION_struct dirctslvr;
+  } polyprec_PRECISION_struct;
+#endif
+
+//#ifdef BLOCK_JACOBI
+#if 0
+  typedef struct {
+    vector_PRECISION x, b, r, w, *V, *Z;
+    complex_PRECISION **H, *y, *gamma, *c, *s;
+    config_PRECISION *D, *clover;
+    operator_PRECISION_struct *op;
+    PRECISION tol;
+    int num_restart, restart_length, timing, print, kind,
+      initial_guess_zero, layout, v_start, v_end;
+    long int total_storage;
+    void (*eval_operator)();
+
+    polyprec_PRECISION_struct polyprec_PRECISION;
+  } local_gmres_PRECISION_struct;
+
+  typedef struct {
+    int BJ_usable, syst_size;
+    vector_PRECISION b_backup;
+    vector_PRECISION xtmp;
+    local_gmres_PRECISION_struct local_p;
+
+    // for direct solves
+    OPERATOR_TYPE_PRECISION* bj_op_inv_vectorized;
+    OPERATOR_TYPE_PRECISION* bj_op_vectorized;
+    OPERATOR_TYPE_PRECISION* bj_doublet_op_inv_vectorized;
+    OPERATOR_TYPE_PRECISION* bj_doublet_op_vectorized;
+
+    //vector_PRECISION xxxtmp[4];
+
+  } block_jacobi_PRECISION_struct;
+#endif
+
 typedef struct
 {
     vector_PRECISION x, b, r, w, *V, *Z;
@@ -121,6 +235,23 @@ typedef struct
 #ifdef RICHARDSON_SMOOTHER
     int use_richardson,richardson_update_omega;
     PRECISION omega;
+#endif
+
+#ifdef GCRODR
+    gcrodr_PRECISION_struct gcrodr_PRECISION;
+    int was_there_stagnation;
+    vector_PRECISION rhs_bk;
+#endif
+#ifdef POLYPREC
+    polyprec_PRECISION_struct polyprec_PRECISION;
+#endif
+//#ifdef BLOCK_JACOBI
+#if 0
+    block_jacobi_PRECISION_struct block_jacobi_PRECISION;
+#endif
+#if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
+    int syst_size;
+    vector_PRECISION *Va, *Za;
 #endif
 } gmres_PRECISION_struct;
 

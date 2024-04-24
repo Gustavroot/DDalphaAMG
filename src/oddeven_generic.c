@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -287,7 +287,7 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   
   int j, k, k_e, k_o, n=l->num_inner_lattice_sites, oe_offset=0, mu, nu,
       sc_size = 42, lu_dec_size = 42, bs, **bt = NULL,
-      *eot = NULL, *nt = NULL, *tt = NULL, t, z, y, x, le[4], N[4];
+      *eot = NULL, t, z, y, x, le[4], N[4];
   config_double sc_in = in->clover, nc_in = in->D;
   config_PRECISION Aee = NULL, Aoo = NULL;
   operator_PRECISION_struct *op = &(l->oe_op_PRECISION);
@@ -420,8 +420,6 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   MALLOC( op->neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->backward_neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->translation_table, int, le[T]*le[Z]*le[Y]*le[X] );
-  nt = op->neighbor_table;
-  tt = op->translation_table;
   
   define_nt_bt_tt_PRECISION(op, NULL, N, l );
   
