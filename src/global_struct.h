@@ -104,6 +104,10 @@ typedef struct global_struct
     double gcrodr_LSP_time, gcrodr_buildAB_time, gcrodr_buildCU_time;
 #endif
 
+#ifdef RICHARDSON_SMOOTHER
+    int smoother_richardson_BPI_iters;
+#endif
+
     double coarsest_time;
     double matmul_time;
 
