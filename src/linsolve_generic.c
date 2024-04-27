@@ -1757,7 +1757,7 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
 
   // number of power iteration iters, just rough computation
-  int pi_iters = 10;
+  int pi_iters = g.smoother_richardson_BPI_iters;
 
   // do a bit of power iteration to roughly estimate the max eigenvalue
 
