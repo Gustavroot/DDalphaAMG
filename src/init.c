@@ -1078,6 +1078,8 @@ void read_solver_parameters( FILE *in, level_struct *l ) {
 #if defined(RICHARDSON_SMOOTHER)
   save_pt = &(g.smoother_richardson_BPI_iters); g.smoother_richardson_BPI_iters = 10;
   read_parameter( &save_pt, "smoother richardson BPI iters:", "%d", 1, in, _DEFAULT_SET );
+  save_pt = &(g.richardson_sub_degree); g.richardson_sub_degree = 1;
+  read_parameter( &save_pt, "richardson sub degree:", "%d", 1, in, _DEFAULT_SET );
 #endif
 
   save_pt = &(g.restart); g.restart = 10;

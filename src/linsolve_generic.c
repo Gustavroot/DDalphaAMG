@@ -370,6 +370,11 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
                                          &(p->block_jacobi_PRECISION.local_p), l );
   }
 #endif
+
+#ifdef RICHARDSON_SMOOTHER
+  p->richardson_sub_degree = g.richardson_sub_degree;
+  MALLOC( p->omega, PRECISION, p->richardson_sub_degree );
+#endif
 }
 
 
@@ -477,6 +482,10 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
 
     local_fgmres_PRECISION_struct_free( &(p->block_jacobi_PRECISION.local_p), l );
   }
+#endif
+
+#ifdef RICHARDSON_SMOOTHER
+  FREE( p->omega, PRECISION, p->richardson_sub_degree );
 #endif
 }
 
@@ -1750,44 +1759,97 @@ int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *t
 #ifdef RICHARDSON_SMOOTHER
 void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
 
-  int start, end, i;
+  // BPI = block power iteration
+
+  int start, end, i, j, k;
   PRECISION norm;
-  complex_PRECISION lmax;
-  vector_PRECISION v1=p->w, v2=p->r;
+  complex_PRECISION lmaxb, dot_prod;
+
+  // if e.g. we want 2 shifts in Richardson, we use 20 BPI vectors
+  int bpi_base = 10 * p->richardson_sub_degree;
+
+  // allocate the BPI base
+  vector_PRECISION *V = NULL;
+  PUBLIC_MALLOC( V, vector_PRECISION, bpi_base );
+  V[0] = NULL;
+  PUBLIC_MALLOC( V[0], complex_PRECISION, l->inner_vector_size * bpi_base );
+  for( i=1;i<bpi_base;i++ ){
+    V[i] = V[0] + i*l->inner_vector_size;
+  }
+
   compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
 
   // number of power iteration iters, just rough computation
-  int pi_iters = g.smoother_richardson_BPI_iters;
+  int bpi_iters = g.smoother_richardson_BPI_iters;
 
   // do a bit of power iteration to roughly estimate the max eigenvalue
 
+  // initially set the BPI vectors to random
   START_MASTER(threading)
-  //vector_PRECISION_define_random( v1, p->v_start, p->v_end, l );
-  vector_PRECISION_define_random( v1, 0, l->inner_vector_size, l );
+  for ( i=0;i<bpi_base;i++ ) {
+    vector_PRECISION_define_random( V[i], 0, l->inner_vector_size, l );
+  }
   END_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
-  norm = global_norm_PRECISION( v1, p->v_start, p->v_end, l, threading );
-  vector_PRECISION_scale( v1, v1, 1.0/norm, start, end, l );
 
-  for ( i=0; i<pi_iters; i++ ) {
-    // 1. apply D
-    apply_operator_PRECISION( v2, v1, p, l, threading );
-
-    // 2. normalize and copy back to original
-    norm = global_norm_PRECISION( v2, p->v_start, p->v_end, l, threading );
-    vector_PRECISION_scale( v1, v2, 1.0/norm, start, end, l );
+  // and then normalize the BPI vectors
+  for ( i=0;i<bpi_base;i++ ) {
+    norm = global_norm_PRECISION( V[i], p->v_start, p->v_end, l, threading );
+    vector_PRECISION_scale( V[i], V[i], 1.0/norm, start, end, l );
   }
 
-  // compute the Rayleigh quotient
-  apply_operator_PRECISION( v2, v1, p, l, threading );
-  norm = global_norm_PRECISION( v1, p->v_start, p->v_end, l, threading );
-  lmax = global_inner_product_PRECISION( v1, v2, p->v_start, p->v_end, l, threading ) / (norm*norm);
+  // do BPI
+
+  for ( i=0;i<bpi_iters;i++ ) {
+    // 1. apply D on all the BPI vectors
+    for ( j=0;j<bpi_base;j++ ) {
+      apply_operator_PRECISION( p->w, V[j], p, l, threading );
+      vector_PRECISION_copy( V[j], p->w, start, end, l );
+    }
+    // 2. orthonormalize the vectors in the base
+    for ( j=0;j<bpi_base;j++ ) {
+      // first project
+      for ( k=0;k<j;k++ ) {
+        // dot product
+        dot_prod = global_inner_product_PRECISION( V[k], V[j], p->v_start, p->v_end, l, threading );
+        // axpy
+        vector_PRECISION_saxpy( V[j], V[j], V[k], -dot_prod, start, end, l );
+      }
+      // then normalize the projected vector
+      norm = global_norm_PRECISION( V[j], p->v_start, p->v_end, l, threading );
+      vector_PRECISION_scale( V[j], V[j], 1.0/norm, start, end, l );
+    }
+  }
+
+  // extract the largest Rayleigh quotients
+
+  complex_PRECISION lmax[p->richardson_sub_degree];
+  for ( i=0;i<p->richardson_sub_degree;i++ ) {
+    lmax[i] = 0.0;
+  }
+  for ( i=0;i<bpi_base;i++ ) {
+    // extract the i-th Rayleigh quotient
+    apply_operator_PRECISION( p->w, V[i], p, l, threading );
+    norm = global_norm_PRECISION( V[i], p->v_start, p->v_end, l, threading );
+    lmaxb = global_inner_product_PRECISION( V[i], p->w, p->v_start, p->v_end, l, threading ) / (norm*norm);
+    // if this i-th Rayleigh quotient is larger than the j-th stored one, replace
+    for ( j=0;j<p->richardson_sub_degree;j++ ) {
+      if ( cabs_PRECISION(lmaxb)>cabs_PRECISION(lmax[j]) ) { lmax[j] = lmaxb; break; }
+    }
+  }
+
+  //p->omega[i%p->richardson_sub_degree]
 
   START_MASTER(threading)
-  p->omega = cabs(lmax);
-  p->omega = 1.0 / (2.0*p->omega / 3.0);
+  for ( i=0;i<p->richardson_sub_degree;i++ ) {
+    p->omega[i] = cabs_PRECISION(lmax[i]);
+    p->omega[i] = 1.0 / (2.0*p->omega[i] / 3.0);
+  }
   END_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
+
+  PUBLIC_FREE( V[0], complex_PRECISION, l->inner_vector_size * bpi_base );
+  PUBLIC_FREE( V, vector_PRECISION, bpi_base );
 }
 
 
@@ -1816,7 +1878,7 @@ int richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thr
     vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
 
     // 2. update solution
-    vector_PRECISION_saxpy( p->x, p->x, p->r, p->omega, start, end, l );
+    vector_PRECISION_saxpy( p->x, p->x, p->r, p->omega[i%p->richardson_sub_degree], start, end, l );
   }
 
   return n;

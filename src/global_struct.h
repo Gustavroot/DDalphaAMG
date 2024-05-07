@@ -105,7 +105,7 @@ typedef struct global_struct
 #endif
 
 #ifdef RICHARDSON_SMOOTHER
-    int smoother_richardson_BPI_iters;
+    int smoother_richardson_BPI_iters, richardson_sub_degree;
 #endif
 
     double coarsest_time;
