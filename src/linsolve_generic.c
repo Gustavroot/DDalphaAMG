@@ -1770,15 +1770,12 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
 
   // allocate the BPI base
   vector_PRECISION *V = NULL;
-  START_MASTER(threading)
-  MALLOC( V, vector_PRECISION, bpi_base );
+  PUBLIC_MALLOC( V, vector_PRECISION, bpi_base );
   V[0] = NULL;
-  MALLOC( V[0], complex_PRECISION, l->inner_vector_size * bpi_base );
+  PUBLIC_MALLOC( V[0], complex_PRECISION, l->inner_vector_size * bpi_base );
   for( i=1;i<bpi_base;i++ ){
     V[i] = V[0] + i*l->inner_vector_size;
   }
-  END_MASTER(threading)
-  SYNC_CORES(threading)
 
   compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
 
@@ -1851,10 +1848,8 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   END_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
 
-  START_MASTER(threading)
-  FREE( V[0], complex_PRECISION, l->inner_vector_size * bpi_base );
-  FREE( V, vector_PRECISION, bpi_base );
-  END_MASTER(threading)
+  PUBLIC_FREE( V[0], complex_PRECISION, l->inner_vector_size * bpi_base );
+  PUBLIC_FREE( V, vector_PRECISION, bpi_base );
 }
 
 
