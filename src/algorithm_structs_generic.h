@@ -233,8 +233,8 @@ typedef struct
     int use_gcr;
 #endif
 #ifdef RICHARDSON_SMOOTHER
-    int use_richardson,richardson_update_omega;
-    PRECISION omega;
+    int use_richardson,richardson_update_omega,richardson_sub_degree;
+    PRECISION *omega;
 #endif
 
 #ifdef GCRODR
