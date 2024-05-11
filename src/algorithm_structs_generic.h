@@ -58,6 +58,8 @@ typedef struct
     cuda_vector_PRECISION prpT_gpu, prpZ_gpu, prpY_gpu, prpX_gpu;
     cuda_vector_PRECISION prnT_gpu, prnZ_gpu, prnY_gpu, prnX_gpu;
 
+    cuda_vector_PRECISION buffer_gpu[2];
+
     /** \see neighbor_table */
     int * neighbor_table_gpu;
 #endif

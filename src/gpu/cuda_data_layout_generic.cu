@@ -13,21 +13,12 @@ extern "C" void cuda_define_nt_bt_tt_PRECISION(operator_PRECISION_struct *op, in
 
     int mu, le[4], N[4];
 
-    //int j, k, k_e, k_o, n=l->num_inner_lattice_sites, oe_offset=0, mu, nu,
-    //    sc_size = 42, lu_dec_size = 42, bs, **bt = NULL,
-    //    //*eot = NULL, *nt = NULL, *tt = NULL, t, z, y, x, le[4], N[4];
-    //    *eot = NULL, t, z, y, x, le[4], N[4];
-    //config_double sc_in = in->clover, nc_in = in->D;
-    //config_PRECISION Aee = NULL, Aoo = NULL;
     operator_PRECISION_struct *opx = &(l->oe_op_PRECISION);
 
     for ( mu=0; mu<4; mu++ ) {
       le[mu] = l->local_lattice[mu];
       N[mu] = le[mu]+1;
-      //op->table_dim[mu] = N[mu];
     }
-
-    //CUDA_MALLOC( op->neighbor_table_gpu, int, 5*N[T]*N[Z]*N[Y]*N[X] );
 
     cuda_safe_call(cudaMemcpy(opx->neighbor_table_gpu, opx->neighbor_table,
                               4*N[T]*N[Z]*N[Y]*N[X] * sizeof(int), cudaMemcpyHostToDevice));
@@ -44,5 +35,4 @@ extern "C" void cuda_define_nt_bt_tt_PRECISION(operator_PRECISION_struct *op, in
                                 op->c.num_boundary_sites[i] * sizeof(int), cudaMemcpyHostToDevice));
     }
   }
-  //}
 }

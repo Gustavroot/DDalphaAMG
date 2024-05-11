@@ -27,8 +27,6 @@ __global__ void cuda_site_clover_componentwise_PRECISION(cuda_vector_PRECISION e
   // clover += idx;
   auto caClover = ComponentAccess(clover + idx, num_sites);
 
-  //printf("%f+i%f\n",cu_creal_PRECISION(caPhi[0]),cu_cimag_PRECISION(caPhi[0]));
-
   // diagonal
   caEta[0] = caClover[0] * caPhi[0];
   caEta[1] = caClover[1] * caPhi[1];
@@ -194,35 +192,6 @@ __global__ void cuda_site_diag_oo_inv_componentwise_PRECISION(cuda_vector_PRECIS
     //L+=21;
     k += 21;
   }
-
-  //int i, j, k=0, n;
-  //cu_cmplx_PRECISION z[6];
-
-  //for ( n=0; n<2; n++ ) {
-  //  // z = L^H x
-  //  for ( j=0; j<6; j++ ) { // columns
-  //    for ( i=0; i<j; i++ ) { // rows
-  //      //z[i] += conj_PRECISION(*L)*x[j]; L++;
-  //      z[i] += cu_conj_PRECISION(caClover[k])*caPhi[n*6+j]; k++;
-  //    }
-
-  //    //z[j] = conj_PRECISION(*L)*x[j]; L++;
-  //    z[j] = cu_conj_PRECISION(caClover[k])*caPhi[n*6+j]; k++;
-  //  }
-  //  //L-=21;
-  //  k -= 21;
-  //  // y = L*z;
-  //  for ( i=0; i<6; i++ ) { // rows
-  //    //y[i] = *L * z[0]; L++;
-  //    caEta[n*6+i] = caClover[k]*z[0]; k++;
-  //    for ( j=1; j<=i; j++ ) { // columns
-  //      //y[i] += *L * z[j]; L++;
-  //      caEta[n*6+i] += caClover[k]*z[j]; k++;
-  //    }
-  //  }
-  //  //x+=6;
-  //  //y+=6;
-  //}
 }
 
 __global__ void cuda_prp_T_componentwise_PRECISION(cu_cmplx_PRECISION* prpT,

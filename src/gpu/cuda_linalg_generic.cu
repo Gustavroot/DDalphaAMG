@@ -84,7 +84,6 @@ __global__ void _cuda_vector_PRECISION_minus( cuda_vector_PRECISION z, cuda_vect
 
   int idx = threadIdx.x + blockDim.x * blockIdx.x;
 
-  //z[idx] = x[idx] - y[idx];
   z[idx] = cu_csub_PRECISION( x[idx],y[idx] );
 }
 
