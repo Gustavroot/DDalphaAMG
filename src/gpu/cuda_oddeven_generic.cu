@@ -3999,9 +3999,9 @@ cuda_n_block_PRECISION_boundary_op(				cuda_vector_PRECISION eta, cuda_vector_PR
   }
 }
 
-void cuda_apply_schur_complement_PRECISION_vectorwrapper( cuda_vector_PRECISION out,
-                                                          cuda_vector_PRECISION in,
-                                                          operator_PRECISION_struct *op, level_struct *l ) {
+void cuda_apply_schur_complement_PRECISION( cuda_vector_PRECISION out,
+                                            cuda_vector_PRECISION in,
+                                            operator_PRECISION_struct *op, level_struct *l ) {
 
   // labels for certain vectors, and assignments for in/out in a CUDA sense
   cuda_vector_PRECISION tmp0=op->buffer_gpu[0],tmp1=op->buffer_gpu[1];
@@ -4071,7 +4071,7 @@ extern "C" void cuda_apply_schur_complement_PRECISION_vectorwrapper(vector_PRECI
     l->num_lattice_site_var, op->num_odd_sites);
   cuda_safe_call(cudaDeviceSynchronize());
 
-  cuda_apply_schur_complement_PRECISION_vectorwrapper( out_componentwise_gpu, in_componentwise_gpu, op, l );
+  cuda_apply_schur_complement_PRECISION( out_componentwise_gpu, in_componentwise_gpu, op, l );
 
   // re-order the output back to chuck-wise ordering
   gridSize = minGridSizeForN( op->num_even_sites, diracDefaultBlockSize );
