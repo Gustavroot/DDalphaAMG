@@ -12,13 +12,12 @@
 
 
 
-
-
 # IMPORTANT : this latice i.e. 8to4 is used for development purposes
 
 
 
 #module load GCC ParaStationMPI MPI-settings/CUDA UCX-settings/RC-CUDA
+
 module load nano CUDA GCC OpenMPI MPI-settings/CUDA
 
 jutil env activate -p chwu29

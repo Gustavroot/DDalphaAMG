@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -324,7 +324,42 @@ void re_setup_PRECISION( level_struct *l, struct Thread *threading ) {
       }
       re_setup_PRECISION( l->next_level, threading );
     }
-  }  
+  }
+//#if defined(POLYPREC) || defined(GCRODR) || defined(BLOCK_JACOBI)
+#if defined(POLYPREC) || defined(GCRODR)
+  else {
+
+    SYNC_MASTER_TO_ALL(threading)
+    SYNC_CORES(threading)
+
+    START_MASTER(threading)
+
+    // this runs on level 0 only
+#ifdef POLYPREC
+    l->p_PRECISION.polyprec_PRECISION.update_lejas = 1;
+    l->p_PRECISION.polyprec_PRECISION.preconditioner = NULL;
+#endif
+#ifdef GCRODR
+    l->p_PRECISION.gcrodr_PRECISION.update_CU = 1;
+    l->p_PRECISION.gcrodr_PRECISION.upd_ctr = 0;
+    l->p_PRECISION.gcrodr_PRECISION.CU_usable = 0;
+#endif
+//#ifdef BLOCK_JACOBI
+#if 0
+    l->p_PRECISION.block_jacobi_PRECISION.local_p.polyprec_PRECISION.update_lejas = 1;
+    l->p_PRECISION.block_jacobi_PRECISION.BJ_usable = 0;
+#endif
+
+    END_MASTER(threading)
+
+    // TODO : some flags being set within this function are redundant as of
+    //        the ones set above
+    coarsest_level_resets_PRECISION( l, threading );
+
+    SYNC_MASTER_TO_ALL(threading)
+    SYNC_CORES(threading)
+  }
+#endif
 }
 
 
@@ -438,7 +473,7 @@ void test_vector_PRECISION_update( int i, level_struct *l, struct Thread *thread
   if ( l->level > 1 )
     test_vector_PRECISION_update( i, l->next_level, threading );
 
-  if ( !l->idle ) {
+  if ( !l->idle && i<l->num_eig_vect ) {
 #ifdef CUDA_OPT
     if( l->depth==0 ){
       vector_PRECISION_real_scale( l->is_PRECISION.test_vector[i], l->p_PRECISION.xtmp,

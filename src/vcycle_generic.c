@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -81,7 +81,35 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
           if ( l->depth == 0 ) g5D_solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
           else g5D_coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
         } else {
-          if ( l->depth == 0 ) solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+          if ( l->depth == 0 ) {
+#ifdef GCR_SMOOTHER
+            START_MASTER(threading)
+            l->sp_PRECISION.use_gcr = 1;
+            END_MASTER(threading)
+            SYNC_CORES(threading)
+#endif
+#ifdef RICHARDSON_SMOOTHER
+            START_MASTER(threading)
+            l->sp_PRECISION.use_richardson = 1;
+            END_MASTER(threading)
+            SYNC_CORES(threading)
+#endif
+
+            solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+
+#ifdef GCR_SMOOTHER
+            START_MASTER(threading)
+            l->sp_PRECISION.use_gcr = 0;
+            END_MASTER(threading)
+            SYNC_CORES(threading)
+#endif
+#ifdef RICHARDSON_SMOOTHER
+            START_MASTER(threading)
+            l->sp_PRECISION.use_richardson = 0;
+            END_MASTER(threading)
+            SYNC_CORES(threading)
+#endif
+           }
           else coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
         }
         if ( res == _NO_RES ) {
@@ -94,7 +122,13 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
         START_LOCKED_MASTER(threading)
         l->sp_PRECISION.x = phi; l->sp_PRECISION.b = eta;
         END_LOCKED_MASTER(threading)
+#ifdef GCR_SMOOTHER
+        fgcr_PRECISION( &(l->sp_PRECISION), l, threading );
+#elif RICHARDSON_SMOOTHER
+        richardson_PRECISION( &(l->sp_PRECISION), l, threading );
+#else
         fgmres_PRECISION( &(l->sp_PRECISION), l, threading );
+#endif
       }
     } else if ( g.method == 5 ) {
       vector_PRECISION_copy( l->sp_PRECISION.b, eta, start, end, l );
@@ -147,7 +181,52 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
             if ( g.method == 6 ) {
               g5D_coarse_solve_odd_even_PRECISION( &(l->next_level->p_PRECISION), &(l->next_level->oe_op_PRECISION), l->next_level, threading );
             } else {
+
+              START_MASTER(threading)
+              g.coarsest_time -= MPI_Wtime();
+              END_MASTER(threading)
+
+#ifdef GCRODR
+              // NOTE : something that shouldn't be happening here happens, namely the RHS is changed
+              //        by the function coarse_solve_odd_even_PRECISION(...). So, we back it up and restore
+              //        it as necessary
+
+              int start,end;
+              compute_core_start_end( l->next_level->p_PRECISION.v_start, l->next_level->p_PRECISION.v_end, &start, &end, l->next_level, threading );
+              vector_PRECISION_copy( l->next_level->p_PRECISION.rhs_bk, l->next_level->p_PRECISION.b, start, end, l->next_level );
+
+              START_MASTER(threading)
+              l->next_level->p_PRECISION.was_there_stagnation = 0;
+              END_MASTER(threading)
+              SYNC_MASTER_TO_ALL(threading)
+
+              while( 1 ) {
+                coarse_solve_odd_even_PRECISION( &(l->next_level->p_PRECISION), &(l->next_level->oe_op_PRECISION), l->next_level, threading );
+                if ( l->next_level->p_PRECISION.was_there_stagnation==0 ) { break; }
+                else if ( l->next_level->p_PRECISION.was_there_stagnation==1 && l->next_level->p_PRECISION.gcrodr_PRECISION.CU_usable==1 ) {
+                  // in case there was stagnation, we need to rebuild the coarsest-level data
+                  double time_bk = g.coarsest_time;
+                  coarsest_level_resets_PRECISION( l->next_level, threading );
+                  START_MASTER(threading)
+                  l->next_level->p_PRECISION.was_there_stagnation = 0;
+                  g.coarsest_time = time_bk;
+                  END_MASTER(threading)
+                  SYNC_MASTER_TO_ALL(threading)
+                  vector_PRECISION_copy( l->next_level->p_PRECISION.b, l->next_level->p_PRECISION.rhs_bk, start, end, l->next_level );
+                }
+                else {
+                  // in this case, there was stagnation but no deflation/recycling subspace is being used
+                  break;
+                }
+              }
+#else
               coarse_solve_odd_even_PRECISION( &(l->next_level->p_PRECISION), &(l->next_level->oe_op_PRECISION), l->next_level, threading );
+#endif
+
+              START_MASTER(threading)
+              g.coarsest_time += MPI_Wtime();
+              END_MASTER(threading)
+
               //fgmres_PRECISION( &(l->next_level->p_PRECISION), l->next_level, threading );
             }
           } else {

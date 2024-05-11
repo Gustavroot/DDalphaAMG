@@ -6,6 +6,11 @@ testlogs
 # To be adjusted locally
 #MakeSettings.mk
 
+dependencies/*
+!dependencies/install_dependencies_01.sh
+!dependencies/install_dependencies_02.sh
+!dependencies/install_dependencies_03.sh
+
 # Ignore everything in conf/, except some default code/configs. This allows to add new test configs
 conf/*
 !conf/4x4x4x4b6.0000id3n1
@@ -20,3 +25,4 @@ mpi_err_*
 
 # Editor settings
 .vscode
+benchmark/a.out

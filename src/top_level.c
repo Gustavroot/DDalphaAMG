@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -136,8 +136,14 @@ void solve_driver( level_struct *l, struct Thread *threading ) {
   source   = ((vector_double *)threading->workspace)[1];
   
   rhs_define( source, l, threading );
-  
+
+  //coarsest_level_resets( l, threading );
+
   solve( solution, source, l, threading );
+
+  START_MASTER(threading)
+  printf0( "avg coarsest iters = %f\n",g.avg_crst );
+  END_MASTER(threading)
 
   START_LOCKED_MASTER(threading)
   FREE( solution, complex_double, l->inner_vector_size );

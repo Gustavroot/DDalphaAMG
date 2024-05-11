@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -30,6 +30,7 @@ Hdf5_fileinfo h5info;
 struct common_thread_data *commonthreaddata;
 
 int main( int argc, char **argv ) {
+
   RangeHandleType profilingRangeMain = startProfilingRange("main");
     
 #ifdef HAVE_HDF5
@@ -52,7 +53,7 @@ int main( int argc, char **argv ) {
     printf("\n\n+------------------------------------------------------------------------+\n");
     printf("| The DDalphaAMG solver library.                                         |\n");
     printf("| Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, |\n");
-    printf("|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.   |\n");
+    printf("|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.   |\n");
     printf("|                                                                        |\n");
     printf("| This program comes with ABSOLUTELY NO WARRANTY.                        |\n");
     printf("+------------------------------------------------------------------------+\n\n");
@@ -117,10 +118,14 @@ int main( int argc, char **argv ) {
     method_setup( NULL, &l, &threading );
     endProfilingRange(rangeHandle);
 
+    set_some_coarsest_level_improvs_params_for_setup( &l, &threading );
+
     rangeHandle = startProfilingRange("Update");
     // iterative phase
     method_update( l.setup_iter, &l, &threading );
     endProfilingRange(rangeHandle);
+
+    set_some_coarsest_level_improvs_params_for_solve( &l, &threading );
 
     rangeHandle = startProfilingRange("Solve");
     g.on_solve=1;

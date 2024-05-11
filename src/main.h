@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -200,10 +200,44 @@
   #include "gpu/cuda_coarse_oddeven_double.h"
   #include "gpu/cuda_coarse_operator_float.h"
   #include "gpu/cuda_coarse_operator_double.h"
-  #include "miscellaneous.h"
   #include "gpu/cuda_miscellaneous.h"
 #endif
 
 #ifdef HALF_PREC_STORAGE
   #include "utils_half_precision.h"
+#endif
+
+#include "miscellaneous.h"
+#if defined(GCRODR) || defined(POLYPREC)
+#include "miscellaneous_double.h"
+#include "miscellaneous_float.h"
+#endif
+
+#ifdef GCRODR
+  #include "gcrodr_double.h"
+  #include "gcrodr_float.h"
+#endif
+
+//#ifdef BLOCK_JACOBI
+#if 0
+  #include "block_jacobi_double.h"
+  #include "block_jacobi_float.h"
+  #include "local_polyprec_double.h"
+  #include "local_polyprec_float.h"
+#endif
+
+#if defined(GCRODR) || defined(POLYPREC)
+  #include <lapacke.h>
+#ifdef GCRODR
+  ////#include <mkl_scalapack.h>
+  ////#include <mkl_blacs.h>
+  ////#include <mkl_pblas.h>
+#endif
+  #include "lapackwrap_double.h"
+  #include "lapackwrap_float.h"
+#endif
+
+#ifdef POLYPREC
+  #include "polyprec_double.h"
+  #include "polyprec_float.h"
 #endif

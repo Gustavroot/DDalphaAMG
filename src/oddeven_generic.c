@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori.
+ * Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.
  * 
  * This file is part of the DDalphaAMG solver library.
  * 
@@ -289,7 +289,6 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   
   int j, k, k_e, k_o, n=l->num_inner_lattice_sites, oe_offset=0, mu, nu,
       sc_size = 42, lu_dec_size = 42, bs, **bt = NULL,
-      //*eot = NULL, *nt = NULL, *tt = NULL, t, z, y, x, le[4], N[4];
       *eot = NULL, t, z, y, x, le[4], N[4];
   config_double sc_in = in->clover, nc_in = in->D;
   config_PRECISION Aee = NULL, Aoo = NULL;
@@ -423,12 +422,11 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   MALLOC( op->neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->backward_neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->translation_table, int, le[T]*le[Z]*le[Y]*le[X] );
-  //nt = op->neighbor_table;
-  //tt = op->translation_table;
 
 #ifdef CUDA_OPT
   g.oddeven_copy_nt_2_gpu = 1;
 #endif
+
   define_nt_bt_tt_PRECISION(op, NULL, N, l );
 #ifdef CUDA_OPT
   g.oddeven_copy_nt_2_gpu = 0;
@@ -785,9 +783,24 @@ void solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_stru
   PROF_PRECISION_START( _NC, threading );
   hopping_term_PRECISION( p->b, tmp, op, _EVEN_SITES, l, threading );
   PROF_PRECISION_STOP( _NC, 0, threading );
-  
+
   if ( g.method == 4 )
+#if defined(GCR_SMOOTHER) || defined(RICHARDSON_SMOOTHER)
+    // restricting GCR and Richardson to be used as smoothers at the finest level only
+#ifdef GCR_SMOOTHER
+    if ( p->use_gcr == 1 && l->depth==0 ) {
+      fgcr_PRECISION( p, l, threading );
+#else
+    if ( p->use_richardson == 1 && l->depth==0 ) {
+      richardson_PRECISION( p, l, threading );
+#endif
+    }
+    else {
+      fgmres_PRECISION( p, l, threading );
+    }
+#else
     fgmres_PRECISION( p, l, threading );
+#endif
   else if ( g.method == 5 )
     bicgstab_PRECISION( p, l, threading );
   diag_oo_inv_PRECISION( p->x, p->b, op, l, start, end );
