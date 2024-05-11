@@ -243,6 +243,7 @@ typedef struct
 #ifdef RICHARDSON_SMOOTHER
     int use_richardson,richardson_update_omega,richardson_sub_degree;
     PRECISION *omega;
+    double richardson_factor;
 #endif
 
 #ifdef GCRODR

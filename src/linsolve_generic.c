@@ -387,6 +387,7 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
 #ifdef RICHARDSON_SMOOTHER
   p->richardson_sub_degree = g.richardson_sub_degree;
   MALLOC( p->omega, PRECISION, p->richardson_sub_degree );
+  p->richardson_factor = g.richardson_factor;
 #endif
 
 #ifdef CUDA_OPT
@@ -1805,8 +1806,9 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   PRECISION norm;
   complex_PRECISION lmaxb, dot_prod;
 
-  // if e.g. we want 2 shifts in Richardson, we use 20 BPI vectors
-  int bpi_base = 10 * p->richardson_sub_degree;
+  // if e.g. we want 2 shifts in Richardson, we use 2 BPI vectors .. but this code
+  // is in principle ready to apply block power iteration in a more general way
+  int bpi_base = 1 * p->richardson_sub_degree;
 
   // allocate the BPI base
   vector_PRECISION *V = NULL;
@@ -1883,7 +1885,8 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   START_MASTER(threading)
   for ( i=0;i<p->richardson_sub_degree;i++ ) {
     p->omega[i] = cabs_PRECISION(lmax[i]);
-    p->omega[i] = 1.0 / (2.0*p->omega[i] / 3.0);
+    //p->omega[i] = 1.0 / (2.0*p->omega[i] / 3.0);
+    p->omega[i] = p->richardson_factor / (p->omega[i]);
   }
   END_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
