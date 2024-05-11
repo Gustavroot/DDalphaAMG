@@ -426,7 +426,6 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   //nt = op->neighbor_table;
   //tt = op->translation_table;
 
-  if ( g.my_rank==0 ) printf("From within 'oddeven_setup_PRECISION'\n");
 #ifdef CUDA_OPT
   g.oddeven_copy_nt_2_gpu = 1;
 #endif

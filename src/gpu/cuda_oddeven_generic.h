@@ -60,7 +60,7 @@ struct Thread;
 
   extern void
   cuda_hopping_term_PRECISION(					cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, operator_PRECISION_struct *op,
-                                  				const int amount, level_struct *l, struct Thread *threading );
+                                  				const int amount, level_struct *l );
 
 //#ifdef __cplusplus
 

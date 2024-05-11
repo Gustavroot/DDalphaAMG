@@ -3999,27 +3999,59 @@ cuda_n_block_PRECISION_boundary_op(				cuda_vector_PRECISION eta, cuda_vector_PR
   }
 }
 
+void cuda_apply_schur_complement_PRECISION_vectorwrapper( cuda_vector_PRECISION out,
+                                                          cuda_vector_PRECISION in,
+                                                          operator_PRECISION_struct *op, level_struct *l ) {
+
+  // labels for certain vectors, and assignments for in/out in a CUDA sense
+  cuda_vector_PRECISION tmp0=op->buffer_gpu[0],tmp1=op->buffer_gpu[1];
+
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  // sizes of local vectors, totals as no threading within here
+  int start_even = 0;
+  int end_even = op->num_even_sites*l->num_lattice_site_var;
+  int start_odd = op->num_even_sites*l->num_lattice_site_var;
+  // size of the clover term per lattice site
+  unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
+
+  // set GPU buffer to zero, to be used later in the intermediate steps of this Schur
+  // complement
+  cuda_vector_PRECISION_define(tmp0, make_cu_cmplx_PRECISION(0,0), 0,
+                               l->inner_vector_size, l, _CUDA_SYNC, 0, streams);
+
+  PROF_PRECISION_START_UNTHREADED( _SC );
+  cuda_diag_ee_componentwise_PRECISION(out, in, op->clover_componentwise_gpu, op->num_even_sites, l);
+  PROF_PRECISION_STOP_UNTHREADED( _SC, 1 );
+
+  PROF_PRECISION_START_UNTHREADED( _NC );
+  cuda_hopping_term_PRECISION( tmp0, in, op, _ODD_SITES, l );
+  PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
+
+  PROF_PRECISION_START_UNTHREADED( _SC );
+  cuda_diag_oo_inv_componentwise_PRECISION( tmp1+start_odd, tmp0+start_odd,
+                                            op->clover_componentwise_gpu+css*(start_odd/12),
+                                            op->num_odd_sites, l );
+  PROF_PRECISION_STOP_UNTHREADED( _SC, 1 );
+
+  PROF_PRECISION_START_UNTHREADED( _NC );
+  cuda_hopping_term_PRECISION( tmp0, tmp1, op, _EVEN_SITES, l );
+  PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
+
+  cuda_vector_PRECISION_minus( out, out, tmp0, start_even, end_even, l, _CUDA_SYNC, 0, streams );
+}
+
 extern "C" void cuda_apply_schur_complement_PRECISION_vectorwrapper(vector_PRECISION out, vector_PRECISION in,
                                                                     operator_PRECISION_struct *op, level_struct *l,
                                                                     struct Thread *threading){
-
-  // no threading in combination with GPU computations
-  START_UNTHREADED_FUNCTION(threading)
-
-  int start_even, end_even, start_odd;
 
   // CUDA stream, only one as only the master thread is in charge of this
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
 
-  // sizes of local vectors, totals as no threading within here
-  start_even = 0;
-  end_even = op->num_even_sites*l->num_lattice_site_var;
-  start_odd = op->num_even_sites*l->num_lattice_site_var;
-
   // labels for certain vectors, and assignments for in/out in a CUDA sense
   cuda_vector_PRECISION in_gpu, in_componentwise_gpu, out_gpu, out_componentwise_gpu;
-  cuda_vector_PRECISION tmp0_componentwise_gpu=op->buffer_gpu[0],tmp1_componentwise_gpu=op->buffer_gpu[1];
   in_gpu = op->x_gpu;
   in_componentwise_gpu = op->x_componentwise_gpu;
   out_gpu = op->w_gpu;
@@ -4027,12 +4059,7 @@ extern "C" void cuda_apply_schur_complement_PRECISION_vectorwrapper(vector_PRECI
 
   // copy from CPU to GPU the input vector
   cuda_vector_PRECISION_copy(in_gpu, in, 0, l->num_inner_lattice_sites*l->num_lattice_site_var, l, _H2D,
-                            _CUDA_SYNC, 0, streams);
-
-  // set GPU buffer to zero, to be used later in the intermediate steps of this Schur
-  // complement
-  cuda_vector_PRECISION_define(tmp0_componentwise_gpu, make_cu_cmplx_PRECISION(0,0), 0,
-                               l->inner_vector_size, l, _CUDA_SYNC, 0, streams);
+                             _CUDA_SYNC, 0, streams);
 
   // re-order the input vector in component-wise ordering
   uint gridSize = minGridSizeForN( op->num_even_sites, diracDefaultBlockSize );
@@ -4044,32 +4071,7 @@ extern "C" void cuda_apply_schur_complement_PRECISION_vectorwrapper(vector_PRECI
     l->num_lattice_site_var, op->num_odd_sites);
   cuda_safe_call(cudaDeviceSynchronize());
 
-  unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
-
-  {
-
-    PROF_PRECISION_START( _SC, threading );
-    cuda_diag_ee_componentwise_PRECISION(out_componentwise_gpu, in_componentwise_gpu, op->clover_componentwise_gpu,
-                                         op->num_even_sites, l);
-    PROF_PRECISION_STOP( _SC, 1, threading );
-
-    PROF_PRECISION_START( _NC, threading );
-    cuda_hopping_term_PRECISION( tmp0_componentwise_gpu, in_componentwise_gpu, op, _ODD_SITES, l, threading );
-    PROF_PRECISION_STOP( _NC, 1, threading );
-
-    PROF_PRECISION_START( _SC, threading );
-    cuda_diag_oo_inv_componentwise_PRECISION( tmp1_componentwise_gpu+start_odd, tmp0_componentwise_gpu+start_odd,
-                                              op->clover_componentwise_gpu+css*(start_odd/12), op->num_odd_sites, l );
-    PROF_PRECISION_STOP( _SC, 1, threading );
-
-    PROF_PRECISION_START( _NC, threading );
-    cuda_hopping_term_PRECISION( tmp0_componentwise_gpu, tmp1_componentwise_gpu, op, _EVEN_SITES, l, threading );
-    PROF_PRECISION_STOP( _NC, 1, threading );
-
-    cuda_vector_PRECISION_minus( out_componentwise_gpu, out_componentwise_gpu, tmp0_componentwise_gpu, start_even, end_even,
-                                 l, _CUDA_SYNC, 0, streams );
-
-  }
+  cuda_apply_schur_complement_PRECISION_vectorwrapper( out_componentwise_gpu, in_componentwise_gpu, op, l );
 
   // re-order the output back to chuck-wise ordering
   gridSize = minGridSizeForN( op->num_even_sites, diracDefaultBlockSize );
@@ -4081,20 +4083,23 @@ extern "C" void cuda_apply_schur_complement_PRECISION_vectorwrapper(vector_PRECI
     l->num_lattice_site_var, op->num_odd_sites);
   cuda_safe_call(cudaDeviceSynchronize());
 
-  cuda_vector_PRECISION_copy( out, out_gpu, 0, l->inner_vector_size,
-                              l, _D2H, _CUDA_SYNC, 0, streams );
-
-  END_UNTHREADED_FUNCTION(threading)
+  cuda_vector_PRECISION_copy( out, out_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC, 0, streams );
 }
 
 void cuda_hopping_term_PRECISION( cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, operator_PRECISION_struct *op,
-                                  const int amount, level_struct *l, struct Thread *threading ) {
+                                  const int amount, level_struct *l ) {
 
   RangeHandleType profilingRangeOperator = startProfilingRange("hopping_term_PRECISION (CUDA)");
 
   int start_even, end_even, start_odd, end_odd;
-  compute_core_start_end_custom(0, op->num_even_sites, &start_even, &end_even, l, threading, 1 );
-  compute_core_start_end_custom(op->num_even_sites, op->num_even_sites+op->num_odd_sites, &start_odd, &end_odd, l, threading, 1 );
+
+  start_even = 0;
+  end_even = op->num_even_sites;
+  start_odd = op->num_even_sites;
+  end_odd = op->num_even_sites+op->num_odd_sites;
+
+  //compute_core_start_end_custom(0, op->num_even_sites, &start_even, &end_even, l, threading, 1 );
+  //compute_core_start_end_custom(op->num_even_sites, op->num_even_sites+op->num_odd_sites, &start_odd, &end_odd, l, threading, 1 );
 
   if ( amount!=_EVEN_SITES && amount!=_ODD_SITES ) {
     error0("This function accepts _EVEN_SITES or _ODD_SITES only for amount\n");
@@ -4224,7 +4229,6 @@ extern "C" void cuda_oddeven_setup_PRECISION_init( operator_double_struct *in, l
   op->w_gpu = NULL;
   op->w_componentwise_gpu = NULL;
 
-  op->clover_gpu = NULL;
   op->clover_componentwise_gpu = NULL;
 }
 
@@ -4233,21 +4237,15 @@ extern "C" void cuda_oddeven_setup_PRECISION_alloc( operator_double_struct *in, 
 /*********************************************************************************
 * Reorder data layouts and index tables to allow for odd even preconditioning.
 *********************************************************************************/ 
-  int mu, j, le[4], N[4];
+  int mu, le[4], N[4];
   operator_PRECISION_struct *op = &(l->oe_op_PRECISION);
 
   for ( mu=0; mu<4; mu++ ) {
     le[mu] = l->local_lattice[mu];
     N[mu] = le[mu]+1;
-    //op->table_dim[mu] = N[mu];
   }
 
   CUDA_MALLOC( op->neighbor_table_gpu, int, 5*N[T]*N[Z]*N[Y]*N[X] );
-
-  for ( j=0;j<8;j++ ) {
-    ASSERT(op->c.num_boundary_sites[j] == op->cuda_c.num_boundary_sites[j]);
-    CUDA_MALLOC( op->cuda_c.boundary_table_gpu[j], int, op->c.num_boundary_sites[j] );
-  }
 
   size_t pbs = projection_buffer_size(l->num_lattice_site_var, l->num_lattice_sites);
   CUDA_MALLOC(op->pbuf_gpu, cu_cmplx_PRECISION, pbs);
@@ -4269,8 +4267,12 @@ extern "C" void cuda_oddeven_setup_PRECISION_alloc( operator_double_struct *in, 
   CUDA_MALLOC( op->buffer_gpu[1], cu_cmplx_PRECISION, l->inner_vector_size );
 
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
-  CUDA_MALLOC(op->clover_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
   CUDA_MALLOC(op->clover_componentwise_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
+
+  for ( mu=0;mu<4;mu++ ) {
+    CUDA_MALLOC( op->Ds_componentwise_gpu[mu], cu_cmplx_PRECISION, 9 * l->num_inner_lattice_sites );
+  }
+  CUDA_MALLOC( op->D_gpu, cu_cmplx_PRECISION, 4 * 9 * l->num_inner_lattice_sites );
 }
 
 extern "C" void cuda_oddeven_setup_PRECISION_setup( operator_double_struct *in, level_struct *l ) {
@@ -4278,12 +4280,6 @@ extern "C" void cuda_oddeven_setup_PRECISION_setup( operator_double_struct *in, 
   operator_PRECISION_struct *op = &(l->oe_op_PRECISION);  
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
-
-  for ( mu=0;mu<4;mu++ ) {
-    CUDA_MALLOC( op->Ds_componentwise_gpu[mu], cu_cmplx_PRECISION, 9 * l->num_inner_lattice_sites );
-  }
-
-  CUDA_MALLOC( op->D_gpu, cu_cmplx_PRECISION, 4 * 9 * l->num_inner_lattice_sites );
 
   cuda_ghost_alloc_PRECISION( 0, &(op->cuda_c), l );
 
@@ -4345,20 +4341,15 @@ extern "C" void cuda_oddeven_setup_PRECISION_setup( operator_double_struct *in, 
 
 extern "C" void cuda_oddeven_setup_PRECISION_free( level_struct *l ) {
 
-  int mu, le[4], N[4], j, length[2];
+  int mu, le[4], N[4], length[2];
   operator_PRECISION_struct *op = &(l->oe_op_PRECISION);
 
   for ( mu=0; mu<4; mu++ ) {
     le[mu] = l->local_lattice[mu];
     N[mu] = le[mu]+1;
-    //op->table_dim[mu] = N[mu];
   }
 
   CUDA_FREE( op->neighbor_table_gpu, int, 5*N[T]*N[Z]*N[Y]*N[X] );
-
-  for ( j=0;j<8;j++ ) {
-    CUDA_FREE( op->cuda_c.boundary_table_gpu[j], int, op->c.num_boundary_sites[j] );
-  }
 
   size_t pbs = projection_buffer_size(l->num_lattice_site_var, l->num_lattice_sites);
   CUDA_FREE(op->pbuf_gpu, cu_cmplx_PRECISION, pbs);
@@ -4374,6 +4365,7 @@ extern "C" void cuda_oddeven_setup_PRECISION_free( level_struct *l ) {
   for ( mu=0;mu<4;mu++ ) {
     CUDA_FREE( op->Ds_componentwise_gpu[mu], cu_cmplx_PRECISION, 9 * l->num_inner_lattice_sites );
   }
+  CUDA_FREE( op->D_gpu, cu_cmplx_PRECISION, 4 * 9 * l->num_inner_lattice_sites );
 
   cuda_ghost_free_PRECISION( &(op->cuda_c), l );
 
@@ -4386,16 +4378,15 @@ extern "C" void cuda_oddeven_setup_PRECISION_free( level_struct *l ) {
     CUDA_FREE( op->cuda_c.boundary_table_gpu[2 * mu + 1], int, length[1] );
   }
 
-  CUDA_MALLOC( op->w_gpu, cu_cmplx_PRECISION, l->inner_vector_size );
-  CUDA_MALLOC( op->x_gpu, cu_cmplx_PRECISION, l->inner_vector_size );
-  CUDA_MALLOC( op->w_componentwise_gpu, cu_cmplx_PRECISION, l->inner_vector_size );
-  CUDA_MALLOC( op->x_componentwise_gpu, cu_cmplx_PRECISION, l->inner_vector_size );
+  CUDA_FREE( op->w_gpu, cu_cmplx_PRECISION, l->inner_vector_size );
+  CUDA_FREE( op->x_gpu, cu_cmplx_PRECISION, l->inner_vector_size );
+  CUDA_FREE( op->w_componentwise_gpu, cu_cmplx_PRECISION, l->inner_vector_size );
+  CUDA_FREE( op->x_componentwise_gpu, cu_cmplx_PRECISION, l->inner_vector_size );
 
-  CUDA_MALLOC( op->buffer_gpu[0], cu_cmplx_PRECISION, l->inner_vector_size );
-  CUDA_MALLOC( op->buffer_gpu[1], cu_cmplx_PRECISION, l->inner_vector_size );
+  CUDA_FREE( op->buffer_gpu[0], cu_cmplx_PRECISION, l->inner_vector_size );
+  CUDA_FREE( op->buffer_gpu[1], cu_cmplx_PRECISION, l->inner_vector_size );
 
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
-  CUDA_FREE(op->clover_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
   CUDA_FREE(op->clover_componentwise_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
 }
 

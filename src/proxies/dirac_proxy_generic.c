@@ -40,6 +40,10 @@ void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
 //  apply_schur_complement_PRECISION_cpu(out, in, op, l, threading);
 //#endif
 
+  apply_schur_complement_PRECISION_cpu(out, in, op, l, threading);
+
+  /*
+
   int i;
   vector_PRECISION v1, v2, V1[8],V2[8];
   for ( i=0;i<8;i++ ) {
@@ -88,4 +92,6 @@ void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
 
   MPI_Finalize();
   exit(0);
+
+  */
 }
