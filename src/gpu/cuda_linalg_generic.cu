@@ -87,7 +87,6 @@ __global__ void _cuda_vector_PRECISION_minus( cuda_vector_PRECISION z, cuda_vect
   z[idx] = cu_csub_PRECISION( x[idx],y[idx] );
 }
 
-
 extern "C" void cuda_vector_PRECISION_minus( cuda_vector_PRECISION z, cuda_vector_PRECISION x, cuda_vector_PRECISION y, int start,
                                              int length, level_struct *l, int sync_type, int stream_id, cudaStream_t *streams ){
 
@@ -101,6 +100,31 @@ extern "C" void cuda_vector_PRECISION_minus( cuda_vector_PRECISION z, cuda_vecto
     cuda_safe_call( cudaDeviceSynchronize() );
   }
 
+}
+
+__global__ void _cuda_vector_PRECISION_saxpy( cuda_vector_PRECISION z, cuda_vector_PRECISION x, cuda_vector_PRECISION y, cu_cmplx_PRECISION alpha ){
+
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+
+  z[idx] = cu_cadd_PRECISION( x[idx] , cu_cmul_PRECISION( alpha,y[idx] ) );
+}
+
+extern "C" void cuda_vector_PRECISION_saxpy( cuda_vector_PRECISION z, cuda_vector_PRECISION x, cuda_vector_PRECISION y, cu_cmplx_PRECISION alpha, int start,
+                                             int length, level_struct *l, int sync_type, int stream_id, cudaStream_t *streams ){
+
+  int nr_threads = length;
+  int threads_per_cublock = 32;
+
+  PROF_PRECISION_START( _LA8 );
+
+  _cuda_vector_PRECISION_saxpy<<< nr_threads/threads_per_cublock, threads_per_cublock, 0, streams[stream_id] >>>
+                              ( z+start, x+start, y+start, alpha );
+
+  if( sync_type == _CUDA_SYNC ){
+    cuda_safe_call( cudaDeviceSynchronize() );
+  }
+
+  PROF_PRECISION_STOP( _LA8, (double)(length)/(double)l->inner_vector_size );
 }
 
 #endif

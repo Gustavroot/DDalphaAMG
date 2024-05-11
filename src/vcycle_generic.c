@@ -21,6 +21,9 @@
 
 #include "main.h"
 #include "vcycle_PRECISION.h"
+#ifdef RICHARDSON_SMOOTHER
+#include "proxies/linsolve_proxy_PRECISION.h"
+#endif
 
 void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECISION eta,
                          int n, const int res, complex_PRECISION shift, level_struct *l, struct Thread *threading ) {

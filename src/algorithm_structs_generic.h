@@ -216,11 +216,17 @@ typedef struct
 {
     vector_PRECISION x, b, r, w, *V, *Z;
 #ifdef CUDA_OPT
+    int gpu_syst_size;
+
     // <streams> are objects that live on the CPU, and help the CPU to
     // control the GPU kernels ordering
     cudaStream_t *streams;
 
     vector_PRECISION xtmp;
+
+    cuda_vector_PRECISION b_gpu, b_componentwise_gpu, x_gpu,
+                          x_componentwise_gpu, w_componentwise_gpu,
+                          r_componentwise_gpu;
 #endif
     complex_PRECISION **H, *y, *gamma, *c, *s, shift;
     config_PRECISION *D, *clover;

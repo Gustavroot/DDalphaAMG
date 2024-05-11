@@ -1,10 +1,17 @@
 #include <mpi.h>
 
+#include "gpu/cuda_componentwise.h"
+
+// this block size is for the full-size Schur complement
+constexpr uint diracDefaultBlockSize = 128;
+
 extern "C"{
 
 #define IMPORT_FROM_EXTERN_C
 #include "main.h"
 #undef IMPORT_FROM_EXTERN_C
+
+#include "linsolve_PRECISION.h"
 
 void cuda_fgmres_PRECISION_struct_init(gmres_PRECISION_struct* p) {
   p->xtmp = NULL;
@@ -191,4 +198,103 @@ void cuda_fgmres_PRECISION_struct_free(gmres_PRECISION_struct *p, level_struct *
 
 }
 
+}
+
+int cuda_richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l,
+                               struct Thread *threading ) {
+
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  int start, end, i;
+  //compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
+  start = p->v_start;
+  end = p->v_end;
+  int n = p->num_restart * p->restart_length;
+
+  cuda_vector_PRECISION x, w, b, r;
+  x = p->x_componentwise_gpu;
+  w = p->w_componentwise_gpu;
+  b = p->b_componentwise_gpu;
+  r = p->r_componentwise_gpu;
+
+  // enforcing zero initial guess
+  //vector_PRECISION_define( p->x, 0, start, end, l );
+  cuda_vector_PRECISION_define( x, make_cu_cmplx_PRECISION(0,0), start,
+                                end, l, _CUDA_SYNC, 0, streams );
+
+  for ( i=0; i<n; i++ ) {
+    // 1. compute residual
+    //apply_operator_PRECISION( p->w, p->x, p, l, threading );
+    cuda_apply_schur_complement_PRECISION( w, x, p->op, l );
+
+    //vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
+    cuda_vector_PRECISION_minus( r, b, w, start, end, l, _CUDA_SYNC, 0, streams );
+
+    // 2. update solution
+    //vector_PRECISION_saxpy( p->x, p->x, p->r, p->omega[i%p->richardson_sub_degree], start, end, l );
+    cuda_vector_PRECISION_saxpy( x, x, r, make_cu_cmplx_PRECISION(p->omega[i%p->richardson_sub_degree],0.0),
+                                 start, end, l, _CUDA_SYNC, 0, streams );
+  }
+
+  return n;
+}
+
+extern "C" int cuda_richardson_PRECISION_vectorwrapper( gmres_PRECISION_struct *p, level_struct *l,
+                                                        struct Thread *threading ) {
+
+  if ( p->richardson_update_omega==1 ) {
+    richardson_update_omega_PRECISION( p, l, threading );
+    START_MASTER(threading)
+    p->richardson_update_omega = 0;
+    END_MASTER(threading)
+  }
+
+  START_MASTER(threading)
+
+  operator_PRECISION_struct *op = p->op;
+
+  // CUDA stream, only one as only the master thread is in charge of this
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  // labels for certain vectors, and assignments for in/out in a CUDA sense
+  cuda_vector_PRECISION b_gpu, b_componentwise_gpu, x_gpu, x_componentwise_gpu;
+  b_gpu = p->b_gpu;
+  b_componentwise_gpu = p->b_componentwise_gpu;
+  x_gpu = p->x_gpu;
+  x_componentwise_gpu = p->x_componentwise_gpu;
+
+  // copy from CPU to GPU the input vector
+  cuda_vector_PRECISION_copy(b_gpu, p->b, 0, l->num_inner_lattice_sites*l->num_lattice_site_var, l, _H2D,
+                             _CUDA_SYNC, 0, streams);
+
+  // re-order the input vector in component-wise ordering
+  uint gridSize = minGridSizeForN( op->num_even_sites, diracDefaultBlockSize );
+  reorderArrayByComponent<<<gridSize, diracDefaultBlockSize>>>(
+    b_componentwise_gpu, b_gpu, l->num_lattice_site_var, op->num_even_sites);
+  gridSize = minGridSizeForN( op->num_odd_sites, diracDefaultBlockSize );
+  reorderArrayByComponent<<<gridSize, diracDefaultBlockSize>>>(
+    b_componentwise_gpu+l->num_lattice_site_var*op->num_even_sites, b_gpu+l->num_lattice_site_var*op->num_even_sites,
+    l->num_lattice_site_var, op->num_odd_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+
+  cuda_richardson_PRECISION( p, l, threading );
+
+  // re-order the output back to chuck-wise ordering
+  gridSize = minGridSizeForN( op->num_even_sites, diracDefaultBlockSize );
+  reorderArrayByChunks<<<gridSize, diracDefaultBlockSize>>>(
+    x_gpu, x_componentwise_gpu, l->num_lattice_site_var, op->num_even_sites);
+  gridSize = minGridSizeForN( op->num_odd_sites, diracDefaultBlockSize );
+  reorderArrayByChunks<<<gridSize, diracDefaultBlockSize>>>(
+    x_gpu+l->num_lattice_site_var*op->num_even_sites, x_componentwise_gpu+l->num_lattice_site_var*op->num_even_sites,
+    l->num_lattice_site_var, op->num_odd_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+
+  cuda_vector_PRECISION_copy( p->x, x_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC, 0, streams );
+
+  END_MASTER(threading)
+  SYNC_CORES(threading)
+
+  return p->num_restart * p->restart_length;
 }

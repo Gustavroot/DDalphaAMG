@@ -91,6 +91,19 @@ void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   p->block_jacobi_PRECISION.xtmp = NULL;
   local_fgmres_PRECISION_struct_init( &(p->block_jacobi_PRECISION.local_p) );
 #endif
+
+#ifdef RICHARDSON_SMOOTHER
+  p->omega = NULL;
+#endif
+
+#ifdef CUDA_OPT
+  p->w_componentwise_gpu = NULL;
+  p->r_componentwise_gpu = NULL;
+  p->x_componentwise_gpu = NULL;
+  p->x_gpu = NULL;
+  p->b_componentwise_gpu = NULL;
+  p->b_gpu = NULL;
+#endif
 }
 
 
@@ -375,6 +388,20 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
   p->richardson_sub_degree = g.richardson_sub_degree;
   MALLOC( p->omega, PRECISION, p->richardson_sub_degree );
 #endif
+
+#ifdef CUDA_OPT
+  // if these conditions are fulfilled, this is then the finest-level smoother
+  // with method=4, which is GCR, GMRES or Richardson
+  if ( g.method==4 && prec_kind==_NOTHING && l->depth==0 ) {
+    p->gpu_syst_size = vl;
+    CUDA_MALLOC( p->w_componentwise_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->r_componentwise_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->x_componentwise_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->x_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->b_componentwise_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->b_gpu, cu_cmplx_PRECISION, vl );
+  }
+#endif
 }
 
 
@@ -486,6 +513,19 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
 
 #ifdef RICHARDSON_SMOOTHER
   FREE( p->omega, PRECISION, p->richardson_sub_degree );
+#endif
+
+#ifdef CUDA_OPT
+  // if these conditions are fulfilled, this is then the finest-level smoother
+  // with method=4, which is GCR, GMRES or Richardson
+  if ( g.method==4 && p->kind==_NOTHING && l->depth==0 ) {
+    CUDA_FREE( p->w_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->r_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->x_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->x_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->b_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->b_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+  }
 #endif
 }
 
@@ -1852,9 +1892,8 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   PUBLIC_FREE( V, vector_PRECISION, bpi_base );
 }
 
-
 // used as smoother at the moment
-int richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+int richardson_PRECISION_cpu( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
 
   if ( p->richardson_update_omega==1 ) {
     richardson_update_omega_PRECISION( p, l, threading );

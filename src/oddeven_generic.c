@@ -25,6 +25,9 @@
 #include "proxies/dirac_proxy_double.h"
 #include "proxies/data_layout_proxy_PRECISION.h"
 #include "vectorization_dirac_PRECISION.h"
+#ifdef RICHARDSON_SMOOTHER
+#include "proxies/linsolve_proxy_PRECISION.h"
+#endif
 
 #include "operator.h"
 

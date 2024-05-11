@@ -62,14 +62,14 @@ struct Thread;
   cuda_hopping_term_PRECISION(					cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, operator_PRECISION_struct *op,
                                   				const int amount, level_struct *l );
 
-//#ifdef __cplusplus
+#ifdef __cplusplus
 
-//void cuda_apply_schur_complement_PRECISION(cuda_vector_PRECISION out,
-//                                           cuda_vector_PRECISION in,
-//                                           operator_PRECISION_struct *op,
-//                                           level_struct *l, struct Thread *threading );
+void cuda_apply_schur_complement_PRECISION(cuda_vector_PRECISION out,
+                                           cuda_vector_PRECISION in,
+                                           operator_PRECISION_struct *op,
+                                           level_struct *l );
 
-//#endif  // __cplusplus
+#endif  // __cplusplus
 
 extern void cuda_apply_schur_complement_PRECISION_vectorwrapper(
     vector_PRECISION out, vector_PRECISION in,
