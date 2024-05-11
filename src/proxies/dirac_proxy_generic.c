@@ -33,65 +33,9 @@ void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
                                       operator_PRECISION_struct *op, level_struct *l,
                                       struct Thread *threading)
 {
-
-//#ifdef CUDA_OPT
-//  cuda_apply_schur_complement_PRECISION_vectorwrapper(out, in, op, l, threading);
-//#else
-//  apply_schur_complement_PRECISION_cpu(out, in, op, l, threading);
-//#endif
-
+#ifdef CUDA_OPT
+  cuda_apply_schur_complement_PRECISION_vectorwrapper(out, in, op, l, threading);
+#else
   apply_schur_complement_PRECISION_cpu(out, in, op, l, threading);
-
-  /*
-
-  int i;
-  vector_PRECISION v1, v2, V1[8],V2[8];
-  for ( i=0;i<8;i++ ) {
-    V1[i] = (vector_PRECISION) malloc( l->inner_vector_size * sizeof(complex_PRECISION) );
-    V2[i] = (vector_PRECISION) malloc( l->inner_vector_size * sizeof(complex_PRECISION) );
-  }
-
-  printf0( "--- checking now for output:\n" );
-
-  for ( i=0;i<8;i++ ) {
-    vector_PRECISION_define( V1[i], 0, 0, l->inner_vector_size, l );
-    vector_PRECISION_define( V2[i], 0, 0, l->inner_vector_size, l );
-  }
-
-  vector_PRECISION_define_random( in, 0, l->inner_vector_size, l );
-
-  cuda_apply_schur_complement_PRECISION_vectorwrapper(V1[0], in, op, l, threading);
-  apply_schur_complement_PRECISION_cpu(V2[0], in, op, l, threading);
-
-  {
-
-    v1 = V1[0];
-    v2 = V2[0];
-
-    //for ( int i=0;i<l->inner_vector_size;i++ ) {
-    //  if ( creal_PRECISION(v1[i])!=creal_PRECISION(v2[i]) && cimag_PRECISION(v1[i])!=cimag_PRECISION(v2[i]) ) {
-    //    printf0("NEQ v1[%d,%d,%d] = %f+%f\n",i,i/12,op->neighbor_table[i/12],creal_PRECISION(v1[i]),cimag_PRECISION(v1[i]));
-    //    printf0("NEQ v2[%d,%d,%d] = %f+%f\n",i,i/12,op->neighbor_table[i/12],creal_PRECISION(v2[i]),cimag_PRECISION(v2[i]));
-    //  } else {
-    //    printf0("YEQ v1[%d,%d,%d] = %f+%f\n",i,i/12,op->neighbor_table[i/12],creal_PRECISION(v1[i]),cimag_PRECISION(v1[i]));
-    //    printf0("YEQ v2[%d,%d,%d] = %f+%f\n",i,i/12,op->neighbor_table[i/12],creal_PRECISION(v2[i]),cimag_PRECISION(v2[i]));
-    //  }
-    //}
-
-    vector_PRECISION_minus( v1, v1, v2, 0, l->inner_vector_size/2, l );
-    double norm1 = global_norm_PRECISION( v1, 0, l->inner_vector_size/2, l, threading );
-    double norm2 = global_norm_PRECISION( v2, 0, l->inner_vector_size/2, l, threading );
-
-    if ( norm2!=0.0 ) {
-      printf0("relative difference = %.12f\n",norm1/norm2);
-    } else {
-      printf0("numerator = %.12f\n",norm1);
-      printf0("denominator = %.12f\n",norm2);
-    }
-  }
-
-  MPI_Finalize();
-  exit(0);
-
-  */
+#endif
 }
