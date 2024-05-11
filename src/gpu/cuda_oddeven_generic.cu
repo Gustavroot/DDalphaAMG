@@ -4046,6 +4046,8 @@ extern "C" void cuda_apply_schur_complement_PRECISION_vectorwrapper(vector_PRECI
                                                                     operator_PRECISION_struct *op, level_struct *l,
                                                                     struct Thread *threading){
 
+  START_MASTER(threading)
+
   // CUDA stream, only one as only the master thread is in charge of this
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
@@ -4084,6 +4086,9 @@ extern "C" void cuda_apply_schur_complement_PRECISION_vectorwrapper(vector_PRECI
   cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_vector_PRECISION_copy( out, out_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC, 0, streams );
+
+  END_MASTER(threading)
+  SYNC_CORES(threading)
 }
 
 void cuda_hopping_term_PRECISION( cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, operator_PRECISION_struct *op,
