@@ -389,7 +389,8 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
   MALLOC( op->translation_table, int, le[T]*le[Z]*le[Y]*le[X] );
   //nt = op->neighbor_table;
   //tt = op->translation_table;
-  
+
+  if ( g.my_rank==0 ) printf("From within 'coarse_oddeven_setup_PRECISION'\n");
   define_nt_bt_tt_PRECISION(op, NULL, N, l );
   
   // boundary table

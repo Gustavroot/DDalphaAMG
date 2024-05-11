@@ -105,7 +105,8 @@ void cart_define( level_struct *l ) {
     inv_mu_dir = 2*mu+1+MIN(dir,0);
 
     if( l->neighbor_rank[mu_dir]==g.my_rank || l->neighbor_rank[inv_mu_dir]==g.my_rank ){
-      error0("mu=%d is not a good direction for ghost-exch initial test! FIXME!\n", mu);
+      //error0("mu=%d is not a good direction for ghost-exch initial test! FIXME!\n", mu);
+      //warning0("mu=%d is not a good direction for ghost-exch initial test! FIXME!\n", mu);
     }
 
     // buffers for test exchange --> this text exchange is necessary to 'eliminate' an initial overhead

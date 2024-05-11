@@ -13,6 +13,9 @@ void cuda_vector_PRECISION_copy(void *out, void const *in, int start, int size_o
                                 level_struct *l, const int memcpy_kind, const int cuda_async_type,
                                 const int stream_id, cudaStream_t *streams);
 
+void cuda_vector_PRECISION_minus( cuda_vector_PRECISION z, cuda_vector_PRECISION x, cuda_vector_PRECISION y, int start,
+                                  int length, level_struct *l, int sync_type, int stream_id, cudaStream_t *streams );
+
 #ifdef __cplusplus
 }
 #endif

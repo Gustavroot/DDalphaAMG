@@ -7,7 +7,7 @@ struct Thread;
   // device functions
 
   __global__ void
-  cuda_block_site_clover_PRECISION(					cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
+  cuda_block_site_clover_PRECISION(				cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
 		                                                schwarz_PRECISION_struct_on_gpu *s, int thread_id,
                   		                                double csw, int nr_threads_per_DD_block, int* DD_blocks_to_compute,
                                     		                int num_latt_site_var, block_struct* block );
@@ -58,18 +58,27 @@ struct Thread;
                                                                 int* DD_blocks_to_compute, cudaStream_t *streams, int stream_id,
                                                                 int sites_to_solve );
 
-#ifdef __cplusplus
+  extern void
+  cuda_hopping_term_PRECISION(					cuda_vector_PRECISION eta, cuda_vector_PRECISION phi, operator_PRECISION_struct *op,
+                                  				const int amount, level_struct *l, struct Thread *threading );
 
-void cuda_apply_schur_complement_PRECISION(cuda_vector_PRECISION out,
-                                           cuda_vector_PRECISION in,
-                                           operator_PRECISION_struct *op,
-                                           level_struct *l, struct Thread *threading );
+//#ifdef __cplusplus
 
-#endif  // __cplusplus
+//void cuda_apply_schur_complement_PRECISION(cuda_vector_PRECISION out,
+//                                           cuda_vector_PRECISION in,
+//                                           operator_PRECISION_struct *op,
+//                                           level_struct *l, struct Thread *threading );
+
+//#endif  // __cplusplus
 
 extern void cuda_apply_schur_complement_PRECISION_vectorwrapper(
     vector_PRECISION out, vector_PRECISION in,
     operator_PRECISION_struct *op, level_struct *l, struct Thread *threading);
+
+extern void cuda_oddeven_setup_PRECISION_init( operator_double_struct *in, level_struct *l );
+extern void cuda_oddeven_setup_PRECISION_alloc( operator_double_struct *in, level_struct *l ); 
+extern void cuda_oddeven_setup_PRECISION_setup( operator_double_struct *in, level_struct *l ); 
+extern void cuda_oddeven_setup_PRECISION_free( level_struct *l ); 
 
 #endif
 #endif

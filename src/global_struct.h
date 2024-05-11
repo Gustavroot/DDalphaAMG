@@ -76,6 +76,10 @@ typedef struct global_struct
     struct dd_alpha_amg_setup_status mg_setup_status;
     double mass_for_next_solve;
 
+#ifdef CUDA_OPT
+    int oddeven_copy_nt_2_gpu;
+#endif
+
 } global_struct;
 
 extern global_struct g;

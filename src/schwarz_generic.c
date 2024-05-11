@@ -671,6 +671,7 @@ void schwarz_layout_PRECISION_define( schwarz_PRECISION_struct *s, level_struct 
   // define neighbor table (for the application of the entire operator),
   // negative inner boundary table (for communication),
   // translation table (for translation to lexicographical site ordnering)
+  if ( g.my_rank==0 ) printf("From within 'schwarz_layout_PRECISION_define'\n");
   define_nt_bt_tt_PRECISION(&(s->op), s->op.c.boundary_table, dt, l );
 }
 

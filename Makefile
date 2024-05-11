@@ -42,7 +42,7 @@ ifdef CUDA_INCLUDE
 	COMMON_COMPILE_FLAGS += -I$(CUDA_INCLUDE)
 endif
 
-# GMRES as a smoother on GPUs
+# with SSE on, this flag forces GMRES as a smoother to run without vectorization
 COMMON_COMPILE_FLAGS += -DGMRES_ON_GPUS
 
 ## Defines

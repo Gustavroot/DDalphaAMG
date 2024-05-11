@@ -30,6 +30,15 @@ __global__ void cuda_site_clover_componentwise_PRECISION(cuda_vector_PRECISION e
                                                          cu_cmplx_PRECISION const* clover,
                                                          size_t num_sites);
 
+__global__ void cuda_site_diag_ee_componentwise_PRECISION(cuda_vector_PRECISION eta,
+                                                          cu_cmplx_PRECISION const* phi,
+                                                          cu_cmplx_PRECISION const* clover,
+                                                          size_t num_sites);
+__global__ void cuda_site_diag_oo_inv_componentwise_PRECISION(cuda_vector_PRECISION eta,
+                                                              cu_cmplx_PRECISION const* phi,
+                                                              cu_cmplx_PRECISION const* clover,
+                                                              size_t num_sites);
+
 __global__ void cuda_prp_T_componentwise_PRECISION(cu_cmplx_PRECISION* prpT,
                                                    cu_cmplx_PRECISION const* phi, size_t num_sites);
 

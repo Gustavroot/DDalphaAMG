@@ -27,6 +27,8 @@ __global__ void cuda_site_clover_componentwise_PRECISION(cuda_vector_PRECISION e
   // clover += idx;
   auto caClover = ComponentAccess(clover + idx, num_sites);
 
+  //printf("%f+i%f\n",cu_creal_PRECISION(caPhi[0]),cu_cimag_PRECISION(caPhi[0]));
+
   // diagonal
   caEta[0] = caClover[0] * caPhi[0];
   caEta[1] = caClover[1] * caPhi[1];
@@ -102,6 +104,125 @@ __global__ void cuda_site_clover_componentwise_PRECISION(cuda_vector_PRECISION e
   caEta[10] += cu_conj_PRECISION(caClover[39]) * caPhi[9];
   caEta[11] += cu_conj_PRECISION(caClover[40]) * caPhi[9];
   caEta[11] += cu_conj_PRECISION(caClover[41]) * caPhi[10];
+}
+
+__global__ void cuda_site_diag_ee_componentwise_PRECISION(cuda_vector_PRECISION eta,
+                                                          cu_cmplx_PRECISION const* phi,
+                                                          cu_cmplx_PRECISION const* clover,
+                                                          size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites) {
+    // there is no more site for this index
+    return;
+  }
+  auto caEta = ComponentAccess(eta + idx, num_sites);
+  auto caPhi = ComponentAccess(phi + idx, num_sites);
+  // clover += idx;
+  auto caClover = ComponentAccess(clover + idx, num_sites);
+
+  int i, j, k=0, n;
+  cu_cmplx_PRECISION z[6];
+
+  for ( n=0; n<2; n++ ) {
+    // z = L^H x
+    for ( j=0; j<6; j++ ) { // columns
+      for ( i=0; i<j; i++ ) { // rows
+        //z[i] += conj_PRECISION(*L)*x[j]; L++;
+        z[i] += cu_conj_PRECISION(caClover[k])*caPhi[n*6+j]; k++;
+      }
+
+      //z[j] = conj_PRECISION(*L)*x[j]; L++;
+      z[j] = cu_conj_PRECISION(caClover[k])*caPhi[n*6+j]; k++;
+    }
+    //L-=21;
+    k -= 21;
+    // y = L*z;
+    for ( i=0; i<6; i++ ) { // rows
+      //y[i] = *L * z[0]; L++;
+      caEta[n*6+i] = caClover[k]*z[0]; k++;
+      for ( j=1; j<=i; j++ ) { // columns
+        //y[i] += *L * z[j]; L++;
+        caEta[n*6+i] += caClover[k]*z[j]; k++;
+      }
+    }
+    //x+=6;
+    //y+=6;
+  }
+}
+
+__global__ void cuda_site_diag_oo_inv_componentwise_PRECISION(cuda_vector_PRECISION eta,
+                                                              cu_cmplx_PRECISION const* phi,
+                                                              cu_cmplx_PRECISION const* clover,
+                                                              size_t num_sites) {
+  const size_t idx = threadIdx.x + blockDim.x * blockIdx.x;
+  if (idx >= num_sites) {
+    // there is no more site for this index
+    return;
+  }
+  auto caEta = ComponentAccess(eta + idx, num_sites);
+  auto caPhi = ComponentAccess(phi + idx, num_sites);
+  // clover += idx;
+  auto caClover = ComponentAccess(clover + idx, num_sites);
+
+  int i, j, k=0, n;
+
+  for ( n=0; n<2; n++ ) {
+    // forward substitution with L
+    for ( i=0; i<6; i++ ) {
+      //x[i] = b[i];
+      caEta[n*6+i] = caPhi[n*6+i];
+      for ( j=0; j<i; j++ ) {
+        //x[i] = x[i] - *L * x[j]; L++;
+        caEta[n*6+i] = caEta[n*6+i] - caClover[k]*caEta[n*6+j]; k++;
+      }
+      //x[i] = x[i] / *L; L++;
+      caEta[n*6+i] = cu_cdiv_PRECISION(caEta[n*6+i],caClover[k]); k++;
+    }
+    //L -= 21;
+    k -= 21;
+    // backward substitution with L^H
+    for ( i=5; i>=0; i-- ) {
+      for ( j=i+1; j<6; j++ ) {
+        //x[i] = x[i] - conj_PRECISION(L[(j*(j+1))/2 + i]) * x[j];
+        caEta[n*6+i] = caEta[n*6+i] - cu_conj_PRECISION(caClover[k+(j*(j+1))/2+i])*caEta[n*6+j];
+      }
+      //x[i] = x[i] / conj_PRECISION(L[(i*(i+1))/2 + i]);
+      caEta[n*6+i] = cu_cdiv_PRECISION(caEta[n*6+i],cu_conj_PRECISION(caClover[k+(i*(i+1))/2+i]));
+    }
+    //x+=6;
+    //b+=6;
+    //L+=21;
+    k += 21;
+  }
+
+  //int i, j, k=0, n;
+  //cu_cmplx_PRECISION z[6];
+
+  //for ( n=0; n<2; n++ ) {
+  //  // z = L^H x
+  //  for ( j=0; j<6; j++ ) { // columns
+  //    for ( i=0; i<j; i++ ) { // rows
+  //      //z[i] += conj_PRECISION(*L)*x[j]; L++;
+  //      z[i] += cu_conj_PRECISION(caClover[k])*caPhi[n*6+j]; k++;
+  //    }
+
+  //    //z[j] = conj_PRECISION(*L)*x[j]; L++;
+  //    z[j] = cu_conj_PRECISION(caClover[k])*caPhi[n*6+j]; k++;
+  //  }
+  //  //L-=21;
+  //  k -= 21;
+  //  // y = L*z;
+  //  for ( i=0; i<6; i++ ) { // rows
+  //    //y[i] = *L * z[0]; L++;
+  //    caEta[n*6+i] = caClover[k]*z[0]; k++;
+  //    for ( j=1; j<=i; j++ ) { // columns
+  //      //y[i] += *L * z[j]; L++;
+  //      caEta[n*6+i] += caClover[k]*z[j]; k++;
+  //    }
+  //  }
+  //  //x+=6;
+  //  //y+=6;
+  //}
 }
 
 __global__ void cuda_prp_T_componentwise_PRECISION(cu_cmplx_PRECISION* prpT,
@@ -270,10 +391,12 @@ __global__ void cuda_prn_X_componentwise_PRECISION(cu_cmplx_PRECISION* prnX,
 
 __device__ void _store_neighbors_precision(cu_cmplx_PRECISION* dst, cu_cmplx_PRECISION const* src,
                                           int const* neighbors) {
+
   constexpr uint chunkSize = 6;
   for (size_t i = 0; i < chunkSize / 2; i++) {
     size_t consecutiveIdx = (i * blockDim.x) + threadIdx.x;
     size_t chunkIdx = neighbors[(consecutiveIdx / chunkSize) * 4];
+
     size_t valueIdx = consecutiveIdx % chunkSize;
     dst[chunkIdx * chunkSize + valueIdx] = src[consecutiveIdx];
   }
@@ -321,6 +444,7 @@ __global__ void cuda_prn_mvmh_componentwise_PRECISION(cu_cmplx_PRECISION* prp_bu
     pbuf += 3 * num_sites;
   }
   auto caD = ComponentAccess(D + lattice_idx, num_sites);
+
   auto caPbuf = ComponentAccess(pbuf + lattice_idx, num_sites);
   cuda_mvmh_componentwise_PRECISION(localPrpBuf, caD, caPbuf);
   __syncthreads();

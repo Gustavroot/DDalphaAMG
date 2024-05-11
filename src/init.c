@@ -192,8 +192,16 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
       if(l->depth==0)
         smoother_float_def_CUDA( l );
 #endif
-      if ( g.method >= 4 && g.odd_even )
+      if ( g.method >= 4 && g.odd_even ) {
+#ifdef CUDA_OPT
+        cuda_oddeven_setup_float_init( &(g.op_double), l );
+        cuda_oddeven_setup_float_alloc( &(g.op_double), l );
+#endif
         oddeven_setup_float( &(g.op_double), l );
+#ifdef CUDA_OPT
+        cuda_oddeven_setup_float_setup( &(g.op_double), l );
+#endif
+      }
     } else {
       smoother_double_def( l );
 #ifdef CUDA_OPT
@@ -294,8 +302,12 @@ void method_free( level_struct *l ) {
 
   if ( g.method>=0 ) {
     if ( g.mixed_precision ) {
-      if ( g.method >= 4 && g.odd_even )
+      if ( g.method >= 4 && g.odd_even ) {
         oddeven_free_float( l );
+#ifdef CUDA_OPT
+        cuda_oddeven_setup_float_free( l );
+#endif
+      }
 #ifdef CUDA_OPT
       if( l->depth==0 )
         smoother_float_free_CUDA( l );
@@ -466,7 +478,7 @@ void method_init( int *argc, char ***argv, level_struct *l ) {
       error0("only supporting 'block lattice _ mu' a multiple of 4 at the finest level for now.\n");
     }
 
-    if (g.method != 2 && g.method != 0) {
+    if (g.method != 2 && g.method != 0 && g.method != 4) {
       // method 0 (GMRES only) mostly falls back to CPU calculations for now.
       error0("only supporting method=2 and method=0 for now when -DCUDA_OPT enabled. "
         "Check your .ini file.\n");
@@ -677,6 +689,7 @@ void g_init( level_struct *l ) {
 #ifdef CUDA_OPT
   g.cur_gpu_storage = 0;
   g.max_gpu_storage = 0;
+  g.oddeven_copy_nt_2_gpu = 0;
 #endif
   g.in_setup = 0;
 }
