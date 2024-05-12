@@ -231,6 +231,8 @@ typedef struct
                           struct level_struct *l, struct Thread *threading);
 #ifdef GCR_SMOOTHER
     int use_gcr;
+    complex_PRECISION *gcr_buffer_dotprods;
+    complex_PRECISION *gcr_betas_dotprods;
 #endif
 #ifdef RICHARDSON_SMOOTHER
     int use_richardson,richardson_update_omega,richardson_sub_degree;
