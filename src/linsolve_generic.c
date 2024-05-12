@@ -104,6 +104,11 @@ void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   p->b_componentwise_gpu = NULL;
   p->b_gpu = NULL;
 #endif
+
+#ifdef GCR_SMOOTHER
+  p->gcr_buffer_dotprods = NULL;
+  p->gcr_betas_dotprods  = NULL;
+#endif
 }
 
 
@@ -403,6 +408,11 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
     CUDA_MALLOC( p->b_gpu, cu_cmplx_PRECISION, vl );
   }
 #endif
+
+#ifdef GCR_SMOOTHER
+  MALLOC( p->gcr_buffer_dotprods, complex_PRECISION, p->restart_length+1 );
+  MALLOC( p->gcr_betas_dotprods,  complex_PRECISION, p->restart_length+1 );
+#endif
 }
 
 
@@ -528,6 +538,11 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
     CUDA_FREE( p->b_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
   }
 #endif
+
+#ifdef GCR_SMOOTHER
+  FREE( p->gcr_buffer_dotprods, complex_PRECISION, p->restart_length+1 );
+  FREE( p->gcr_betas_dotprods,  complex_PRECISION, p->restart_length+1 );
+#endif
 }
 
 
@@ -601,7 +616,6 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
         p->preconditioner( p->w, NULL, p->Z[0], _NO_RES, l, threading );
       } else {
         apply_operator_PRECISION( p->w, p->x, p, l, threading ); // compute w = D*x
-
       }
       vector_PRECISION_minus( p->r, p->b, p->w, start, end, l ); // compute r = b - w
     }
@@ -1756,11 +1770,20 @@ int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *t
   vector_PRECISION *Z = p->Z;
   vector_PRECISION *P = p->V;
 
+  complex_PRECISION *buffer = p->gcr_buffer_dotprods;
+  complex_PRECISION *betas  = p->gcr_betas_dotprods;
+
   for ( ol=0;ol<p->num_restart;ol++ ) {
 
     // compute the residual
-    apply_operator_PRECISION( p->w, p->x, p, l, threading );
-    vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
+    if ( p->initial_guess_zero==1 && ol==0 ) {
+      // if the initial guess is zero and we're at the first iteration,
+      // just equal the residual to the RHS
+      vector_PRECISION_copy( p->r, p->b, start, end, l );
+    } else {
+      apply_operator_PRECISION( p->w, p->x, p, l, threading );
+      vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
+    }
 
     // copy r into P[0]
     vector_PRECISION_copy( P[0], p->r, start, end, l );
@@ -1768,7 +1791,6 @@ int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *t
     apply_operator_PRECISION( Z[0], P[0], p, l, threading );
 
     complex_PRECISION alpha;
-    complex_PRECISION betas[p->restart_length];
     complex_PRECISION deltas[p->restart_length];
 
     for ( k=0;k<p->restart_length;k++ ) {
@@ -1783,9 +1805,34 @@ int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *t
 
       apply_operator_PRECISION( p->w, p->r, p, l, threading );
 
-      for ( j=0;j<=k;j++ ) {
-        betas[j] = -global_inner_product_PRECISION( Z[j],p->w, p->v_start, p->v_end, l, threading ) / deltas[j];
+      {
+        // orthogonalization
+        complex_PRECISION tmp[k+1];
+
+        process_multi_inner_product_PRECISION( k+1, tmp, Z, p->w, p->v_start, p->v_end, l, threading );
+
+        START_MASTER(threading)
+        for ( j=0; j<=k; j++ )
+          buffer[j] = tmp[j];
+
+        if ( g.num_processes > 1 ) {
+          PROF_PRECISION_START( _ALLR );
+          MPI_Allreduce( buffer, betas, k+1, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
+          PROF_PRECISION_STOP( _ALLR, 1 );
+        } else {
+          for( j=0; j<=k; j++ )
+            betas[j] = buffer[j];
+        }
+
+        for ( j=0; j<=k; j++ )
+          betas[j] = -betas[j]/deltas[j];
+        END_MASTER(threading)
+        SYNC_CORES(threading)
       }
+
+      //for ( j=0;j<=k;j++ ) {
+      //  betas[j] = -global_inner_product_PRECISION( Z[j], p->w, p->v_start, p->v_end, l, threading ) / deltas[j];
+      //}
 
       vector_PRECISION_copy( P[k+1], p->r, start, end, l );
       for ( j=0;j<=k;j++ ) { vector_PRECISION_saxpy( P[k+1], P[k+1], P[j], betas[j],  start, end, l ); }

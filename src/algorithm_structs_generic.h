@@ -240,6 +240,10 @@ typedef struct
 #ifdef GCR_SMOOTHER
     int use_gcr;
 #endif
+
+    complex_PRECISION *gcr_buffer_dotprods;
+    complex_PRECISION *gcr_betas_dotprods;
+
 #ifdef RICHARDSON_SMOOTHER
     int use_richardson,richardson_update_omega,richardson_sub_degree;
     PRECISION *omega;
