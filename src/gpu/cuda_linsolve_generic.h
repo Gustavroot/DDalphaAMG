@@ -23,4 +23,7 @@ void local_minres_PRECISION_CUDA(cuda_vector_PRECISION phi, cuda_vector_PRECISIO
 }
 #endif
 
+extern int cuda_richardson_PRECISION_vectorwrapper( gmres_PRECISION_struct *p, level_struct *l, 
+                                                    struct Thread *threading );
+
 #endif

@@ -34,9 +34,13 @@ extern "C" {
  * \param[in]   l           Data structure with various level-specific information.
  * \param[in]   threading   Thread struct containing information about thread configuration.
  */
-void d_plus_clover_PRECISION(vector_PRECISION eta, complex_PRECISION* phi,
+void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
                              operator_PRECISION_struct *op, level_struct *l,
                              struct Thread *threading);
+
+void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
+                                      operator_PRECISION_struct *op, level_struct *l,
+                                      struct Thread *threading);
 
 #ifdef __cplusplus
 }

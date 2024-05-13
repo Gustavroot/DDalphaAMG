@@ -224,34 +224,18 @@ void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct T
 
       // TODO : explore further error caused here by multiple OpenMP threads when GPU-enabled
 
-      START_LOCKED_MASTER(threading)
-      //printf("(%d) before BLAH1.. \n", g.my_rank);
-      END_LOCKED_MASTER(threading)
-      
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
                           2, _NO_RES, _NO_SHIFT, l, threading );
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
-
-      START_LOCKED_MASTER(threading)
-      //printf("(%d) before BLAH2.. \n", g.my_rank);
-      END_LOCKED_MASTER(threading)
 
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
                           g.method>=4?1:3, _NO_RES, _NO_SHIFT, l, threading );
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
 
-      START_LOCKED_MASTER(threading)
-      //printf("(%d) before BLAH3.. \n", g.my_rank);
-      END_LOCKED_MASTER(threading)
-
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
                           g.method>=4?1:5, _NO_RES, _NO_SHIFT, l, threading );
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
 
-      START_LOCKED_MASTER(threading)
-      //printf("(%d) after BLAH.. \n", g.my_rank);
-      END_LOCKED_MASTER(threading)
-      
       pc += 10;
       START_MASTER(threading)
       if ( pc >= 0.2*pi*pn ) { if ( g.print > 0 ) printf0("%4d%% |", 20*pi); if ( g.my_rank == 0 ) fflush(0); pi++; }
@@ -492,7 +476,6 @@ void test_vector_PRECISION_update( int i, level_struct *l, struct Thread *thread
   if ( !l->idle && i<l->num_eig_vect ) {
 #ifdef CUDA_OPT
     if( l->depth==0 ){
-      //printf0("ptr=%p, depth=%d\n", l->p_PRECISION.xtmp, l->depth);
       vector_PRECISION_real_scale( l->is_PRECISION.test_vector[i], l->p_PRECISION.xtmp,
                                    1.0/global_norm_PRECISION( l->p_PRECISION.xtmp, 0, l->inner_vector_size, l, threading ),
                                    threading->start_index[l->depth], threading->end_index[l->depth], l );
@@ -517,8 +500,6 @@ void inv_iter_inv_fcycle_PRECISION( int setup_iter, level_struct *l, struct Thre
   if( l->depth==0 ){
     START_LOCKED_MASTER(threading)
     cuda_safe_call( cudaMallocHost( (void**)&(l->p_PRECISION.xtmp), l->inner_vector_size * sizeof(complex_PRECISION) ) );
-    //((complex_PRECISION *)threading->workspace)[0] = l->p_PRECISION.xtmp;
-    //printf0("ptr=%p, depth=%d\n", l->p_PRECISION.xtmp, l->depth);
     END_LOCKED_MASTER(threading)
     SYNC_MASTER_TO_ALL(threading)
   }
@@ -551,7 +532,6 @@ void inv_iter_inv_fcycle_PRECISION( int setup_iter, level_struct *l, struct Thre
       for ( int i=0; i<l->num_eig_vect; i++ ) {
 #ifdef CUDA_OPT
         if( l->depth==0 ){
-          //printf0("ptr=%p, depth=%d\n", l->p_PRECISION.xtmp, l->depth);
           vcycle_PRECISION( l->p_PRECISION.xtmp, NULL, l->is_PRECISION.test_vector[i], _NO_RES, l, threading );
         }
         else{

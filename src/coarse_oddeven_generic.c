@@ -422,7 +422,7 @@ void coarse_oddeven_setup_PRECISION( operator_PRECISION_struct *in, int reorder,
   MALLOC( op->neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->backward_neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->translation_table, int, le[T]*le[Z]*le[Y]*le[X] );
-  
+
   define_nt_bt_tt_PRECISION(op, NULL, N, l );
   
   // boundary table

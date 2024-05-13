@@ -3,7 +3,6 @@
 #ifdef CUDA_OPT
 #include "cuda_ghost_PRECISION.h"
 
-
 void smoother_PRECISION_def_CUDA( level_struct *l ) {
   if ( g.method >= 0 )
     schwarz_PRECISION_def_CUDA( &(l->s_PRECISION), &(g.op_double), l );

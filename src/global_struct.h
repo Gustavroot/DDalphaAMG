@@ -76,6 +76,10 @@ typedef struct global_struct
     struct dd_alpha_amg_setup_status mg_setup_status;
     double mass_for_next_solve;
 
+#ifdef CUDA_OPT
+    int oddeven_copy_nt_2_gpu;
+#endif
+
 #ifdef TM_COARSEST
     double mu_coarsest;
 #endif
@@ -106,6 +110,7 @@ typedef struct global_struct
 
 #ifdef RICHARDSON_SMOOTHER
     int smoother_richardson_BPI_iters, richardson_sub_degree;
+    double richardson_factor;
 #endif
 
     double coarsest_time;

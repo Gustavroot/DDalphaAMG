@@ -7,7 +7,7 @@
 #SBATCH --threads-per-core=1
 #SBATCH --output=mpi_out_%j.txt
 #SBATCH --error=mpi_err_%j.txt
-#SBATCH --time=00:59:00
+#SBATCH --time=00:9:00
 #SBATCH --gres=gpu:4 --partition=booster
 
 
@@ -15,6 +15,8 @@
 # IMPORTANT : this latice i.e. 8to4 is used for development purposes
 
 
+
+#module load GCC ParaStationMPI MPI-settings/CUDA UCX-settings/RC-CUDA
 
 module load nano CUDA GCC OpenMPI MPI-settings/CUDA
 

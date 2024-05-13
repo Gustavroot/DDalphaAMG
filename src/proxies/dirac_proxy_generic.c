@@ -2,7 +2,12 @@
 
 #ifdef CUDA_OPT
 #include "gpu/cuda_dirac_PRECISION.h"
+#include "gpu/cuda_oddeven_PRECISION.h"
 #endif
+
+// this is here for testing purposes, for now,
+// of CPU->GPU odd-even smoothers
+#include "oddeven_PRECISION.h"
 
 #include <complex.h>
 #include "dirac_PRECISION.h"
@@ -10,7 +15,10 @@
 #include "linalg_PRECISION.h"
 #include "operator.h"
 
-void d_plus_clover_PRECISION(vector_PRECISION eta, complex_PRECISION* phi,
+#include <string.h>
+#include "data_PRECISION.h"
+
+void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
                              operator_PRECISION_struct *op, level_struct *l,
                              struct Thread *threading)
 {
@@ -18,5 +26,16 @@ void d_plus_clover_PRECISION(vector_PRECISION eta, complex_PRECISION* phi,
   cuda_d_plus_clover_PRECISION_vectorwrapper(eta, phi, op, l, threading);
 #else
   d_plus_clover_PRECISION_cpu(eta, phi, op, l, threading);
+#endif
+}
+
+void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
+                                      operator_PRECISION_struct *op, level_struct *l,
+                                      struct Thread *threading)
+{
+#ifdef CUDA_OPT
+  cuda_apply_schur_complement_PRECISION_vectorwrapper(out, in, op, l, threading);
+#else
+  apply_schur_complement_PRECISION_cpu(out, in, op, l, threading);
 #endif
 }
