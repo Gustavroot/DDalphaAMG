@@ -90,9 +90,9 @@ void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
 
   */
 
-#ifdef CUDA_OPT
-  cuda_apply_schur_complement_PRECISION_vectorwrapper(out, in, op, l, threading);
-#else
+//#ifdef CUDA_OPT
+//  cuda_apply_schur_complement_PRECISION_vectorwrapper(out, in, op, l, threading);
+//#else
   apply_schur_complement_PRECISION_cpu(out, in, op, l, threading);
-#endif
+//#endif
 }
