@@ -1,0 +1,107 @@
+/public/software/compiler/dtk/dtk-23.04/hip/lib:/public/software/compiler/dtk/dtk-23.04/llvm/lib:/public/software/compiler/dtk/dtk-23.04/lib:/public/software/compiler/dtk/dtk-23.04/lib64:/opt/hpc/software/mpi/hpcx/v2.11.0/gcc-7.3.1/lib:/opt/hpc/software/mpi/hpcx/v2.11.0/sharp/lib:/opt/hpc/software/mpi/hpcx/v2.11.0/hcoll/lib:/opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib:/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:/public/home/kelong/software/DDalphaAMG/02_DDalphaAMG_AVX_GPU/lib:/opt/hpc/software/compiler/intel/intel-compiler-2017.5.239/compiler/lib/intel64_lin/:/opt/hpc/software/mpi/pmix/lib:/opt/gridview/ucx/lib:/opt/gridview/ucx/lib/ucx:/opt/hpc/software/mathlib/blas/hygon/0831/lib/:/opt/gridview/slurm/lib:/opt/gridview/slurm/lib64:/opt/gridview/munge/lib::/public/software/compiler/dtk/dtk-23.04/cuda/lib64
+ 
+=======================================================
+ 
+Begin
+2024年 05月 17日 星期五 20:34:41 CST
+SLURM_NODELIST=f15r3n[16-19]
+
+
++------------------------------------------------------------------------+
+| The DDalphaAMG solver library.                                         |
+| Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, |
+|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.   |
+|                                                                        |
+| This program comes with ABSOLUTELY NO WARRANTY.                        |
++------------------------------------------------------------------------+
+
+configuration: /public/home/kelong/Confs/beta6.20_mu-0.2825_ms-0.2310_L48x96/beta6.20_mu-0.2825_ms-0.2310_L48x96_cfg_1600.stout_smeared_rho0.125.lime
+Lattice size nx=48 ny=48 nz=48 nt=96
+Reading configuration in double precision.
+
+Desired average plaquette: 0.0000000000000 in [0,1]
+BASIS0:OPENQCD/DD-HMC BASIS
+antiperiodic boundary conditions in time
+Configuration stored...
+average plaquette: 0.8197968662635 in [0,1]
+
++----------------------------------------------------------+
+| read in and set up the parallel dirac operator           |
+| elapsed wall clock time: 18.1072      seconds            |
++----------------------------------------------------------+
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu+1]" failed: pointer is not NULL (build/gsrc/ghost_float.c:125).
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu+1]" failed: pointer is not NULL (build/gsrc/ghost_float.c:125).
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu+1]" failed: pointer is not NULL (build/gsrc/ghost_float.c:125).
+malloc of "s->streams" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:116).
+cudaMalloc of "s->s_on_gpu" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:122).
+cudaMalloc of "(s->cu_s).buf1" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:130).
+cudaMalloc of "(s->cu_s).buf2" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:131).
+cudaMalloc of "(s->cu_s).buf3" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:132).
+cudaMalloc of "(s->cu_s).buf4" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:133).
+cudaMalloc of "(s->cu_s).buf5" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:134).
+cudaMalloc of "(s->cu_s).buf6" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:135).
+cudaMalloc of "(s->cu_s).local_minres_buffer[0]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:142).
+cudaMalloc of "(s->cu_s).local_minres_buffer[1]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:143).
+cudaMalloc of "(s->cu_s).local_minres_buffer[2]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:144).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+malloc of "s->nr_DD_blocks_in_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:161).
+malloc of "s->nr_DD_blocks_notin_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:162).
+malloc of "s->nr_DD_blocks" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:163).
+malloc of "s->DD_blocks_in_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:164).
+malloc of "s->DD_blocks_notin_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:165).
+malloc of "s->DD_blocks" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:166).
+cudaMalloc of "(s->cu_s).block" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:169).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.oe_clover_vectorized" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:173).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.clover_gpustorg" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:181).
+cudaMalloc of "(s->s_on_gpu_cpubuff).alphas" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:188).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:202).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:202).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+malloc of "(s->cu_s).DD_blocks_in_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:413).
+malloc of "(s->cu_s).DD_blocks" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:415).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.neighbor_table" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:664).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.D" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:679).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:723).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:723).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:723).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+initial definition --- depth: 0
+[0;42m[1;37m|relative error = 0.000000
+2024年 05月 17日 星期五 20:35:40 CST
+End
