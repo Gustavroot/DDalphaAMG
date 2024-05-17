@@ -37,8 +37,6 @@ void fgmres_PRECISION_struct_free(gmres_PRECISION_struct *p, level_struct *l) {
 #ifdef RICHARDSON_SMOOTHER
 int richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
 
-  /*
-
   int start,end;
   vector_PRECISION v1=NULL,v2=NULL,b1=NULL;
 
@@ -85,13 +83,11 @@ int richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thr
   exit(0);
   END_MASTER(threading)
 
-  */
-
-#ifdef CUDA_OPT
-  return cuda_richardson_PRECISION_vectorwrapper( p, l, threading );
-#else
-  return richardson_PRECISION_cpu( p, l, threading );
-#endif
+//#ifdef CUDA_OPT
+//  return cuda_richardson_PRECISION_vectorwrapper( p, l, threading );
+//#else
+//  return richardson_PRECISION_cpu( p, l, threading );
+//#endif
 
   //START_MASTER(threading)
   //FREE( v1, complex_PRECISION, l->inner_vector_size );
