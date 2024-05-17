@@ -36,6 +36,7 @@ void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
                                       struct Thread *threading)
 {
 
+  /*
 
   gmres_PRECISION_struct *p = &(l->sp_PRECISION);
 
@@ -87,12 +88,11 @@ void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
   exit(0);
   END_MASTER(threading)
 
+  */
 
-
-
-//#ifdef CUDA_OPT
-//  cuda_apply_schur_complement_PRECISION_vectorwrapper(out, in, op, l, threading);
-//#else
-//  apply_schur_complement_PRECISION_cpu(out, in, op, l, threading);
-//#endif
+#ifdef CUDA_OPT
+  cuda_apply_schur_complement_PRECISION_vectorwrapper(out, in, op, l, threading);
+#else
+  apply_schur_complement_PRECISION_cpu(out, in, op, l, threading);
+#endif
 }
