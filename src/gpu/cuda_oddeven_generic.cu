@@ -4027,13 +4027,13 @@ void cuda_apply_schur_complement_PRECISION( cuda_vector_PRECISION out,
 
   PROF_PRECISION_START_UNTHREADED( _NC );
   cuda_hopping_term_PRECISION( tmp0, in, op, _ODD_SITES, l );
-  PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
+  PROF_PRECISION_STOP_UNTHREADED( _NC, 0 );
 
   PROF_PRECISION_START_UNTHREADED( _SC );
   cuda_diag_oo_inv_componentwise_PRECISION( tmp1+start_odd, tmp0+start_odd,
                                             op->clover_componentwise_gpu+css*(start_odd/12),
                                             op->num_odd_sites, l );
-  PROF_PRECISION_STOP_UNTHREADED( _SC, 1 );
+  PROF_PRECISION_STOP_UNTHREADED( _SC, 0 );
 
   PROF_PRECISION_START_UNTHREADED( _NC );
   cuda_hopping_term_PRECISION( tmp0, tmp1, op, _EVEN_SITES, l );
@@ -4103,9 +4103,6 @@ void cuda_hopping_term_PRECISION( cuda_vector_PRECISION eta, cuda_vector_PRECISI
   start_odd = op->num_even_sites;
   end_odd = op->num_even_sites+op->num_odd_sites;
 
-  //compute_core_start_end_custom(0, op->num_even_sites, &start_even, &end_even, l, threading, 1 );
-  //compute_core_start_end_custom(op->num_even_sites, op->num_even_sites+op->num_odd_sites, &start_odd, &end_odd, l, threading, 1 );
-
   if ( amount!=_EVEN_SITES && amount!=_ODD_SITES ) {
     error0("This function accepts _EVEN_SITES or _ODD_SITES only for amount\n");
   }
@@ -4124,8 +4121,6 @@ void cuda_hopping_term_PRECISION( cuda_vector_PRECISION eta, cuda_vector_PRECISI
   int num_oe_sites = end-start;
   constexpr size_t blockSize = diracCommonBlockSize;
   uint gridSize = minGridSizeForN( num_oe_sites, blockSize );
-
-  PROF_PRECISION_START_UNTHREADED( _NC );
 
   // Project in positive directions
   cuda_prp_T_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnT_gpu+6*start, phi+12*start, num_oe_sites);
@@ -4197,6 +4192,7 @@ void cuda_hopping_term_PRECISION( cuda_vector_PRECISION eta, cuda_vector_PRECISI
                                                         op->neighbor_table_gpu+4*start, LatticeAxis::X,
                                                         num_oe_sites);
   cuda_pbp_su3_X_componentwise_PRECISION<<<gridSize, blockSize>>>(eta+12*start, op->pbuf_gpu+6*start, num_oe_sites);
+
   cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_ghost_wait_PRECISION(op->prpT_gpu, T, +1, &(op->cuda_c), plus_dir_param, l);
@@ -4210,9 +4206,9 @@ void cuda_hopping_term_PRECISION( cuda_vector_PRECISION eta, cuda_vector_PRECISI
   cuda_pbn_su3_Z_componentwise_PRECISION<<<gridSize, blockSize>>>(eta+12*start, op->prpZ_gpu+6*start, num_oe_sites);
   cuda_pbn_su3_Y_componentwise_PRECISION<<<gridSize, blockSize>>>(eta+12*start, op->prpY_gpu+6*start, num_oe_sites);
   cuda_pbn_su3_X_componentwise_PRECISION<<<gridSize, blockSize>>>(eta+12*start, op->prpX_gpu+6*start, num_oe_sites);
+
   cuda_safe_call(cudaDeviceSynchronize());
 
-  PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
   endProfilingRange(profilingRangeOperator);
 }
 

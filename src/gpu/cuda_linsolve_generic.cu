@@ -200,6 +200,7 @@ void cuda_fgmres_PRECISION_struct_free(gmres_PRECISION_struct *p, level_struct *
 
 }
 
+#ifdef RICHARDSON_SMOOTHER
 int cuda_richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l,
                                struct Thread *threading ) {
 
@@ -252,7 +253,8 @@ extern "C" int cuda_richardson_PRECISION_vectorwrapper( gmres_PRECISION_struct *
 
   START_MASTER(threading)
 
-  operator_PRECISION_struct *op = p->op;
+  //operator_PRECISION_struct *op = p->op;
+  operator_PRECISION_struct *op = &(l->oe_op_PRECISION);
 
   // CUDA stream, only one as only the master thread is in charge of this
   cudaStream_t stream = CU_STREAM_PER_THREAD;
@@ -298,3 +300,4 @@ extern "C" int cuda_richardson_PRECISION_vectorwrapper( gmres_PRECISION_struct *
 
   return p->num_restart * p->restart_length;
 }
+#endif

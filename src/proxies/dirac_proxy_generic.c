@@ -24,11 +24,39 @@ void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
                              operator_PRECISION_struct *op, level_struct *l,
                              struct Thread *threading)
 {
-#ifdef CUDA_OPT
-  cuda_d_plus_clover_PRECISION_vectorwrapper(eta, phi, op, l, threading);
-#else
+
+  int start,end;
+  vector_PRECISION v1=NULL,v2=NULL,v3=NULL;
+
+  start = 0;
+  end   = l->inner_vector_size;
+
+  PUBLIC_MALLOC( v1, complex_PRECISION, l->inner_vector_size );
+  PUBLIC_MALLOC( v2, complex_PRECISION, l->inner_vector_size );
+  PUBLIC_MALLOC( v3, complex_PRECISION, l->inner_vector_size );
+
+  cuda_d_plus_clover_PRECISION_vectorwrapper(v1, phi, op, l, threading);
+  d_plus_clover_PRECISION_cpu(v2, phi, op, l, threading);
+
+  vector_PRECISION_minus( v3, v1, v2, start, end, l );
+  PRECISION norm1 = global_norm_PRECISION( v1, start, end, l, threading );
+  PRECISION norm2 = global_norm_PRECISION( v2, start, end, l, threading );
+  PRECISION norm3 = global_norm_PRECISION( v3, start, end, l, threading );
+
+  START_MASTER(threading)
+  //printf0("relative error = %f\n",norm1/norm2);
+  printf0("norm1 = %f\n",norm1);
+  printf0("norm2 = %f\n",norm2);
+  printf0("norm3 = %f\n\n",norm3);
+  //MPI_Finalize();
+  //exit(0);
+  END_MASTER(threading)
+
+//#ifdef CUDA_OPT
+//  cuda_d_plus_clover_PRECISION_vectorwrapper(eta, phi, op, l, threading);
+//#else
   d_plus_clover_PRECISION_cpu(eta, phi, op, l, threading);
-#endif
+//#endif
 }
 
 void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
@@ -90,9 +118,9 @@ void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
 
   */
 
-//#ifdef CUDA_OPT
-//  cuda_apply_schur_complement_PRECISION_vectorwrapper(out, in, op, l, threading);
-//#else
+#ifdef CUDA_OPT
+  cuda_apply_schur_complement_PRECISION_vectorwrapper(out, in, op, l, threading);
+#else
   apply_schur_complement_PRECISION_cpu(out, in, op, l, threading);
-//#endif
+#endif
 }
