@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH -J T96L48
 #SBATCH -p normal
-#SBATCH -N 4
-#SBATCH -n 16
+#SBATCH -N 8
+#SBATCH -n 32
 #SBATCH --ntasks-per-node=4
 #SBATCH --gres=dcu:4
 #SBATCH --exclusive
@@ -20,7 +20,7 @@ source ${SOFT_DIR}/setup_env.ORISE.sh
 
 echo ${LD_LIBRARY_PATH}
 
-FILE_I="./Richardson-light.ini"
+FILE_I="./T96L48-light.ini"
 
 AMGEXE=${SOFT_DIR}/dd_alpha_amg
 
@@ -30,7 +30,7 @@ echo " "
 echo "Begin"
 date 
 echo "SLURM_NODELIST=${SLURM_NODELIST}"
-mpirun -n 16  ${AMGEXE}  ${FILE_I}  
+mpirun -n 32  ${AMGEXE}  ${FILE_I}  
 date
 echo "End"
 

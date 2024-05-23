@@ -1,0 +1,1295 @@
+/public/software/compiler/dtk/dtk-23.04/hip/lib:/public/software/compiler/dtk/dtk-23.04/llvm/lib:/public/software/compiler/dtk/dtk-23.04/lib:/public/software/compiler/dtk/dtk-23.04/lib64:/opt/hpc/software/mpi/hpcx/v2.11.0/gcc-7.3.1/lib:/opt/hpc/software/mpi/hpcx/v2.11.0/sharp/lib:/opt/hpc/software/mpi/hpcx/v2.11.0/hcoll/lib:/opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib:/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:..//lib:/opt/hpc/software/compiler/intel/intel-compiler-2017.5.239/compiler/lib/intel64_lin/:/opt/hpc/software/mpi/pmix/lib:/opt/hpc/software/mathlib/blas/hygon/0831/lib/:/opt/gridview/slurm/lib:/opt/gridview/slurm/lib64:/opt/gridview/munge/lib::/public/software/compiler/dtk/dtk-23.04/cuda/lib64
+ 
+=======================================================
+ 
+Begin
+2024年 05月 23日 星期四 11:28:34 CST
+SLURM_NODELIST=f13r4n[01-08]
+
+
++------------------------------------------------------------------------+
+| The DDalphaAMG solver library.                                         |
+| Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, |
+|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.   |
+|                                                                        |
+| This program comes with ABSOLUTELY NO WARRANTY.                        |
++------------------------------------------------------------------------+
+
+configuration: /public/home/kelong/Confs/beta6.20_mu-0.2825_ms-0.2310_L48x96/beta6.20_mu-0.2825_ms-0.2310_L48x96_cfg_1600.stout_smeared_rho0.125.lime
+Lattice size nx=48 ny=48 nz=48 nt=96
+Reading configuration in double precision.
+
+Desired average plaquette: 0.0000000000000 in [0,1]
+BASIS0:OPENQCD/DD-HMC BASIS
+antiperiodic boundary conditions in time
+Configuration stored...
+average plaquette: 0.8197968662636 in [0,1]
+
++----------------------------------------------------------+
+| read in and set up the parallel dirac operator           |
+| elapsed wall clock time: 10.721       seconds            |
++----------------------------------------------------------+
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu+1]" failed: pointer is not NULL (build/gsrc/ghost_float.c:125).
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu+1]" failed: pointer is not NULL (build/gsrc/ghost_float.c:125).
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu+1]" failed: pointer is not NULL (build/gsrc/ghost_float.c:125).
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "s->streams" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:116).
+cudaMalloc of "s->s_on_gpu" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:122).
+cudaMalloc of "(s->cu_s).buf2" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:131).
+cudaMalloc of "(s->cu_s).buf4" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:133).
+cudaMalloc of "(s->cu_s).buf5" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:134).
+cudaMalloc of "(s->cu_s).buf6" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:135).
+cudaMalloc of "(s->cu_s).local_minres_buffer[0]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:142).
+cudaMalloc of "(s->cu_s).local_minres_buffer[1]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:143).
+cudaMalloc of "(s->cu_s).local_minres_buffer[2]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:144).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+malloc of "s->nr_DD_blocks_in_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:161).
+malloc of "s->nr_DD_blocks_notin_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:162).
+malloc of "s->nr_DD_blocks" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:163).
+malloc of "s->DD_blocks_in_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:164).
+malloc of "s->DD_blocks_notin_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:165).
+malloc of "s->DD_blocks" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:166).
+cudaMalloc of "(s->cu_s).block" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:169).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.oe_clover_gpustorg" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:172).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.oe_clover_vectorized" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:173).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.clover_gpustorg" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:181).
+cudaMalloc of "(s->s_on_gpu_cpubuff).alphas" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:188).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:202).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:202).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:202).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+malloc of "(s->cu_s).DD_blocks_in_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:413).
+malloc of "(s->cu_s).DD_blocks_notin_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:414).
+malloc of "(s->cu_s).DD_blocks" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:415).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.neighbor_table" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:664).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:723).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:723).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:723).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+initial definition --- depth: 0
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 39.037577 seconds
+
+initial coarse grid correction is defined
+elapsed time: 156.104193 seconds
+
++----------------------------------------------------------+
+| 2-level method                                           |
+| postsmoothing K-cycle                                    |
+| FGMRES + GMRES                                           |
+|          restart length: 10                              |
+|                      m0: -0.282500                       |
+|                     csw: +1.160587                       |
++----------------------------------------------------------+
+|   preconditioner cycles: 1                               |
+|            inner solver: GMRES                           |
+|               precision: single                          |
++---------------------- depth  0 --------------------------+
+|          global lattice: 96  48  48  48                  |
+|           local lattice: 24  24  24  24                  |
+|           block lattice: 4   4   4   4                   |
+|        post smooth iter: 3                               |
+|     smoother inner iter: 4                               |
+|              setup iter: 4                               |
+|            test vectors: 48                              |
++---------------------- depth  1 --------------------------+
+|          global lattice: 24  12  12  12                  |
+|           local lattice: 6   6   6   6                   |
+|           block lattice: 1   1   1   1                   |
+|      coarge grid solver: odd even GMRES                  |
+|              iterations: 80                              |
+|                  cycles: 50                              |
+|               tolerance: 1e-01                           |
++----------------------------------------------------------+
+|          K-cycle length: 5                               |
+|        K-cycle restarts: 2                               |
+|       K-cycle tolerance: 1e-01                           |
++----------------------------------------------------------+
+
+
++----------------------------------------------------------+
+| solver profiling  (time resolution 1.000 ns)             |
++----------------------------------------------------------+
+| depth:   0 / level:   1                time    ( count ) |
++----------------------------------------------------------+
+|    global inner product, float:     3.117818(       528) |
+|   process inner product, float:     6.639680(       960) |
+| 2 flop vector operations, floa:     2.757867(       624) |
+| 6 flop vector operations, floa:     0.777375(       144) |
+| 8 flop vector operations, floa:    10.038903(      1272) |
+|         copy operations, float:     1.082147(       217) |
+|    set value operations, float:    14.150884(       192) |
+|           self coupling, float:     5.075526(       960) |
+|       neighbor coupling, float:    25.625605(       960) |
+|                smoother, float:    80.324983(       192) |
+|      operator comm init, float:     1.112376(     15360) |
+|      operator comm wait, float:     3.651017(     15360) |
+|              allreduces, float:     3.607752(      1776) |
+| Gram-Schmidt on aggregates, fl:    15.041434(         1) |
+|    Hessenberg: qr update float:     0.000198(     11520) |
+|   Hessenberg: bkwd subst float:     0.000044(      2688) |
++----------------------------------------------------------+
+| depth:   1 / level:   0                time    ( count ) |
++----------------------------------------------------------+
++----------------------------------------------------------+
+| flop/lattice site:  4.02e+06                             |
+| flop/s/MPIprocess:  8.54e+09                             |
++----------------------------------------------------------+
+
+depth: 0, bootstrap step number 1...
+[0;42m[1;37m|within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.248765
+norm3 = 3.248765
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.249935
+norm3 = 3.249935
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.259788
+norm3 = 3.259788
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.260118
+norm3 = 3.260118
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.260388
+norm3 = 3.260388
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.274024
+norm3 = 3.274024
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.238030
+norm3 = 3.238030
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.252919
+norm3 = 3.252919
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.269357
+norm3 = 3.269357
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.259879
+norm3 = 3.259879
+
+  20% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.271871
+norm3 = 3.271871
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.249416
+norm3 = 3.249416
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.259955
+norm3 = 3.259955
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.268583
+norm3 = 3.268583
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.260122
+norm3 = 3.260122
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.257175
+norm3 = 3.257175
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.254941
+norm3 = 3.254941
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.268181
+norm3 = 3.268181
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.261771
+norm3 = 3.261771
+
+  40% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.252650
+norm3 = 3.252650
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.253791
+norm3 = 3.253791
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.254215
+norm3 = 3.254215
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.256150
+norm3 = 3.256150
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.269951
+norm3 = 3.269951
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.261945
+norm3 = 3.261945
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.259178
+norm3 = 3.259178
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.253790
+norm3 = 3.253790
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.267159
+norm3 = 3.267159
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.252730
+norm3 = 3.252730
+
+  60% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.264796
+norm3 = 3.264796
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.267948
+norm3 = 3.267948
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.248985
+norm3 = 3.248985
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.238548
+norm3 = 3.238548
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.254166
+norm3 = 3.254166
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.239192
+norm3 = 3.239192
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.245696
+norm3 = 3.245696
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.251545
+norm3 = 3.251545
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.246571
+norm3 = 3.246571
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.252231
+norm3 = 3.252231
+
+  80% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.262637
+norm3 = 3.262637
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.276615
+norm3 = 3.276615
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.238586
+norm3 = 3.238586
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.254316
+norm3 = 3.254316
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.260182
+norm3 = 3.260182
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.250104
+norm3 = 3.250104
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.258297
+norm3 = 3.258297
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.260965
+norm3 = 3.260965
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 3.262256
+norm3 = 3.262256
+
+ 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 39.104958 seconds
+depth: 0, bootstrap step number 2...
+[0;42m[1;37m|within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.058244
+norm3 = 6.058244
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.970994
+norm3 = 5.970994
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.974241
+norm3 = 5.974241
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.089449
+norm3 = 6.089449
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.936579
+norm3 = 5.936579
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.922251
+norm3 = 5.922251
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.073503
+norm3 = 6.073503
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.548160
+norm3 = 6.548160
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.907924
+norm3 = 5.907924
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.062195
+norm3 = 6.062195
+
+  20% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.378500
+norm3 = 6.378500
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.086316
+norm3 = 6.086316
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.929178
+norm3 = 5.929178
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.374348
+norm3 = 6.374348
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.104902
+norm3 = 6.104902
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.081897
+norm3 = 6.081897
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.120364
+norm3 = 6.120364
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.182642
+norm3 = 6.182642
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.704525
+norm3 = 5.704525
+
+  40% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.718100
+norm3 = 5.718100
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.833180
+norm3 = 5.833180
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.084260
+norm3 = 6.084260
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.888715
+norm3 = 5.888715
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.239535
+norm3 = 6.239535
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.875036
+norm3 = 5.875036
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.968644
+norm3 = 5.968644
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.915400
+norm3 = 5.915400
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.864377
+norm3 = 5.864377
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.997011
+norm3 = 5.997011
+
+  60% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.311565
+norm3 = 6.311565
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.212444
+norm3 = 6.212444
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.086107
+norm3 = 6.086107
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.775142
+norm3 = 5.775142
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.957718
+norm3 = 5.957718
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.859413
+norm3 = 5.859413
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.060351
+norm3 = 6.060351
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.879285
+norm3 = 5.879285
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.021228
+norm3 = 6.021228
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.015913
+norm3 = 6.015913
+
+  80% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.949467
+norm3 = 5.949467
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.172277
+norm3 = 6.172277
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.745043
+norm3 = 5.745043
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.792241
+norm3 = 5.792241
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.156633
+norm3 = 6.156633
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.965131
+norm3 = 5.965131
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.818116
+norm3 = 5.818116
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.876029
+norm3 = 5.876029
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.952045
+norm3 = 5.952045
+
+ 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 39.152554 seconds
+depth: 0, bootstrap step number 3...
+[0;42m[1;37m|within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.442687
+norm3 = 10.442687
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 11.430732
+norm3 = 11.430732
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 17.800278
+norm3 = 17.800278
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 11.066950
+norm3 = 11.066950
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 15.079787
+norm3 = 15.079787
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.350778
+norm3 = 9.350778
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.187414
+norm3 = 10.187414
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 11.284760
+norm3 = 11.284760
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.971072
+norm3 = 9.971072
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.275282
+norm3 = 10.275282
+
+  20% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 12.803527
+norm3 = 12.803527
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 11.708363
+norm3 = 11.708363
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.608130
+norm3 = 9.608130
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.527196
+norm3 = 9.527196
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 12.104247
+norm3 = 12.104247
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.053451
+norm3 = 10.053451
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 14.532971
+norm3 = 14.532971
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 11.259900
+norm3 = 11.259900
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 11.333349
+norm3 = 11.333349
+
+  40% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.687004
+norm3 = 10.687004
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.398095
+norm3 = 9.398095
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.193590
+norm3 = 10.193590
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.579586
+norm3 = 10.579586
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.476601
+norm3 = 10.476601
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.233244
+norm3 = 10.233244
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.000376
+norm3 = 9.000376
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.814878
+norm3 = 9.814878
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.030217
+norm3 = 9.030217
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.002440
+norm3 = 9.002440
+
+  60% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.886811
+norm3 = 9.886811
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 11.502215
+norm3 = 11.502215
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.862637
+norm3 = 9.862637
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 14.102915
+norm3 = 14.102915
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.862624
+norm3 = 9.862624
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 13.900080
+norm3 = 13.900080
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.858302
+norm3 = 9.858302
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.944446
+norm3 = 10.944446
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 12.818822
+norm3 = 12.818822
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.634136
+norm3 = 9.634136
+
+  80% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 11.948956
+norm3 = 11.948956
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 10.076694
+norm3 = 10.076694
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 12.254085
+norm3 = 12.254085
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 9.311339
+norm3 = 9.311339
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 11.215220
+norm3 = 11.215220
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 12.414937
+norm3 = 12.414937
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 8.548740
+norm3 = 8.548740
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 14.465996
+norm3 = 14.465996
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 12.308506
+norm3 = 12.308506
+
+ 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 39.164299 seconds
+depth: 0, bootstrap step number 4...
+[0;42m[1;37m|within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.354672
+norm3 = 5.354672
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.832910
+norm3 = 5.832910
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 6.164747
+norm3 = 6.164747
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.732626
+norm3 = 4.732626
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.954848
+norm3 = 5.954848
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.227397
+norm3 = 5.227397
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.871285
+norm3 = 4.871285
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.707902
+norm3 = 4.707902
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.918780
+norm3 = 4.918780
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.441351
+norm3 = 4.441351
+
+  20% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.934790
+norm3 = 4.934790
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.266346
+norm3 = 5.266346
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.953475
+norm3 = 4.953475
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.386056
+norm3 = 4.386056
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.368737
+norm3 = 5.368737
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.943460
+norm3 = 4.943460
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.504567
+norm3 = 4.504567
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.337539
+norm3 = 5.337539
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.446309
+norm3 = 4.446309
+
+  40% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 5.321009
+norm3 = 5.321009
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.507332
+norm3 = 4.507332
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.319856
+norm3 = 4.319856
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.372124
+norm3 = 4.372124
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.798994
+norm3 = 4.798994
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.465681
+norm3 = 4.465681
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.416444
+norm3 = 4.416444
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.525390
+norm3 = 4.525390
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.706639
+norm3 = 4.706639
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.726308
+norm3 = 4.726308
+
+  60% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.607784
+norm3 = 4.607784
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.662528
+norm3 = 4.662528
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.034628
+norm3 = 4.034628
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.866812
+norm3 = 4.866812
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.446293
+norm3 = 4.446293
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.294617
+norm3 = 4.294617
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.744160
+norm3 = 4.744160
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.291635
+norm3 = 4.291635
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.181512
+norm3 = 4.181512
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.540637
+norm3 = 4.540637
+
+  80% |within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.107170
+norm3 = 4.107170
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.137940
+norm3 = 4.137940
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.043532
+norm3 = 4.043532
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.183014
+norm3 = 4.183014
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.730099
+norm3 = 4.730099
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.195144
+norm3 = 4.195144
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.361483
+norm3 = 4.361483
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.247437
+norm3 = 4.247437
+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 4.108173
+norm3 = 4.108173
+
+ 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 39.267785 seconds
+
+performed 4 iterative setup steps
+elapsed time: 8800.377875 seconds (8064.285237 seconds on coarse grid)
+
+
++----------------------------------------------------------+
+| solver profiling  (time resolution 1.000 ns)             |
++----------------------------------------------------------+
+| depth:   0 / level:   1                time    ( count ) |
++----------------------------------------------------------+
+|    global inner product, float:    20.214040(      2400) |
+|   process inner product, float:    51.061795(      7392) |
+| 2 flop vector operations, floa:    15.197628(      2688) |
+| 6 flop vector operations, floa:     1.033963(       192) |
+| 8 flop vector operations, floa:    66.679776(      8448) |
+| other vector operations, float:    72.120061(         4) |
+|         copy operations, float:     0.437633(        96) |
+|    set value operations, float:     0.416307(       192) |
+| interpolation and restriction,:   105.708852(       384) |
+|           self coupling, float:    45.334489(      3456) |
+|       neighbor coupling, float:   111.258608(      3456) |
+|                smoother, float:   324.135940(       576) |
+|      operator comm init, float:     4.132026(     50688) |
+|      operator comm wait, float:    22.651310(     50688) |
+|              allreduces, float:    23.696038(      6332) |
+| Gram-Schmidt on aggregates, fl:    60.193003(         4) |
+|    Hessenberg: qr update float:     0.000629(     34560) |
+|   Hessenberg: bkwd subst float:     0.000157(      8064) |
++----------------------------------------------------------+
+| depth:   1 / level:   0                time    ( count ) |
++----------------------------------------------------------+
+|    global inner product, float:     5.380515(       356) |
+|   process inner product, float:   226.663408(    992270) |
+| 2 flop vector operations, floa:     4.137986(     25432) |
+| 6 flop vector operations, floa:     0.021468(        96) |
+| 8 flop vector operations, floa:   250.147705(    992174) |
+|         copy operations, float:     0.019894(        96) |
+|    set value operations, float:    11.752785(    117275) |
+|           self coupling, float:   771.296144(     50343) |
+|       neighbor coupling, float:  6484.574958(     50343) |
+|      operator comm init, float:     5.482630(    805488) |
+|      operator comm wait, float:   197.859399(    805488) |
+|              allreduces, float:   323.186854(     50343) |
+|       Hessenberg: qr update float:     0.045532(11609454) |
+|   Hessenberg: bkwd subst float:     0.020379(   1984539) |
+|  coarse,schur:  hop term float:  3458.333653(     50151) |
+|  coarse,schur: nhop term float:  3002.962163(     50151) |
++----------------------------------------------------------+
+| flop/lattice site:  1.51e+08                             |
+| flop/s/MPIprocess:  5.69e+09                             |
++----------------------------------------------------------+
+
+rhs = random
++----------------------------------------------------------+
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 0.255177
+norm3 = 0.255177
+
+within!! (precision = double)
+norm1 = 1.000708
+norm2 = 1.000708
+norm3 = 0.000000
+
+| approx. rel. res. after  1      iterations: 2.124301e-02 |
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 1.494126
+norm3 = 1.494126
+
+within!! (precision = double)
+norm1 = 1.101290
+norm2 = 1.101290
+norm3 = 0.000000
+
+| approx. rel. res. after  2      iterations: 2.901418e-03 |
+within!! (precision = float)
+norm1 = 0.000000
+norm2 = 1.640727
+norm3 = 1.640727
+
+within!! (precision = double)
+--------------------------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+[f13r4n05:29975:0:29975]      cma_ep.c:84   process_vm_readv(pid=29973 {0x2b01a243c040,524288}-->{0x445eac0,524288}) returned -1: No such process
+==== backtrace (tid:  29975) ====
+ 0 0x00000000000027c6 uct_cma_ep_tx_error()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/ucx-1.13.0/src/uct/sm/scopy/cma/cma_ep.c:81
+ 1 0x0000000000002ad8 uct_cma_ep_tx()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/ucx-1.13.0/src/uct/sm/scopy/cma/cma_ep.c:114
+ 2 0x000000000001bb65 uct_scopy_ep_progress_tx()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/ucx-1.13.0/src/uct/sm/scopy/base/scopy_ep.c:151
+ 3 0x00000000000520c0 ucs_arbiter_dispatch_nonempty()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/ucx-1.13.0/src/ucs/datastruct/arbiter.c:321
+ 4 0x000000000001b6b9 ucs_arbiter_dispatch()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/ucx-1.13.0/src/ucs/datastruct/arbiter.h:386
+ 5 0x000000000005273c ucs_callbackq_slow_proxy()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/ucx-1.13.0/src/ucs/datastruct/callbackq.c:404
+ 6 0x00000000000415ea ucs_callbackq_dispatch()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/ucx-1.13.0/src/ucs/datastruct/callbackq.h:211
+ 7 0x00000000000415ea uct_worker_progress()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/ucx-1.13.0/src/uct/api/uct.h:2638
+ 8 0x00000000000415ea ucp_worker_progress()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/ucx-1.13.0/src/ucp/core/ucp_worker.c:2782
+ 9 0x000000000002dadc opal_progress()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/openmpi-gitclone/opal/runtime/opal_progress.c:231
+10 0x00000000000522c5 ompi_request_wait_completion()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/openmpi-gitclone/ompi/../ompi/request/request.h:440
+11 0x00000000000522c5 ompi_request_default_wait()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/openmpi-gitclone/ompi/request/req_wait.c:42
+12 0x0000000000081d6a PMPI_Wait()  /opt/hpc/software/mpi/hpcx/hpcx-v2.11-gcc-MLNX_OFED_LINUX-5-redhat7-cuda11-gdrcopy2-nccl2.11-x86_64/sources/openmpi-gitclone/ompi/mpi/c/profile/pwait.c:74
+13 0x00000000004eec42 ghost_wait_double()  ???:0
+14 0x0000000000504c0c d_plus_clover_double_cpu()  ???:0
+15 0x00000000004ef6f1 d_plus_clover_double()  ???:0
+16 0x00000000004cc97e arnoldi_step_double()  ???:0
+17 0x00000000004cd4b6 fgmres_double()  ???:0
+18 0x000000000043b593 wilson_driver()  ???:0
+19 0x000000000043b7be solve_driver()  ???:0
+20 0x000000000041e5b8 main._omp_fn.0()  main.c:0
+21 0x00000000000a369e __kmp_api_GOMP_parallel()  :0
+22 0x00000000004038b3 main()  ???:0
+23 0x00000000000223d5 __libc_start_main()  ???:0
+24 0x0000000000403b51 _start()  ???:0
+=================================
+[f13r4n05:29975] *** Process received signal ***
+[f13r4n05:29975] Signal: Aborted (6)
+[f13r4n05:29975] Signal code:  (-6)
+[f13r4n05:29975] [ 0] /lib64/libpthread.so.0(+0xf5d0)[0x2afd1b2c85d0]
+[f13r4n05:29975] [ 1] /lib64/libc.so.6(gsignal+0x37)[0x2afd248cf207]
+[f13r4n05:29975] [ 2] /lib64/libc.so.6(abort+0x148)[0x2afd248d08f8]
+[f13r4n05:29975] [ 3] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/libucs.so.0(ucs_fatal_error_message+0x55)[0x2afd3c5515d5]
+[f13r4n05:29975] [ 4] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/libucs.so.0(ucs_log_default_handler+0xf27)[0x2afd3c5568e7]
+[f13r4n05:29975] [ 5] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/libucs.so.0(ucs_log_dispatch+0xe1)[0x2afd3c556c81]
+[f13r4n05:29975] [ 6] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/ucx/libuct_cma.so.0(+0x27c6)[0x2afd3da4d7c6]
+[f13r4n05:29975] [ 7] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/ucx/libuct_cma.so.0(uct_cma_ep_tx+0x158)[0x2afd3da4dad8]
+[f13r4n05:29975] [ 8] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/libuct.so.0(uct_scopy_ep_progress_tx+0x55)[0x2afd3c2d7b65]
+[f13r4n05:29975] [ 9] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/libucs.so.0(ucs_arbiter_dispatch_nonempty+0xa0)[0x2afd3c5480c0]
+[f13r4n05:29975] [10] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/libuct.so.0(uct_scopy_iface_progress+0x59)[0x2afd3c2d76b9]
+[f13r4n05:29975] [11] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/libucs.so.0(+0x5273c)[0x2afd3c54873c]
+[f13r4n05:29975] [12] /opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib/libucp.so.0(ucp_worker_progress+0x6a)[0x2afd3c0415ea]
+[f13r4n05:29975] [13] /opt/hpc/software/mpi/hpcx/v2.11.0/gcc-7.3.1/lib/libopen-pal.so.40(opal_progress+0x2c)[0x2afd25bc9adc]
+[f13r4n05:29975] [14] /opt/hpc/software/mpi/hpcx/v2.11.0/gcc-7.3.1/lib/libmpi.so.40(ompi_request_default_wait+0x35)[0x2afd23dbf2c5]
+[f13r4n05:29975] [15] /opt/hpc/software/mpi/hpcx/v2.11.0/gcc-7.3.1/lib/libmpi.so.40(PMPI_Wait+0x1a)[0x2afd23deed6a]
+[f13r4n05:29975] [16] ..//dd_alpha_amg[0x4eec42]
+[f13r4n05:29975] [17] ..//dd_alpha_amg[0x504c0c]
+[f13r4n05:29975] [18] ..//dd_alpha_amg[0x4ef6f1]
+[f13r4n05:29975] [19] ..//dd_alpha_amg[0x4cc97e]
+[f13r4n05:29975] [20] ..//dd_alpha_amg[0x4cd4b6]
+[f13r4n05:29975] [21] ..//dd_alpha_amg[0x43b593]
+[f13r4n05:29975] [22] ..//dd_alpha_amg[0x43b7be]
+[f13r4n05:29975] [23] ..//dd_alpha_amg[0x41e5b8]
+[f13r4n05:29975] [24] /public/software/compiler/dtk/dtk-23.04/llvm/lib/libomp.so(GOMP_parallel+0xee)[0x2afd2464b69e]
+[f13r4n05:29975] [25] ..//dd_alpha_amg[0x4038b3]
+[f13r4n05:29975] [26] /lib64/libc.so.6(__libc_start_main+0xf5)[0x2afd248bb3d5]
+[f13r4n05:29975] [27] ..//dd_alpha_amg[0x403b51]
+[f13r4n05:29975] *** End of error message ***
+--------------------------------------------------------------------------
+mpirun noticed that process rank 8 with PID 14594 on node f13r4n03 exited on signal 9 (Killed).
+--------------------------------------------------------------------------
+7 total processes killed (some possibly by mpirun during cleanup)
+2024年 05月 23日 星期四 14:00:34 CST
+End
+slurmstepd: error: Detected 14 oom-kill event(s) in StepId=11218191.batch. Some of your processes may have been killed by the cgroup out-of-memory handler.
