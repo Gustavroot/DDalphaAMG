@@ -335,8 +335,6 @@ void cuda_d_plus_clover_PRECISION(
 
   PROF_PRECISION_START_UNTHREADED( _NC );
 
-  printf0("within!! (precision = PRECISION)\n");
-
   // Project in positive directions
   cuda_prp_T_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnT_gpu, phi, l->num_inner_lattice_sites);
   cuda_prp_Z_componentwise_PRECISION<<<gridSize, blockSize>>>(op->prnZ_gpu, phi, l->num_inner_lattice_sites);

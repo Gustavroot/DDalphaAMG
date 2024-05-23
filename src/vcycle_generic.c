@@ -174,9 +174,6 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
       } else {
         int start = threading->start_index[l->depth];
         int end   = threading->end_index[l->depth];
-        printf0("LAB #2\n");
-
-
 #ifdef CUDA_OPT
         // FIXME : this has to be fixed : forcing the double-precision Dirac operator to
         // be done on CPUs, as things are not prepared properly currently for running
