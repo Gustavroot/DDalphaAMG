@@ -8,7 +8,7 @@
 #SBATCH --output=mpi_out_%j.txt
 #SBATCH --error=mpi_err_%j.txt
 #SBATCH --time=00:29:00
-#SBATCH --gres=gpu:4 --partition=booster
+#SBATCH --gres=gpu:4 --partition=develbooster
 
 
 
