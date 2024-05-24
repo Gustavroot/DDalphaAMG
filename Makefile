@@ -48,10 +48,10 @@ endif
 # GCR as a smoother
 #COMMON_COMPILE_FLAGS += -DGCR_SMOOTHER
 # Richardson as a smoother
-#COMMON_COMPILE_FLAGS += -DRICHARDSON_SMOOTHER
+COMMON_COMPILE_FLAGS += -DRICHARDSON_SMOOTHER
 
 # include twisted mass term at the coarsest level
-#COMMON_COMPILE_FLAGS += -DTM_COARSEST
+COMMON_COMPILE_FLAGS += -DTM_COARSEST
 
 # LAPACK is needed for coarsest-level improvements
 #LAPACK_DIR = dependencies/lapack-3.9.0

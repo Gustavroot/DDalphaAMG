@@ -36,7 +36,7 @@ SSE_ENABLER = yes
 # This flag must be set to "yes" in order to compile dd_alpha_amg with AVX2 acceleration.
 # Note that some functionality is not yet or no longer available in the AVX2 version of
 # DD Alpha AMG.
-AVX_ENABLER = no
+AVX_ENABLER = yes
 
 AVX512_ENABLER = no
 

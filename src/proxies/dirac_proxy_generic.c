@@ -25,6 +25,8 @@ void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
                              struct Thread *threading)
 {
 
+  /*
+
   int start,end;
   vector_PRECISION v1=NULL,v2=NULL,v3=NULL;
 
@@ -52,11 +54,13 @@ void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
   //exit(0);
   END_MASTER(threading)
 
-//#ifdef CUDA_OPT
-//  cuda_d_plus_clover_PRECISION_vectorwrapper(eta, phi, op, l, threading);
-//#else
+  */
+
+#ifdef CUDA_OPT
+  cuda_d_plus_clover_PRECISION_vectorwrapper(eta, phi, op, l, threading);
+#else
   d_plus_clover_PRECISION_cpu(eta, phi, op, l, threading);
-//#endif
+#endif
 }
 
 void apply_schur_complement_PRECISION(vector_PRECISION out, vector_PRECISION in,
