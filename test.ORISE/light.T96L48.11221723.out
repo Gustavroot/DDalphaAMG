@@ -1,0 +1,364 @@
+/public/software/compiler/dtk/dtk-23.04/hip/lib:/public/software/compiler/dtk/dtk-23.04/llvm/lib:/public/software/compiler/dtk/dtk-23.04/lib:/public/software/compiler/dtk/dtk-23.04/lib64:/opt/hpc/software/mpi/hpcx/v2.11.0/gcc-7.3.1/lib:/opt/hpc/software/mpi/hpcx/v2.11.0/sharp/lib:/opt/hpc/software/mpi/hpcx/v2.11.0/hcoll/lib:/opt/hpc/software/mpi/hpcx/v2.11.0/ucx_without_rocm/lib:/opt/rh/devtoolset-7/root/usr/lib64:/opt/rh/devtoolset-7/root/usr/lib:..//lib:/opt/hpc/software/compiler/intel/intel-compiler-2017.5.239/compiler/lib/intel64_lin/:/opt/hpc/software/mpi/pmix/lib:/opt/gridview/ucx/lib:/opt/gridview/ucx/lib/ucx:/opt/hpc/software/mathlib/blas/hygon/0831/lib/:/opt/gridview/slurm/lib:/opt/gridview/slurm/lib64:/opt/gridview/munge/lib::/public/software/compiler/dtk/dtk-23.04/cuda/lib64
+ 
+=======================================================
+ 
+Begin
+2024年 05月 24日 星期五 09:35:05 CST
+SLURM_NODELIST=g01r4n[00-07]
+
+
++------------------------------------------------------------------------+
+| The DDalphaAMG solver library.                                         |
+| Copyright (C) 2016, Matthias Rottmann, Artur Strebel, Gustavo Ramirez, |
+|       Simon Heybrock, Simone Bacchio, Bjoern Leder, Issaku Kanamori, Tilmann Matthaei, Ke-Long Zhang.   |
+|                                                                        |
+| This program comes with ABSOLUTELY NO WARRANTY.                        |
++------------------------------------------------------------------------+
+
+configuration: /public/home/kelong/Confs/beta6.20_mu-0.2825_ms-0.2310_L48x96/beta6.20_mu-0.2825_ms-0.2310_L48x96_cfg_1600.stout_smeared_rho0.125.lime
+Lattice size nx=48 ny=48 nz=48 nt=96
+Reading configuration in double precision.
+
+Desired average plaquette: 0.0000000000000 in [0,1]
+BASIS0:OPENQCD/DD-HMC BASIS
+antiperiodic boundary conditions in time
+Configuration stored...
+average plaquette: 0.8197968662636 in [0,1]
+
++----------------------------------------------------------+
+| read in and set up the parallel dirac operator           |
+| elapsed wall clock time: 9.07451      seconds            |
++----------------------------------------------------------+
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu+1]" failed: pointer is not NULL (build/gsrc/ghost_float.c:125).
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu+1]" failed: pointer is not NULL (build/gsrc/ghost_float.c:125).
+malloc of "c->buffer2[2*mu]" failed: pointer is not NULL (build/gsrc/ghost_float.c:124).
+malloc of "c->buffer2[2*mu+1]" failed: pointer is not NULL (build/gsrc/ghost_float.c:125).
+malloc of "s->streams" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:116).
+cudaMalloc of "s->s_on_gpu" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:122).
+cudaMalloc of "(s->cu_s).buf1" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:130).
+cudaMalloc of "(s->cu_s).buf2" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:131).
+cudaMalloc of "(s->cu_s).buf3" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:132).
+cudaMalloc of "(s->cu_s).buf4" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:133).
+cudaMalloc of "(s->cu_s).buf5" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:134).
+cudaMalloc of "(s->cu_s).buf6" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:135).
+cudaMalloc of "(s->cu_s).local_minres_buffer[0]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:142).
+cudaMalloc of "(s->cu_s).local_minres_buffer[1]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:143).
+cudaMalloc of "(s->cu_s).local_minres_buffer[2]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:144).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_buf[i]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:154).
+malloc of "s->nr_DD_blocks_in_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:161).
+malloc of "s->nr_DD_blocks_notin_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:162).
+malloc of "s->nr_DD_blocks" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:163).
+malloc of "s->DD_blocks_in_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:164).
+malloc of "s->DD_blocks_notin_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:165).
+malloc of "s->DD_blocks" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:166).
+cudaMalloc of "(s->cu_s).block" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:169).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.oe_clover_vectorized" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:173).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.clover_gpustorg" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:181).
+cudaMalloc of "(s->s_on_gpu_cpubuff).alphas" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:188).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:202).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:200).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:202).
+cudaMalloc of "(s->op.c).boundary_table_gpu[inv_mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:208).
+cudaMalloc of "(s->op.c).buffer_gpu[mu_dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:210).
+malloc of "(s->cu_s).DD_blocks_in_comms" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:413).
+malloc of "(s->cu_s).DD_blocks" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:415).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).oe_index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:641).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).index[dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:657).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.neighbor_table" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:664).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.D" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:679).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:723).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:723).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:723).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[0*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:757).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 0*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:794).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+cudaMalloc of "(s->s_on_gpu_cpubuff).op.Dgpu[1*8 + 1*4 + dir]" failed: pointer is not NULL (build/gsrc/gpu/cuda_schwarz_float.c:829).
+initial definition --- depth: 0
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 30.165691 seconds
+
+initial coarse grid correction is defined
+elapsed time: 102.524115 seconds
+
++----------------------------------------------------------+
+| 2-level method                                           |
+| postsmoothing K-cycle                                    |
+| FGMRES + GMRES                                           |
+|          restart length: 10                              |
+|                      m0: -0.282500                       |
+|                     csw: +1.160587                       |
++----------------------------------------------------------+
+|   preconditioner cycles: 1                               |
+|            inner solver: GMRES                           |
+|               precision: single                          |
++---------------------- depth  0 --------------------------+
+|          global lattice: 96  48  48  48                  |
+|           local lattice: 24  24  24  24                  |
+|           block lattice: 4   4   4   4                   |
+|        post smooth iter: 3                               |
+|     smoother inner iter: 4                               |
+|              setup iter: 4                               |
+|            test vectors: 48                              |
++---------------------- depth  1 --------------------------+
+|          global lattice: 24  12  12  12                  |
+|           local lattice: 6   6   6   6                   |
+|           block lattice: 1   1   1   1                   |
+|      coarge grid solver: odd even GMRES                  |
+|              iterations: 80                              |
+|                  cycles: 50                              |
+|               tolerance: 1e-01                           |
++----------------------------------------------------------+
+|          K-cycle length: 5                               |
+|        K-cycle restarts: 2                               |
+|       K-cycle tolerance: 1e-01                           |
++----------------------------------------------------------+
+
+
++----------------------------------------------------------+
+| solver profiling  (time resolution 1.000 ns)             |
++----------------------------------------------------------+
+| depth:   0 / level:   1                time    ( count ) |
++----------------------------------------------------------+
+|    global inner product, float:     0.568181(        54) |
+| 2 flop vector operations, floa:     0.822426(       120) |
+| 6 flop vector operations, floa:     0.373656(        78) |
+| 8 flop vector operations, floa:     0.166218(       384) |
+|         copy operations, float:     0.782850(       150) |
+|    set value operations, float:    14.444128(       193) |
+|           self coupling, float:     3.963559(       923) |
+|       neighbor coupling, float:    22.803140(       923) |
+|                smoother, float:    39.135986(       192) |
+|      operator comm init, float:     0.930665(     14768) |
+|      operator comm wait, float:     4.625483(     14768) |
+|              allreduces, float:     0.450754(        61) |
+| Gram-Schmidt on aggregates, fl:    11.931040(         1) |
++----------------------------------------------------------+
+| depth:   1 / level:   0                time    ( count ) |
++----------------------------------------------------------+
++----------------------------------------------------------+
+| flop/lattice site:  3.71e+06                             |
+| flop/s/MPIprocess:  1.20e+10                             |
++----------------------------------------------------------+
+
+depth: 0, bootstrap step number 1...
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 30.043533 seconds
+depth: 0, bootstrap step number 2...
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 30.058689 seconds
+depth: 0, bootstrap step number 3...
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 30.073547 seconds
+depth: 0, bootstrap step number 4...
+[0;42m[1;37m|  20% |  40% |  60% |  80% | 100% |[0m
+depth: 0, time spent for setting up next coarser operator: 30.041001 seconds
+
+performed 4 iterative setup steps
+elapsed time: 7553.673630 seconds (7084.143755 seconds on coarse grid)
+
+
++----------------------------------------------------------+
+| solver profiling  (time resolution 1.000 ns)             |
++----------------------------------------------------------+
+| depth:   0 / level:   1                time    ( count ) |
++----------------------------------------------------------+
+|    global inner product, float:    10.498303(       384) |
+|   process inner product, float:    25.981934(      4512) |
+| 2 flop vector operations, floa:     5.800841(       864) |
+| 6 flop vector operations, floa:     0.462649(        96) |
+| 8 flop vector operations, floa:    32.406116(      5664) |
+| other vector operations, float:    66.922906(         4) |
+|    set value operations, float:     0.419830(       192) |
+| interpolation and restriction,:    76.602906(       384) |
+|           self coupling, float:    18.829180(      2688) |
+|       neighbor coupling, float:   101.425522(      2688) |
+|                smoother, float:   140.587437(       576) |
+|      operator comm init, float:     2.994868(     41472) |
+|      operator comm wait, float:    49.504212(     41472) |
+|              allreduces, float:    12.369028(       572) |
+| Gram-Schmidt on aggregates, fl:    47.704565(         4) |
++----------------------------------------------------------+
+| depth:   1 / level:   0                time    ( count ) |
++----------------------------------------------------------+
+|    global inner product, float:     9.769233(       350) |
+|   process inner product, float:   180.711796(    975092) |
+| 2 flop vector operations, floa:     3.090355(     25038) |
+| 6 flop vector operations, floa:     0.016858(        96) |
+| 8 flop vector operations, floa:   218.249759(    974996) |
+|         copy operations, float:     0.017253(        96) |
+|    set value operations, float:    11.754976(    115467) |
+|           self coupling, float:   695.919334(     49568) |
+|       neighbor coupling, float:  5657.808521(     49568) |
+|      operator comm init, float:     5.721039(    793088) |
+|      operator comm wait, float:   108.605620(    793088) |
+|              allreduces, float:   324.065405(     49568) |
+|       Hessenberg: qr update float:     0.037939(11407896) |
+|   Hessenberg: bkwd subst float:     0.015686(   1950183) |
+|  coarse,schur:  hop term float:  2944.338403(     49376) |
+|  coarse,schur: nhop term float:  2692.505568(     49376) |
++----------------------------------------------------------+
+| flop/lattice site:  1.46e+08                             |
+| flop/s/MPIprocess:  6.43e+09                             |
++----------------------------------------------------------+
+
+rhs = random
++----------------------------------------------------------+
+| approx. rel. res. after  1      iterations: 3.285593e-02 |
+| approx. rel. res. after  2      iterations: 7.669915e-03 |
+| approx. rel. res. after  3      iterations: 1.913613e-03 |
+| approx. rel. res. after  4      iterations: 4.707498e-04 |
+| approx. rel. res. after  5      iterations: 1.153932e-04 |
+| approx. rel. res. after  6      iterations: 2.889129e-05 |
+| approx. rel. res. after  7      iterations: 7.237595e-06 |
+| approx. rel. res. after  8      iterations: 1.810593e-06 |
+| approx. rel. res. after  9      iterations: 4.518318e-07 |
+| approx. rel. res. after  10     iterations: 1.123814e-07 |
+| approx. rel. res. after  11     iterations: 2.855634e-08 |
+| approx. rel. res. after  12     iterations: 7.128588e-09 |
+| approx. rel. res. after  13     iterations: 1.806143e-09 |
+| approx. rel. res. after  14     iterations: 4.454792e-10 |
++----------------------------------------------------------+
+
++----------------------------------------------------------+
+|       FGMRES iterations: 14     coarse average: 330.86   |
+| exact relative residual: ||r||/||b|| = 4.454792e-10      |
+| elapsed wall clock time: 697.3591 seconds                |
+|        coarse grid time: 673.2831 seconds (96.5%)        |
+|        coarsest grid time: 7757.4262 seconds (1112.4%)        |
+| coarsest grid matmul time: 0.0000   seconds (00.0%)        |
+|  consumed core minutes*: 3.72e+02 (solve only)           |
+|    max used mem/MPIproc: 1.17e+01 GB                     |
+|        max used mem/GPU: 4.14e+00 GB                     |
++----------------------------------------------------------+
+*: only correct if #MPIprocs*#threads == #CPUs
+
+
++----------------------------------------------------------+
+| solver profiling  (time resolution 1.000 ns)             |
++----------------------------------------------------------+
+| depth:   0 / level:   1                time    ( count ) |
++----------------------------------------------------------+
+|   global inner product, double:     1.138555(        17) |
+|  process inner product, double:     0.708436(        65) |
+| 2 flop vector operations, doub:     0.196314(        18) |
+| 6 flop vector operations, doub:     0.013457(         1) |
+| 8 flop vector operations, doub:     0.766862(        78) |
+|        copy operations, double:     0.012860(         1) |
+|          self coupling, double:     0.025729(        16) |
+|      neighbor coupling, double:     1.127918(        16) |
+|     operator comm init, double:     0.849553(       128) |
+|     operator comm wait, double:     0.139441(       128) |
+|             allreduces, double:     2.957502(        31) |
+|   Hessenberg: qr update double:     0.000005(       390) |
+|  Hessenberg: bkwd subst double:     0.000001(        79) |
+| 2 flop vector operations, floa:     0.304127(        35) |
+| 6 flop vector operations, floa:     0.033607(         7) |
+| 8 flop vector operations, floa:     0.037159(        84) |
+|    set value operations, float:     0.030669(        14) |
+| interpolation and restriction,:     5.593310(        28) |
+|           self coupling, float:     1.364985(       196) |
+|       neighbor coupling, float:     8.770016(       196) |
+|                smoother, float:    11.631669(        42) |
+|      operator comm init, float:     0.234714(      3024) |
+|      operator comm wait, float:     4.955309(      3024) |
++----------------------------------------------------------+
+| depth:   1 / level:   0                time    ( count ) |
++----------------------------------------------------------+
+|    global inner product, float:     0.925199(        33) |
+|   process inner product, float:    17.256612(     93193) |
+| 2 flop vector operations, floa:     0.301944(      2375) |
+| 6 flop vector operations, floa:     0.001405(         7) |
+| 8 flop vector operations, floa:    20.861213(     93186) |
+|         copy operations, float:     0.001262(         7) |
+|    set value operations, float:     1.118429(     10948) |
+|           self coupling, float:    65.917763(      4698) |
+|       neighbor coupling, float:   537.041764(      4698) |
+|      operator comm init, float:     0.540216(     75168) |
+|      operator comm wait, float:    10.962206(     75168) |
+|              allreduces, float:    31.497085(      4698) |
+|    Hessenberg: qr update float:     0.003497(   1090524) |
+|   Hessenberg: bkwd subst float:     0.001473(    186386) |
+|  coarse,schur:  hop term float:   279.659128(      4684) |
+|  coarse,schur: nhop term float:   255.819110(      4684) |
++----------------------------------------------------------+
+| flop/lattice site:  1.36e+07                             |
+| flop/s/MPIprocess:  6.47e+09                             |
++----------------------------------------------------------+
+
+avg coarsest iters = 259.703883
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+--------------------------------------------------------------------------
+MPI_ABORT was invoked on rank 8 in communicator MPI_COMM_WORLD
+with errorcode 51.
+
+NOTE: invoking MPI_ABORT causes Open MPI to kill all MPI processes.
+You may or may not see output from other processes, depending on
+exactly when Open MPI kills them.
+--------------------------------------------------------------------------
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+[g01r4n00:04449] PMIX ERROR: UNREACHABLE in file server/pmix_server.c at line 2146
+[g01r4n00:04449] PMIX ERROR: UNREACHABLE in file server/pmix_server.c at line 2146
+[g01r4n00:04449] PMIX ERROR: UNREACHABLE in file server/pmix_server.c at line 2146
+[g01r4n00:04449] PMIX ERROR: UNREACHABLE in file server/pmix_server.c at line 2146
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+cuda_safe_call() failed at build/gsrc/gpu/cuda_ghost_float.cu:98 : invalid argument
+[g01r4n00:04449] 31 more processes have sent help message help-mpi-api.txt / mpi-abort
+[g01r4n00:04449] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
+2024年 05月 24日 星期五 11:54:46 CST
+End
