@@ -1956,15 +1956,19 @@ int richardson_PRECISION_cpu( gmres_PRECISION_struct *p, level_struct *l, struct
   compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
   int n = p->num_restart * p->restart_length;
 
-  // FIXME : initial guess, enforcing zero initial guess
-  //if ( res == _NO_RES ) {
-  vector_PRECISION_define( p->x, 0, start, end, l );
-  //}
+  // initial guess to zero if necessary
+  if ( p->initial_guess_zero == _NO_RES ) {
+    vector_PRECISION_define( p->x, 0, start, end, l );
+  }
 
   for ( i=0; i<n; i++ ) {
     // 1. compute residual
-    apply_operator_PRECISION( p->w, p->x, p, l, threading );
-    vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
+    if ( i==0 && p->initial_guess_zero==_NO_RES ) {
+      vector_PRECISION_copy( p->r, p->b, start, end, l );
+    } else {
+      apply_operator_PRECISION( p->w, p->x, p, l, threading );
+      vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
+    }
 
     // 2. update solution
     vector_PRECISION_saxpy( p->x, p->x, p->r, p->omega[i%p->richardson_sub_degree], start, end, l );

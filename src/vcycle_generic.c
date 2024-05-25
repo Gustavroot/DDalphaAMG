@@ -113,7 +113,15 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
             SYNC_CORES(threading)
 #endif
 
+            START_MASTER(threading);
+            PROF_PRECISION_START( _SM_OE );
+            END_MASTER(threading);
+
             solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+
+            START_MASTER(threading);
+            PROF_PRECISION_STOP( _SM_OE, 1 );
+            END_MASTER(threading);
 
 #ifdef GCR_SMOOTHER
             START_MASTER(threading)
@@ -177,7 +185,9 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
 #ifdef CUDA_OPT
         // FIXME : this has to be fixed : forcing the double-precision Dirac operator to
         // be done on CPUs, as things are not prepared properly currently for running
-        // it on GPUs
+        // it on GPUs. Note, though, that entering this condition i.e. with a non-zero
+        // initial guess and more than one V-cycle applications is quite unusual when calling
+        // this function vcycle_PRECISION(...)
         START_MASTER(threading)
         l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu;
         END_MASTER(threading)
