@@ -208,7 +208,6 @@ int cuda_richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l,
   cudaStream_t* const streams = &stream;
 
   int start, end, i;
-  //compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
   start = p->v_start;
   end = p->v_end;
   int n = p->num_restart * p->restart_length;
@@ -219,23 +218,24 @@ int cuda_richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l,
   b = p->b_componentwise_gpu;
   r = p->r_componentwise_gpu;
 
-  // enforcing zero initial guess
-  //vector_PRECISION_define( p->x, 0, start, end, l );
-  cuda_vector_PRECISION_define( x, make_cu_cmplx_PRECISION(0,0), start,
-                                end, l, _CUDA_SYNC, 0, streams );
+  // initial guess to zero if necessary
+  if ( p->initial_guess_zero == _NO_RES ) {
+    cuda_vector_PRECISION_define( x, make_cu_cmplx_PRECISION(0,0), start,
+                                  end, l, _CUDA_SYNC, 0, streams );
+  }
 
   for ( i=0; i<n; i++ ) {
     // 1. compute residual
-    //apply_operator_PRECISION( p->w, p->x, p, l, threading );
-    cuda_apply_schur_complement_PRECISION( w, x, p->op, l );
-
-    //vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
-    cuda_vector_PRECISION_minus( r, b, w, start, end, l, _CUDA_SYNC, 0, streams );
+    if ( i==0 && p->initial_guess_zero==_NO_RES ) {
+      cuda_vector_PRECISION_copy( r, b, start, end-start, l, _D2D, _CUDA_SYNC, 0, streams );
+    } else {
+      cuda_apply_schur_complement_PRECISION( w, x, p->op, l );
+      cuda_vector_PRECISION_minus( r, b, w, start, end, l, _CUDA_SYNC, 0, streams );
+    }
 
     // 2. update solution
-    //vector_PRECISION_saxpy( p->x, p->x, p->r, p->omega[i%p->richardson_sub_degree], start, end, l );
-    cuda_vector_PRECISION_saxpy( x, x, r, make_cu_cmplx_PRECISION(p->omega[i%p->richardson_sub_degree],0.0),
-                                 start, end, l, _CUDA_SYNC, 0, streams );
+    cu_cmplx_PRECISION om_fctr = make_cu_cmplx_PRECISION(p->omega[i%p->richardson_sub_degree],0.0);
+    cuda_vector_PRECISION_saxpy( x, x, r, om_fctr, start, end, l, _CUDA_SYNC, 0, streams );
   }
 
   return n;
