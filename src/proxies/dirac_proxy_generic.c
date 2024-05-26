@@ -5,20 +5,13 @@
 #include "gpu/cuda_oddeven_PRECISION.h"
 #endif
 
-// this is here for testing purposes, for now,
-// of CPU->GPU odd-even smoothers
-#include "oddeven_PRECISION.h"
-
 #include <complex.h>
 #include "dirac_PRECISION.h"
 #include "console_out.h"
 #include "linalg_PRECISION.h"
 #include "operator.h"
+#include "oddeven_PRECISION.h"
 
-#include <string.h>
-#include "data_PRECISION.h"
-
-#include "alloc_control.h"
 
 void d_plus_clover_PRECISION(vector_PRECISION eta, vector_PRECISION phi,
                              operator_PRECISION_struct *op, level_struct *l,

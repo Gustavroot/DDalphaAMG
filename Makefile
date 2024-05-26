@@ -42,13 +42,13 @@ ifdef CUDA_INCLUDE
 	COMMON_COMPILE_FLAGS += -I$(CUDA_INCLUDE)
 endif
 
-# with SSE on, this flag forces GMRES as a smoother to run without vectorization
+# with SSE on, this flag forces (CPU) GMRES as a smoother to run without vectorization
 #COMMON_COMPILE_FLAGS += -DGMRES_ON_GPUS
 
 # GCR as a smoother
 #COMMON_COMPILE_FLAGS += -DGCR_SMOOTHER
 # Richardson as a smoother
-COMMON_COMPILE_FLAGS += -DRICHARDSON_SMOOTHER
+#COMMON_COMPILE_FLAGS += -DRICHARDSON_SMOOTHER
 
 # include twisted mass term at the coarsest level
 COMMON_COMPILE_FLAGS += -DTM_COARSEST
@@ -142,15 +142,15 @@ endif
 
 #-include test/gtest/Makefile
 
-all: wilson #library library_db #documentation gtest
+all: wilson library library_db #documentation gtest
 
-.PHONY: all wilson #library library_db #documentation gtest
+.PHONY: all wilson library library_db #documentation gtest
 .SUFFIXES:
 .SECONDARY:
 
 
 # Linking of dd_alpha_amg application
-wilson: dd_alpha_amg #dd_alpha_amg_db
+wilson: dd_alpha_amg dd_alpha_amg_db
 
 ifeq ($(CUDA_ENABLER),yes)
 dd_alpha_amg : $(OBJ) $(OBJ_CUDA)

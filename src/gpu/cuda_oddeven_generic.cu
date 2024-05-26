@@ -14,8 +14,6 @@ extern "C"{
 #include "cuda_dirac_kernels_componentwise_PRECISION.h"
 #include "cuda_complex_cxx.h"
 #include "cuda_ghost_PRECISION.h"
-#include "cuda_dirac_PRECISION.h"
-#include "cuda_linsolve_PRECISION.h"
 
 #ifdef CUDA_OPT
 
@@ -4414,8 +4412,6 @@ void cuda_solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION
   // size of the clover term per lattice site
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
 
-  //vector_PRECISION tmp = op->buffer[0];
-  
   // odd to even
   PROF_PRECISION_START_UNTHREADED( _SC );
   cuda_diag_oo_inv_componentwise_PRECISION( tmp+start_odd, b+start_odd,

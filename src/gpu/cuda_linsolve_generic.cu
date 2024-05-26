@@ -3,7 +3,9 @@
 #include "gpu/cuda_componentwise.h"
 
 // this block size is for the full-size Schur complement
+#ifdef RICHARDSON_SMOOTHER
 constexpr uint diracDefaultBlockSize = 128;
+#endif
 
 extern "C"{
 

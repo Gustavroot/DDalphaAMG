@@ -122,7 +122,7 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
             // only Richardson enabled as GPU odd-even finest-level smoother at the moment
             solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
 #else
-            solve_oddeve_PRECISION_cpu( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+            solve_oddeven_PRECISION_cpu( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
 #endif
 
             START_MASTER(threading);
