@@ -89,7 +89,7 @@ COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTE
 ifeq ($(CUDA_ENABLER),yes)
 COMPILE_FLAGS += -fopenmp -DOPENMP
 else
-COMPILE_FLAGS += -fopenmp
+COMPILE_FLAGS += -fopenmp -DOPENMP
 endif
 
 ifeq ($(SSE_ENABLER),yes)
@@ -126,7 +126,7 @@ COMPILE_FLAGS_CUDA = $(NVCC_ARCHITECTURE_FLAGS) -rdc=true $(COMMON_COMPILE_FLAGS
 ifeq ($(CUDA_ENABLER),yes)
 COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall"
 else
-COMPILE_FLAGS_CUDA += -Xcompiler "-fopenmp -Wall"
+COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall"
 endif
 
 ifeq ($(SSE_ENABLER),yes)

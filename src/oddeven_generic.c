@@ -771,7 +771,7 @@ void apply_schur_complement_PRECISION_cpu( vector_PRECISION out, vector_PRECISIO
   vector_PRECISION_minus( out, out, tmp[0], start_even, end_even, l );
 }
 
-void solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
+void solve_oddeven_PRECISION_cpu( gmres_PRECISION_struct *p, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
   
   // start and end indices for vector functions depending on thread
   int start;

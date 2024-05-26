@@ -26,6 +26,7 @@
 #endif
 #include "dirac_PRECISION.h"
 #include "proxies/dirac_proxy_PRECISION.h"
+#include "proxies/oddeven_proxy_PRECISION.h"
 
 void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECISION eta,
                          int n, const int res, complex_PRECISION shift, level_struct *l, struct Thread *threading ) {
@@ -117,7 +118,12 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
             PROF_PRECISION_START( _SM_OE );
             END_MASTER(threading);
 
+#if defined(RICHARDSON_SMOOTHER)
+            // only Richardson enabled as GPU odd-even finest-level smoother at the moment
             solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+#else
+            solve_oddeve_PRECISION_cpu( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+#endif
 
             START_MASTER(threading);
             PROF_PRECISION_STOP( _SM_OE, 1 );
