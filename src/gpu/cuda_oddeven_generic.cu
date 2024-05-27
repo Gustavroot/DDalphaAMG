@@ -14,7 +14,6 @@ extern "C"{
 #include "cuda_dirac_kernels_componentwise_PRECISION.h"
 #include "cuda_complex_cxx.h"
 #include "cuda_ghost_PRECISION.h"
-#include "cuda_dirac_PRECISION.h"
 
 #ifdef CUDA_OPT
 
@@ -4389,6 +4388,145 @@ extern "C" void cuda_oddeven_setup_PRECISION_free( level_struct *l ) {
 
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
   CUDA_FREE(op->clover_componentwise_gpu, cu_cmplx_PRECISION, css * l->num_inner_lattice_sites);
+}
+
+void cuda_solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_struct *op,
+                                   level_struct *l, struct Thread *threading ){
+
+  // labels for certain vectors, and assignments for in/out in a CUDA sense
+  cuda_vector_PRECISION tmp = op->buffer_gpu[0];
+
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  // labels for certain vectors, and assignments for in/out in a CUDA sense
+  // these are componentwise by default
+  cuda_vector_PRECISION b, x;
+  b = p->b_componentwise_gpu;
+  x = p->x_componentwise_gpu;
+
+  // sizes of local vectors, totals as no threading within here
+  int start_odd,end_odd;
+  start_odd = op->num_even_sites*l->num_lattice_site_var;
+  end_odd = l->inner_vector_size;
+  // size of the clover term per lattice site
+  unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
+
+  // odd to even
+  PROF_PRECISION_START_UNTHREADED( _SC );
+  cuda_diag_oo_inv_componentwise_PRECISION( tmp+start_odd, b+start_odd,
+                                            op->clover_componentwise_gpu+css*(start_odd/12),
+                                            op->num_odd_sites, l );
+  PROF_PRECISION_STOP_UNTHREADED( _SC, 0 );
+
+  cuda_vector_PRECISION_scale( tmp, tmp, make_cu_cmplx_PRECISION(-1.0,0.0),
+                               start_odd, end_odd-start_odd, l, _CUDA_SYNC, 0, streams );
+
+  PROF_PRECISION_START_UNTHREADED( _NC );
+  cuda_hopping_term_PRECISION( b, tmp, op, _EVEN_SITES, l );
+  PROF_PRECISION_STOP_UNTHREADED( _NC, 0 );
+
+  if ( g.method == 4 ) {
+#if defined(GCR_SMOOTHER) || defined(RICHARDSON_SMOOTHER)
+    // restricting GCR and Richardson to be used as smoothers at the finest level only
+#ifdef GCR_SMOOTHER
+    if ( p->use_gcr == 1 && l->depth==0 ) {
+      error0("GCR smoother on GPUs has not been constructed\n");
+      //fgcr_PRECISION( p, l, threading );
+#else
+    if ( p->use_richardson == 1 && l->depth==0 ) {
+      cuda_richardson_PRECISION( p, l, threading );
+#endif
+    }
+    else {
+      error0("GMRES smoother on GPUs has not been constructed\n");
+      //fgmres_PRECISION( p, l, threading );
+    }
+#else
+    error0("GMRES smoother on GPUs has not been constructed\n");
+    //fgmres_PRECISION( p, l, threading );
+#endif
+  } else if ( g.method == 5 ) {
+    error0("Smoother for method=5 on GPUs has not been constructed\n");
+    //bicgstab_PRECISION( p, l, threading );
+  }
+
+  cuda_diag_oo_inv_componentwise_PRECISION( x+start_odd, b+start_odd,
+                                            op->clover_componentwise_gpu+css*(start_odd/12),
+                                            op->num_odd_sites, l );
+
+  // even to odd
+  cuda_vector_PRECISION_define( tmp, make_cu_cmplx_PRECISION(0,0), start_odd,
+                                end_odd-start_odd, l, _CUDA_SYNC, 0, streams );
+
+  PROF_PRECISION_START_UNTHREADED( _NC );
+  cuda_hopping_term_PRECISION( tmp, x, op, _ODD_SITES, l );
+  PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
+
+  PROF_PRECISION_START_UNTHREADED( _SC );
+  cuda_diag_oo_inv_componentwise_PRECISION( b+start_odd, tmp+start_odd,
+                                            op->clover_componentwise_gpu+css*(start_odd/12),
+                                            op->num_odd_sites, l );
+  PROF_PRECISION_STOP_UNTHREADED( _SC, 1 );
+
+  cuda_vector_PRECISION_minus( x, x, b, start_odd, end_odd-start_odd, l, _CUDA_SYNC, 0, streams );
+}
+
+extern "C" void cuda_solve_oddeven_PRECISION_vectorwrapper( gmres_PRECISION_struct *p, operator_PRECISION_struct *op,
+                                                            level_struct *l, struct Thread *threading ){
+
+#ifdef RICHARDSON_SMOOTHER
+  if ( p->richardson_update_omega==1 ) {
+    richardson_update_omega_PRECISION( p, l, threading );
+    START_MASTER(threading)
+    p->richardson_update_omega = 0;
+    END_MASTER(threading)
+  }
+#endif
+
+  START_MASTER(threading)
+
+  // CUDA stream, only one as only the master thread is in charge of this
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  // labels for certain vectors, and assignments for in/out in a CUDA sense
+  cuda_vector_PRECISION b_gpu, b_componentwise_gpu, x_gpu, x_componentwise_gpu;
+  b_gpu = p->b_gpu;
+  b_componentwise_gpu = p->b_componentwise_gpu;
+  x_gpu = p->x_gpu;
+  x_componentwise_gpu = p->x_componentwise_gpu;
+
+  // copy from CPU to GPU the input vector
+  cuda_vector_PRECISION_copy(b_gpu, p->b, 0, l->num_inner_lattice_sites*l->num_lattice_site_var, l, _H2D,
+                             _CUDA_SYNC, 0, streams);
+
+  // re-order the input vector in component-wise ordering
+  uint gridSize = minGridSizeForN( op->num_even_sites, diracDefaultBlockSize );
+  reorderArrayByComponent<<<gridSize, diracDefaultBlockSize>>>(
+    b_componentwise_gpu, b_gpu, l->num_lattice_site_var, op->num_even_sites);
+  gridSize = minGridSizeForN( op->num_odd_sites, diracDefaultBlockSize );
+  reorderArrayByComponent<<<gridSize, diracDefaultBlockSize>>>(
+    b_componentwise_gpu+l->num_lattice_site_var*op->num_even_sites, b_gpu+l->num_lattice_site_var*op->num_even_sites,
+    l->num_lattice_site_var, op->num_odd_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+
+  cuda_solve_oddeven_PRECISION( p, op, l, threading );
+
+  // re-order the output back to chuck-wise ordering
+  gridSize = minGridSizeForN( op->num_even_sites, diracDefaultBlockSize );
+  reorderArrayByChunks<<<gridSize, diracDefaultBlockSize>>>(
+    x_gpu, x_componentwise_gpu, l->num_lattice_site_var, op->num_even_sites);
+  gridSize = minGridSizeForN( op->num_odd_sites, diracDefaultBlockSize );
+  reorderArrayByChunks<<<gridSize, diracDefaultBlockSize>>>(
+    x_gpu+l->num_lattice_site_var*op->num_even_sites, x_componentwise_gpu+l->num_lattice_site_var*op->num_even_sites,
+    l->num_lattice_site_var, op->num_odd_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+
+  cuda_vector_PRECISION_copy( p->x, x_gpu, 0, l->inner_vector_size, l, _D2H, _CUDA_SYNC, 0, streams );
+
+  END_MASTER(threading)
+  SYNC_CORES(threading)
 }
 
 #endif

@@ -74,6 +74,8 @@ void cuda_apply_schur_complement_PRECISION(cuda_vector_PRECISION out,
 extern void cuda_apply_schur_complement_PRECISION_vectorwrapper(
     vector_PRECISION out, vector_PRECISION in,
     operator_PRECISION_struct *op, level_struct *l, struct Thread *threading);
+extern void cuda_solve_oddeven_PRECISION_vectorwrapper( gmres_PRECISION_struct *p, operator_PRECISION_struct *op,
+                                                        level_struct *l, struct Thread *threading );
 
 extern void cuda_oddeven_setup_PRECISION_init( operator_double_struct *in, level_struct *l );
 extern void cuda_oddeven_setup_PRECISION_alloc( operator_double_struct *in, level_struct *l ); 

@@ -62,11 +62,13 @@ void prof_PRECISION_init( level_struct *l ) {
     sprintf( l->prof_PRECISION.name[_NC], "neighbor coupling, PRECISION" );
     l->prof_PRECISION.flop[_NC] = (l->depth==0)?1368.0:level_ratio*8.0*SQUARE(l->num_lattice_site_var)*8.0;
     sprintf( l->prof_PRECISION.name[_SM], "smoother, PRECISION" );
+    sprintf( l->prof_PRECISION.name[_SM_OE], "smoother odd-even, PRECISION" );
     double ncflops = l->prof_PRECISION.flop[_SC];
     for ( int mu=0; mu<4; mu++ )
       ncflops += (l->prof_PRECISION.flop[_NC]/4.0)*((double)(l->block_lattice[mu]-1)/(double)l->block_lattice[mu]);
     l->prof_PRECISION.flop[_SM] = ncflops * (double)(g.odd_even?l->block_iter+1:l->block_iter);
     l->prof_PRECISION.flop[_SM] += (l->prof_PRECISION.flop[_NC] + l->prof_PRECISION.flop[_SC]);
+    l->prof_PRECISION.flop[_SM_OE] = 0;
     sprintf( l->prof_PRECISION.name[_OP_COMM], "operator comm init, PRECISION" );
     sprintf( l->prof_PRECISION.name[_OP_IDLE], "operator comm wait, PRECISION" );
     sprintf( l->prof_PRECISION.name[_ALLR], "allreduces, PRECISION" );
