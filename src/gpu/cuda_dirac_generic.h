@@ -87,6 +87,21 @@ extern void cuda_d_plus_clover_PRECISION_vectorwrapper(
     vector_PRECISION eta, complex_PRECISION const *phi,
     operator_PRECISION_struct *op, level_struct *l, struct Thread *threading);
 
+extern void _cuda_clover_componentwise_PRECISION(cuda_vector_PRECISION eta,
+                                                 cuda_vector_PRECISION phi,
+                                                 cuda_config_PRECISION clover, int num_sites,
+                                                 level_struct *l);
+
+extern void cuda_diag_ee_componentwise_PRECISION( cuda_vector_PRECISION eta,
+                                                  cuda_vector_PRECISION phi,
+                                                  cuda_config_PRECISION clover,
+                                                  int num_sites, level_struct *l );
+
+extern void cuda_diag_oo_inv_componentwise_PRECISION( cuda_vector_PRECISION eta,
+                                                      cuda_vector_PRECISION phi,
+                                                      cuda_config_PRECISION clover,
+                                                      int num_sites, level_struct *l );
+
 extern __constant__ cu_cmplx_PRECISION gamma_info_vals_PRECISION[16];
 extern __constant__ int gamma_info_coo_PRECISION[16];
 

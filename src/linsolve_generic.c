@@ -92,6 +92,19 @@ void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   local_fgmres_PRECISION_struct_init( &(p->block_jacobi_PRECISION.local_p) );
 #endif
 
+#ifdef RICHARDSON_SMOOTHER
+  p->omega = NULL;
+#endif
+
+#ifdef CUDA_OPT
+  p->w_componentwise_gpu = NULL;
+  p->r_componentwise_gpu = NULL;
+  p->x_componentwise_gpu = NULL;
+  p->x_gpu = NULL;
+  p->b_componentwise_gpu = NULL;
+  p->b_gpu = NULL;
+#endif
+
 #ifdef GCR_SMOOTHER
   p->gcr_buffer_dotprods = NULL;
   p->gcr_betas_dotprods  = NULL;
@@ -379,6 +392,21 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
 #ifdef RICHARDSON_SMOOTHER
   p->richardson_sub_degree = g.richardson_sub_degree;
   MALLOC( p->omega, PRECISION, p->richardson_sub_degree );
+  p->richardson_factor = g.richardson_factor;
+#endif
+
+#ifdef CUDA_OPT
+  // if these conditions are fulfilled, this is then the finest-level smoother
+  // with method=4, which is GCR, GMRES or Richardson
+  if ( g.method==4 && prec_kind==_NOTHING && l->depth==0 ) {
+    p->gpu_syst_size = vl;
+    CUDA_MALLOC( p->w_componentwise_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->r_componentwise_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->x_componentwise_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->x_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->b_componentwise_gpu, cu_cmplx_PRECISION, vl );
+    CUDA_MALLOC( p->b_gpu, cu_cmplx_PRECISION, vl );
+  }
 #endif
 
 #ifdef GCR_SMOOTHER
@@ -496,6 +524,19 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
 
 #ifdef RICHARDSON_SMOOTHER
   FREE( p->omega, PRECISION, p->richardson_sub_degree );
+#endif
+
+#ifdef CUDA_OPT
+  // if these conditions are fulfilled, this is then the finest-level smoother
+  // with method=4, which is GCR, GMRES or Richardson
+  if ( g.method==4 && p->kind==_NOTHING && l->depth==0 ) {
+    CUDA_FREE( p->w_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->r_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->x_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->x_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->b_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    CUDA_FREE( p->b_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+  }
 #endif
 
 #ifdef GCR_SMOOTHER
@@ -1812,8 +1853,9 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   PRECISION norm;
   complex_PRECISION lmaxb, dot_prod;
 
-  // if e.g. we want 2 shifts in Richardson, we use 20 BPI vectors
-  int bpi_base = 10 * p->richardson_sub_degree;
+  // if e.g. we want 2 shifts in Richardson, we use 2 BPI vectors .. but this code
+  // is in principle ready to apply block power iteration in a more general way
+  int bpi_base = 1 * p->richardson_sub_degree;
 
   // allocate the BPI base
   vector_PRECISION *V = NULL;
@@ -1890,7 +1932,8 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   START_MASTER(threading)
   for ( i=0;i<p->richardson_sub_degree;i++ ) {
     p->omega[i] = cabs_PRECISION(lmax[i]);
-    p->omega[i] = 1.0 / (2.0*p->omega[i] / 3.0);
+    //p->omega[i] = 1.0 / (2.0*p->omega[i] / 3.0);
+    p->omega[i] = p->richardson_factor / (p->omega[i]);
   }
   END_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
@@ -1899,9 +1942,8 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   PUBLIC_FREE( V, vector_PRECISION, bpi_base );
 }
 
-
 // used as smoother at the moment
-int richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+int richardson_PRECISION_cpu( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
 
   if ( p->richardson_update_omega==1 ) {
     richardson_update_omega_PRECISION( p, l, threading );
@@ -1914,15 +1956,19 @@ int richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thr
   compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
   int n = p->num_restart * p->restart_length;
 
-  // FIXME : initial guess, enforcing zero initial guess
-  //if ( res == _NO_RES ) {
-  vector_PRECISION_define( p->x, 0, start, end, l );
-  //}
+  // initial guess to zero if necessary
+  if ( p->initial_guess_zero == _NO_RES ) {
+    vector_PRECISION_define( p->x, 0, start, end, l );
+  }
 
   for ( i=0; i<n; i++ ) {
     // 1. compute residual
-    apply_operator_PRECISION( p->w, p->x, p, l, threading );
-    vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
+    if ( i==0 && p->initial_guess_zero==_NO_RES ) {
+      vector_PRECISION_copy( p->r, p->b, start, end, l );
+    } else {
+      apply_operator_PRECISION( p->w, p->x, p, l, threading );
+      vector_PRECISION_minus( p->r, p->b, p->w, start, end, l );
+    }
 
     // 2. update solution
     vector_PRECISION_saxpy( p->x, p->x, p->r, p->omega[i%p->richardson_sub_degree], start, end, l );

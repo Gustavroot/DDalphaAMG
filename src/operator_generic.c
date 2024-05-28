@@ -240,8 +240,6 @@ void operator_PRECISION_define( operator_PRECISION_struct *op, level_struct *l )
   // negative inner boundary table (for communication),
   // translation table (for translation to lexicographical site ordnering)
   define_nt_bt_tt_PRECISION(op, op->c.boundary_table, dt, l);
-
-  //printf("try two : %d\n", op->num_even_sites);
 }
 
 

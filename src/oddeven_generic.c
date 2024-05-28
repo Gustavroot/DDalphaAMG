@@ -25,6 +25,11 @@
 #include "proxies/dirac_proxy_double.h"
 #include "proxies/data_layout_proxy_PRECISION.h"
 #include "vectorization_dirac_PRECISION.h"
+#ifdef RICHARDSON_SMOOTHER
+#include "proxies/linsolve_proxy_PRECISION.h"
+#endif
+
+#include "operator.h"
 
 void selfcoupling_cholesky_decomposition_PRECISION( const config_PRECISION output, config_double input ) {
   
@@ -132,7 +137,7 @@ static inline void LLH_multiply_PRECISION( vector_PRECISION y, vector_PRECISION 
   register int i, j;
   int n;
   complex_PRECISION z[6];
-  
+
   for ( n=0; n<2; n++ ) {
     // z = L^H x
     for ( j=0; j<6; j++ ) { // columns
@@ -167,7 +172,7 @@ void diag_ee_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_PRECISI
   config_PRECISION sc = op->clover;
   x += start; y += start;
   if ( g.csw ) {
-#ifdef OPTIMIZED_SELF_COUPLING_PRECISION
+#if !defined(GMRES_ON_GPUS) && defined(OPTIMIZED_SELF_COUPLING_PRECISION)
     PRECISION *sc_pt = op->clover_vectorized + 2*2*(3*start);
     PRECISION *x_pt = (PRECISION*)x;
     PRECISION *y_pt = (PRECISION*)y;
@@ -255,7 +260,7 @@ void diag_oo_inv_PRECISION( vector_PRECISION y, vector_PRECISION x, operator_PRE
   x += start; y += start;
   // inverse diagonal blocks applied to the odd sites
   if ( g.csw ) {
-#ifdef OPTIMIZED_SELF_COUPLING_PRECISION
+#if !defined(GMRES_ON_GPUS) && defined(OPTIMIZED_SELF_COUPLING_PRECISION)
     PRECISION *sc_pt = op->clover_vectorized + 2*2*(3*start);
     PRECISION *x_pt = (PRECISION*)x;
     PRECISION *y_pt = (PRECISION*)y;
@@ -420,9 +425,16 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   MALLOC( op->neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->backward_neighbor_table, int, 5*N[T]*N[Z]*N[Y]*N[X] );
   MALLOC( op->translation_table, int, le[T]*le[Z]*le[Y]*le[X] );
-  
+
+#ifdef CUDA_OPT
+  g.oddeven_copy_nt_2_gpu = 1;
+#endif
+
   define_nt_bt_tt_PRECISION(op, NULL, N, l );
-  
+#ifdef CUDA_OPT
+  g.oddeven_copy_nt_2_gpu = 0;
+#endif
+
   // boundary table
   for ( mu=0; mu<4; mu++ ) {
     bs = 1;
@@ -596,10 +608,10 @@ void block_to_oddeven_PRECISION( vector_PRECISION out, vector_PRECISION in, leve
   SYNC_CORES(threading)  
 }
 
-#ifndef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
+#if defined(GMRES_ON_GPUS) || !defined(OPTIMIZED_NEIGHBOR_COUPLING_PRECISION)
 void hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                              const int amount, level_struct *l, struct Thread *threading ) {
-  
+
   int start_even, end_even, start_odd, end_odd;
   compute_core_start_end_custom(0, op->num_even_sites, &start_even, &end_even, l, threading, 1 );
   compute_core_start_end_custom(op->num_even_sites, op->num_even_sites+op->num_odd_sites, &start_odd, &end_odd, l, threading, 1 );
@@ -717,7 +729,7 @@ void hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operato
 }
 #endif
 
-void apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op,
+void apply_schur_complement_PRECISION_cpu( vector_PRECISION out, vector_PRECISION in, operator_PRECISION_struct *op,
     level_struct *l, struct Thread *threading ) {
 
 /*********************************************************************************
@@ -726,37 +738,40 @@ void apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECISION in
 
   // start and end indices for vector functions depending on thread
   int start_even, end_even, start_odd, end_odd;
-  
+
   compute_core_start_end_custom(0, op->num_even_sites*l->num_lattice_site_var, &start_even, &end_even, l, threading, 12 );
   compute_core_start_end_custom(op->num_even_sites*l->num_lattice_site_var, l->inner_vector_size, &start_odd, &end_odd, l, threading, 12 );
-  
+
   vector_PRECISION *tmp = op->buffer;
-  
+
   SYNC_CORES(threading)
+
   vector_PRECISION_define( tmp[0], 0, start_odd, end_odd, l );
   vector_PRECISION_define( tmp[0], 0, start_even, end_even, l );
   SYNC_CORES(threading)
-  PROF_PRECISION_START( _NC, threading );
-  
+
   PROF_PRECISION_START( _SC, threading );
   diag_ee_PRECISION( out, in, op, l, start_even, end_even );
   SYNC_CORES(threading)
   PROF_PRECISION_STOP( _SC, 1, threading );
+
+  PROF_PRECISION_START( _NC, threading );
   hopping_term_PRECISION( tmp[0], in, op, _ODD_SITES, l, threading );
   PROF_PRECISION_STOP( _NC, 0, threading );
-  
+
   PROF_PRECISION_START( _SC, threading );
   diag_oo_inv_PRECISION( tmp[1], tmp[0], op, l, start_odd, end_odd );
   SYNC_CORES(threading)
   PROF_PRECISION_STOP( _SC, 0, threading );
+
   PROF_PRECISION_START( _NC, threading );
   hopping_term_PRECISION( tmp[0], tmp[1], op, _EVEN_SITES, l, threading );
   PROF_PRECISION_STOP( _NC, 1, threading );
+
   vector_PRECISION_minus( out, out, tmp[0], start_even, end_even, l );
 }
 
-
-void solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
+void solve_oddeven_PRECISION_cpu( gmres_PRECISION_struct *p, operator_PRECISION_struct *op, level_struct *l, struct Thread *threading ) {
   
   // start and end indices for vector functions depending on thread
   int start;

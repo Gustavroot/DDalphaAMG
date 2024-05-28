@@ -35,7 +35,7 @@
   int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
   int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
 #ifdef RICHARDSON_SMOOTHER
-  int richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
+  int richardson_PRECISION_cpu( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
 #endif
   void cgn_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
   void bicgstab_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *threading );
@@ -49,5 +49,9 @@
                             level_struct *l, struct Thread *threading );
   void compute_solution_PRECISION( vector_PRECISION x, vector_PRECISION *V, complex_PRECISION *y, complex_PRECISION *gamma,
                                    complex_PRECISION **H, int j, int ol, gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
-  
+
+#ifdef RICHARDSON_SMOOTHER
+  void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
+#endif
+
 #endif

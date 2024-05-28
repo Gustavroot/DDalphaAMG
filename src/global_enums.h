@@ -109,6 +109,7 @@ enum
     _HOPPING,
     _NHOPPING,
     _SOlV_NC,
+    _SM_OE,
     _NUM_PROF
 }; // _NUM_PROF has always to be the last constant!
 enum

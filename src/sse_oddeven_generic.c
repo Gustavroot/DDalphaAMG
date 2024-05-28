@@ -24,10 +24,10 @@
 
 #ifdef SSE
 
-#ifdef OPTIMIZED_NEIGHBOR_COUPLING_PRECISION
+#if !defined(GMRES_ON_GPUS) && defined(OPTIMIZED_NEIGHBOR_COUPLING_PRECISION)
 void hopping_term_PRECISION( vector_PRECISION eta, vector_PRECISION phi, operator_PRECISION_struct *op,
                              const int amount, level_struct *l, struct Thread *threading ) {
-  
+
   int start_even, end_even, start_odd, end_odd, n = l->num_inner_lattice_sites,
       *neighbor = op->neighbor_table, start=0, plus_dir_param=_FULL_SYSTEM, minus_dir_param=_FULL_SYSTEM;
   

@@ -42,6 +42,9 @@ ifdef CUDA_INCLUDE
 	COMMON_COMPILE_FLAGS += -I$(CUDA_INCLUDE)
 endif
 
+# with SSE on, this flag forces (CPU) GMRES as a smoother to run without vectorization
+#COMMON_COMPILE_FLAGS += -DGMRES_ON_GPUS
+
 # GCR as a smoother
 #COMMON_COMPILE_FLAGS += -DGCR_SMOOTHER
 # Richardson as a smoother
@@ -51,18 +54,18 @@ endif
 COMMON_COMPILE_FLAGS += -DTM_COARSEST
 
 # LAPACK is needed for coarsest-level improvements
-LAPACK_DIR = dependencies/lapack-3.9.0
-LAPACKE_DIR = $(LAPACK_DIR)/LAPACKE
-LAPACKE_INCLUDE = $(LAPACKE_DIR)/include
-BLASLIB      = $(LAPACK_DIR)/librefblas.a
-LAPACKLIB    = $(LAPACK_DIR)/liblapack.a
-LAPACKELIB   = $(LAPACK_DIR)/liblapacke.a
-LAPACK_LIBRARIES = $(LAPACKELIB) $(LAPACKLIB) $(BLASLIB)
-COMMON_COMPILE_FLAGS += -I$(LAPACKE_INCLUDE)
+#LAPACK_DIR = dependencies/lapack-3.9.0
+#LAPACKE_DIR = $(LAPACK_DIR)/LAPACKE
+#LAPACKE_INCLUDE = $(LAPACKE_DIR)/include
+#BLASLIB      = $(LAPACK_DIR)/librefblas.a
+#LAPACKLIB    = $(LAPACK_DIR)/liblapack.a
+#LAPACKELIB   = $(LAPACK_DIR)/liblapacke.a
+#LAPACK_LIBRARIES = $(LAPACKELIB) $(LAPACKLIB) $(BLASLIB)
+#COMMON_COMPILE_FLAGS += -I$(LAPACKE_INCLUDE)
 
 # coarsest-level improvements
-COMMON_COMPILE_FLAGS += -DGCRODR
-COMMON_COMPILE_FLAGS += -DPOLYPREC
+#COMMON_COMPILE_FLAGS += -DGCRODR
+#COMMON_COMPILE_FLAGS += -DPOLYPREC
 
 ## Defines
 COMMON_COMPILE_FLAGS += -DCUDA_ERROR_CHECK -DPROFILING $(NVTX_DISABLE) #-DGPU2GPU_COMMS_VIA_CPUS
@@ -86,7 +89,7 @@ COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTE
 ifeq ($(CUDA_ENABLER),yes)
 COMPILE_FLAGS += -fopenmp -DOPENMP
 else
-COMPILE_FLAGS += -fopenmp
+COMPILE_FLAGS += -fopenmp -DOPENMP
 endif
 
 ifeq ($(SSE_ENABLER),yes)
@@ -105,12 +108,12 @@ endif
 COMPILE_FLAGS += -Wall -Werror-implicit-function-declaration
 LINK_FLAGS = -lgomp -lm -ldl
 
+#LINK_FLAGS += -DHALF_PREC_STORAGE
 
 # -DSINGLE_ALLREDUCE_ARNOLDI
 # -DCOARSE_RES -DSCHWARZ_RES -DTESTVECTOR_ANALYSIS
 OPT_VERSION_FLAGS = -O3 -ffast-math
 DEBUG_VERSION_FLAGS = 
-
 
 ## CUDA-only flags
 NVCC_ARCHITECTURE_FLAGS = -arch=$(CUDA_ARCH)
@@ -123,7 +126,7 @@ COMPILE_FLAGS_CUDA = $(NVCC_ARCHITECTURE_FLAGS) -rdc=true $(COMMON_COMPILE_FLAGS
 ifeq ($(CUDA_ENABLER),yes)
 COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall"
 else
-COMPILE_FLAGS_CUDA += -Xcompiler "-fopenmp -Wall"
+COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall"
 endif
 
 ifeq ($(SSE_ENABLER),yes)
@@ -131,7 +134,6 @@ ifeq ($(SSE_ENABLER),yes)
 endif
 OPT_VERSION_FLAGS_CUDA = -O3 -Xcompiler "-ffast-math"
 DEBUG_VERSION_FLAGS_CUDA = 
-
 
 NVCC_LINK_FLAGS = $(NVCC_ARCHITECTURE_FLAGS) -lmpi -lgomp -lm
 ifdef MPI_LIB
@@ -227,7 +229,7 @@ doc/doxygen: src/* src/gpu/* doxygen.conf
 # Object compilation (host)
 $(BUILDDIR)/%.o: $(GSRCDIR)/%.c $(GHEA)
 	@mkdir -p $(@D)
-	$(CC) $(COMPILE_FLAGS) $(OPT_VERSION_FLAGS) -c $< -o $@ -lm
+	$(CC) $(COMPILE_FLAGS) $(OPT_VERSION_FLAGS) -c $< -o $@ $(LINK_FLAGS)
 
 $(BUILDDIR)/%_db.o: $(GSRCDIR)/%.c $(GHEA)
 	@mkdir -p $(@D)

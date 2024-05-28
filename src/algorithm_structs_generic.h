@@ -58,6 +58,8 @@ typedef struct
     cuda_vector_PRECISION prpT_gpu, prpZ_gpu, prpY_gpu, prpX_gpu;
     cuda_vector_PRECISION prnT_gpu, prnZ_gpu, prnY_gpu, prnX_gpu;
 
+    cuda_vector_PRECISION buffer_gpu[2];
+
     /** \see neighbor_table */
     int * neighbor_table_gpu;
 #endif
@@ -214,11 +216,17 @@ typedef struct
 {
     vector_PRECISION x, b, r, w, *V, *Z;
 #ifdef CUDA_OPT
+    int gpu_syst_size;
+
     // <streams> are objects that live on the CPU, and help the CPU to
     // control the GPU kernels ordering
     cudaStream_t *streams;
 
     vector_PRECISION xtmp;
+
+    cuda_vector_PRECISION b_gpu, b_componentwise_gpu, x_gpu,
+                          x_componentwise_gpu, w_componentwise_gpu,
+                          r_componentwise_gpu;
 #endif
     complex_PRECISION **H, *y, *gamma, *c, *s, shift;
     config_PRECISION *D, *clover;
@@ -231,12 +239,15 @@ typedef struct
                           struct level_struct *l, struct Thread *threading);
 #ifdef GCR_SMOOTHER
     int use_gcr;
+#endif
+
     complex_PRECISION *gcr_buffer_dotprods;
     complex_PRECISION *gcr_betas_dotprods;
-#endif
+
 #ifdef RICHARDSON_SMOOTHER
     int use_richardson,richardson_update_omega,richardson_sub_degree;
     PRECISION *omega;
+    double richardson_factor;
 #endif
 
 #ifdef GCRODR

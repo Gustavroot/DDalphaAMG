@@ -20,7 +20,6 @@ CUDA_CODE = compute_80
 # NVTX is used to annotate profiling reports. It can be disabled by setting this variable to -DNVTX_DISABLE .
 NVTX_DISABLE = -DNVTX_DISABLE
 
-
 # --- CUDA Support --------------------------------------
 # This flag must be set to "yes" in order to compile dd_alpha_amg with CUDA acceleration.
 # Note that some functionality is not yet or no longer available in the CUDA version of

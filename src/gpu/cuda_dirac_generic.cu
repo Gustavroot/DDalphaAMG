@@ -259,6 +259,30 @@ extern "C" void _cuda_clover_componentwise_PRECISION(cuda_vector_PRECISION eta,
   PROF_PRECISION_STOP_UNTHREADED( _SC, 1);
 }
 
+extern "C" void cuda_diag_ee_componentwise_PRECISION(cuda_vector_PRECISION eta,
+                                                     cuda_vector_PRECISION phi,
+                                                     cuda_config_PRECISION clover,
+                                                     int num_sites, level_struct *l) {
+
+  constexpr size_t blockSize = 128;
+
+  const size_t gridSize = minGridSizeForN(num_sites, blockSize);
+  cuda_site_diag_ee_componentwise_PRECISION<<<gridSize, blockSize>>>(eta, phi, clover, num_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+}
+
+extern "C" void cuda_diag_oo_inv_componentwise_PRECISION(cuda_vector_PRECISION eta,
+                                                         cuda_vector_PRECISION phi,
+                                                         cuda_config_PRECISION clover,
+                                                         int num_sites, level_struct *l) {
+
+  constexpr size_t blockSize = 128;
+
+  const size_t gridSize = minGridSizeForN(num_sites, blockSize);
+  cuda_site_diag_oo_inv_componentwise_PRECISION<<<gridSize, blockSize>>>(eta, phi, clover, num_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
+}
+
 /** \brief Calculates the self-coupling term eta = D_sc phi.
  * 
  *  Vectors must be in componentwise ordering.
@@ -304,7 +328,7 @@ void cuda_d_plus_clover_PRECISION(
   } else {
     _cuda_clover_componentwise_PRECISION(eta, phi, op->clover_componentwise_gpu, l->num_inner_lattice_sites, l);
   }
-  
+
   PROF_PRECISION_START_UNTHREADED( _NC );
 
   // Project in positive directions
@@ -351,6 +375,7 @@ void cuda_d_plus_clover_PRECISION(
   cuda_ghost_wait_PRECISION(op->prnZ_gpu, Z, -1, &(op->cuda_c), _FULL_SYSTEM, l);
   cuda_ghost_wait_PRECISION(op->prnY_gpu, Y, -1, &(op->cuda_c), _FULL_SYSTEM, l);
   cuda_ghost_wait_PRECISION(op->prnX_gpu, X, -1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_pbp_su3_mvm_componentwise_PRECISION<<<2*gridSize, blockSize>>>(op->pbuf_gpu, op->Ds_componentwise_gpu[T], op->prnT_gpu,
                                                         op->neighbor_table_gpu, LatticeAxis::T,
@@ -368,18 +393,20 @@ void cuda_d_plus_clover_PRECISION(
                                                         op->neighbor_table_gpu, LatticeAxis::X,
                                                         l->num_inner_lattice_sites);
   cuda_pbp_su3_X_componentwise_PRECISION<<<gridSize, blockSize>>>(eta, op->pbuf_gpu, l->num_inner_lattice_sites);
+  cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_ghost_wait_PRECISION(op->prpT_gpu, T, +1, &(op->cuda_c), _FULL_SYSTEM, l);
   cuda_ghost_wait_PRECISION(op->prpZ_gpu, Z, +1, &(op->cuda_c), _FULL_SYSTEM, l);
   cuda_ghost_wait_PRECISION(op->prpY_gpu, Y, +1, &(op->cuda_c), _FULL_SYSTEM, l);
   cuda_ghost_wait_PRECISION(op->prpX_gpu, X, +1, &(op->cuda_c), _FULL_SYSTEM, l);
+  cuda_safe_call(cudaDeviceSynchronize());
 
   cuda_pbn_su3_T_componentwise_PRECISION<<<gridSize, blockSize>>>(eta, op->prpT_gpu, l->num_inner_lattice_sites);
   cuda_pbn_su3_Z_componentwise_PRECISION<<<gridSize, blockSize>>>(eta, op->prpZ_gpu, l->num_inner_lattice_sites);
   cuda_pbn_su3_Y_componentwise_PRECISION<<<gridSize, blockSize>>>(eta, op->prpY_gpu, l->num_inner_lattice_sites);
   cuda_pbn_su3_X_componentwise_PRECISION<<<gridSize, blockSize>>>(eta, op->prpX_gpu, l->num_inner_lattice_sites);
   cuda_safe_call(cudaDeviceSynchronize());
-  
+
   PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
   endProfilingRange(profilingRangeOperator);
 }

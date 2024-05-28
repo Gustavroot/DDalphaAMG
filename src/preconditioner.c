@@ -22,6 +22,8 @@
 #include "main.h"
 #include "preconditioner.h"
 #include "profiling.h"
+#include "proxies/oddeven_proxy_float.h"
+#include "proxies/oddeven_proxy_double.h"
 
 void preconditioner( vector_double phi, vector_double Dphi, vector_double eta,
                       const int res, level_struct *l, struct Thread *threading ) {
