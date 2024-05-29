@@ -5,8 +5,8 @@ extern "C"{
   #define IMPORT_FROM_EXTERN_C
   #include "main.h"
   #undef IMPORT_FROM_EXTERN_C
-
 }
+//#include "global_defs.h"
 
 #ifdef CUDA_OPT
 
@@ -125,6 +125,60 @@ extern "C" void cuda_vector_PRECISION_saxpy( cuda_vector_PRECISION z, cuda_vecto
   }
 
   PROF_PRECISION_STOP( _LA8, (double)(length)/(double)l->inner_vector_size );
+}
+
+void cuda_global_inner_product_PRECISION( cuda_vector_PRECISION* V, cuda_vector_PRECISION psi,
+     complex_PRECISION *result, int n, int start, int end, level_struct *l, struct Thread *threading ) {
+
+  // TODO
+
+  //error0( "under construction \n" );
+
+  //return make_cu_cmplx_PRECISION(1.0,0.0);
+}
+
+extern "C" void cuda_global_inner_product_PRECISION_vectorwrapper( vector_PRECISION* V, vector_PRECISION psi,
+                complex_PRECISION *result, int n, int start, int end, level_struct *l, struct Thread *threading ) {
+
+  //complex_PRECISION *dotprod_result=NULL;
+  //PUBLIC_MALLOC( dotprod_result, complex_PRECISION, 1 );
+
+  START_MASTER(threading)
+
+  // CUDA stream, only one as only the master thread is in charge of this
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  cuda_vector_PRECISION *V_gpu  = NULL;
+  cuda_vector_PRECISION psi_gpu = NULL;
+
+  // allocate input GPU data
+  MALLOC( V_gpu, cuda_vector_PRECISION, n );
+  CUDA_MALLOC( V_gpu[0], cu_cmplx_PRECISION, n*end );
+  for ( int i=1;i<n;i++ ) { V_gpu[i] = V_gpu[0]+i*end; }
+  CUDA_MALLOC( psi_gpu, cu_cmplx_PRECISION, end );
+
+  // copy input data to GPUs
+  for ( int i=0;i<n;i++ ) {
+    cuda_vector_PRECISION_copy( V_gpu[i], V[i], start, end-start, l, _H2D, _CUDA_SYNC, 0, streams );
+  }
+  cuda_vector_PRECISION_copy( psi_gpu, psi, start, end-start, l, _H2D, _CUDA_SYNC, 0, streams );
+
+  // offload the dot product to the GPUs
+  //cu_cmplx_PRECISION cu_dotprod_result = cuda_global_inner_product_PRECISION( V_gpu, psi_gpu, result, n, start, end, l, threading );
+  cuda_global_inner_product_PRECISION( V_gpu, psi_gpu, result, n, start, end, l, threading );
+
+  //((PRECISION*)dotprod_result)[0] = cu_creal_PRECISION(cu_dotprod_result);
+  //((PRECISION*)dotprod_result)[1] = cu_cimag_PRECISION(cu_dotprod_result);
+
+  END_MASTER(threading)
+  SYNC_CORES(threading)
+
+  //complex_PRECISION result = dotprod_result[0];
+  //SYNC_CORES(threading)
+  //PUBLIC_FREE( dotprod_result, complex_PRECISION, 1 );
+
+  //return result;
 }
 
 #endif

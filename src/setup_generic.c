@@ -588,8 +588,8 @@ void testvector_analysis_PRECISION( vector_PRECISION *test_vectors, level_struct
     printf0("vector #%02d: ", i+1 );
     apply_operator_PRECISION( l->vbuf_PRECISION[3], test_vectors[i], &(l->p_PRECISION), l, no_threading );
     coarse_gamma5_PRECISION( l->vbuf_PRECISION[0], l->vbuf_PRECISION[3], 0, l->inner_vector_size, l );
-    lambda = global_inner_product_PRECISION( test_vectors[i], l->vbuf_PRECISION[0], 0, l->inner_vector_size, l, no_threading );
-    lambda /= global_inner_product_PRECISION( test_vectors[i], test_vectors[i], 0, l->inner_vector_size, l, no_threading );
+    lambda = global_inner_product_PRECISION( &(test_vectors[i]), l->vbuf_PRECISION[0], NULL, 1, 0, l->inner_vector_size, l, no_threading );
+    lambda /= global_inner_product_PRECISION( &(test_vectors[i]), test_vectors[i], NULL, 1, 0, l->inner_vector_size, l, no_threading );
     vector_PRECISION_saxpy( l->vbuf_PRECISION[1], l->vbuf_PRECISION[0], test_vectors[i], -lambda, 0, l->inner_vector_size, l );
     mu = global_norm_PRECISION( l->vbuf_PRECISION[1], 0, l->inner_vector_size, l, no_threading )/global_norm_PRECISION( test_vectors[i], 0, l->inner_vector_size, l, no_threading );
     printf0("singular value: %+lf%+lfi, singular vector precision: %le\n", (double)creal(lambda), (double)cimag(lambda), (double)mu );
