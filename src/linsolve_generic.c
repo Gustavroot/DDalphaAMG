@@ -1839,11 +1839,6 @@ int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *t
       // global number of iters
       iter++;
 
-      START_MASTER(threading)
-      printf0("right before dot products!\n");
-      END_MASTER(threading)
-      SYNC_CORES(threading)
-
       deltas[k] = global_inner_product_PRECISION( &(Z[k]), Z[k], NULL, 1, p->v_start, p->v_end, p, l, threading );
       alpha     = global_inner_product_PRECISION( &(Z[k]), p->r, NULL, 1, p->v_start, p->v_end, p, l, threading ) / deltas[k];
 

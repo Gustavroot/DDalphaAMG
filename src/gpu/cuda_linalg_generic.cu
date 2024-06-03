@@ -146,7 +146,6 @@ __global__ void _cuda_process_partial_inner_product_PRECISION( cuda_vector_PRECI
 
   cu_cmplx_PRECISION temp = make_cu_cmplx_PRECISION( 0.0,0.0 );
   while (tid < N){
-    //temp += a[tid] * b[tid];
     temp = cu_cadd_PRECISION( temp, cu_cmul_PRECISION( cu_conj_PRECISION(a[tid]), b[tid] ) );
     tid += blockDim.x * gridDim.x;
   }
@@ -188,21 +187,6 @@ void cuda_global_inner_product_PRECISION( cuda_vector_PRECISION* V, cuda_vector_
   cuda_vector_PRECISION *dev_partial_sums = p->gpu_dotprods_dev_partial_sums;
   vector_PRECISION global_sums = p->gpu_dotprods_global_sums;
 
-  //vector_PRECISION *partial_sums = NULL;
-  //cuda_vector_PRECISION *dev_partial_sums = NULL;
-  //vector_PRECISION global_sums = NULL;
-
-  //// TODO : move these allocs to some 'setup'/'init' function
-  //MALLOC( partial_sums, complex_PRECISION*, n );
-  //partial_sums[0] = NULL;
-  //MALLOC( partial_sums[0], complex_PRECISION, n*blocksPerGrid );
-  //for ( int i=1;i<n;i++ ) { partial_sums[i] = partial_sums[0] + i*blocksPerGrid; }
-  //MALLOC( dev_partial_sums, cu_cmplx_PRECISION*, n );
-  //dev_partial_sums[0] = NULL;
-  //CUDA_MALLOC( dev_partial_sums[0], cu_cmplx_PRECISION, n*blocksPerGrid );
-  //for ( int i=1;i<n;i++ ) { dev_partial_sums[i] = dev_partial_sums[0] + i*blocksPerGrid; }
-  //MALLOC( global_sums, complex_PRECISION, n );
-
   for ( int i=0;i<n;i++ ) {
     _cuda_process_partial_inner_product_PRECISION<<<blocksPerGrid, threadsPerBlockDP>>>
                                                  ( V[i]+start, psi+start, dev_partial_sums[i], N );
@@ -224,52 +208,6 @@ void cuda_global_inner_product_PRECISION( cuda_vector_PRECISION* V, cuda_vector_
     MPI_Allreduce( result, global_sums, n, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
     for ( int i=0;i<n;i++ ) { result[i] = global_sums[i]; }
   }
-
-  //// TODO : move these allocs to some 'setup'/'init' function
-  //FREE( partial_sums[0], complex_PRECISION, n*blocksPerGrid );
-  //FREE( partial_sums, complex_PRECISION*, n );
-  //CUDA_FREE( dev_partial_sums[0], cu_cmplx_PRECISION, blocksPerGrid );
-  //FREE( dev_partial_sums, cu_cmplx_PRECISION*, n*blocksPerGrid );
-  //FREE( global_sums, complex_PRECISION, n );
-
-  /*
-
-  // this 'legacy' code does one dot product at a time
-
-  complex_PRECISION *partial_sum = NULL;
-  cu_cmplx_PRECISION *dev_partial_sum = NULL;
-  complex_PRECISION global_sum;
-
-  // TODO : move these allocs to some 'setup'/'init' function
-  MALLOC( partial_sum, complex_PRECISION, blocksPerGrid );
-  CUDA_MALLOC( dev_partial_sum, cu_cmplx_PRECISION, blocksPerGrid );
-
-  for ( int i=0;i<n;i++ ) {
-
-    _cuda_process_partial_inner_product_PRECISION<<<blocksPerGrid, threadsPerBlock>>>
-                                                 ( V[i]+start, psi+start, dev_partial_sum, N );
-    cuda_safe_call( cudaDeviceSynchronize() );
-
-    cuda_vector_PRECISION_copy( partial_sum, dev_partial_sum, 0, blocksPerGrid,
-                                l, _D2H, _CUDA_SYNC, 0, streams );
-
-    result[i] = 0.0;
-    for ( int j=0;j<blocksPerGrid;j++ ) {
-      result[i] += partial_sum[j];
-    }
-
-    // FIXME ? ( is g.num_processes the best way to go here? )
-    if ( g.num_processes > 1 ) {
-      MPI_Allreduce( &(result[i]), &global_sum, 1, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
-      result[i] = global_sum;
-    }
-  }
-
-  // TODO : move these allocs to some 'setup'/'init' function
-  FREE( partial_sum, complex_PRECISION, blocksPerGrid );
-  CUDA_FREE( dev_partial_sum, cu_cmplx_PRECISION, blocksPerGrid );
-
-  */
 }
 
 extern "C" void cuda_global_inner_product_PRECISION_vectorwrapper( vector_PRECISION* V, vector_PRECISION psi,
