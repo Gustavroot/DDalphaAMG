@@ -429,6 +429,7 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
 #ifdef CUDA_OPT
   const int N = p->v_end-p->v_start;
   const int blocksPerGrid = imin(32, (N+threadsPerBlockDP-1) / threadsPerBlockDP);
+  p->gpu_dotprods_memsize = blocksPerGrid;
 
   MALLOC( p->gpu_dotprods_partial_sums, complex_PRECISION*, p->restart_length );
   p->gpu_dotprods_partial_sums[0] = NULL;
@@ -576,8 +577,10 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
 #endif
 
 #ifdef CUDA_OPT
-  const int N = p->v_end-p->v_start;
-  const int blocksPerGrid = imin(32, (N+threadsPerBlockDP-1) / threadsPerBlockDP);
+  //const int N = p->v_end-p->v_start;
+  //const int blocksPerGrid = imin(32, (N+threadsPerBlockDP-1) / threadsPerBlockDP);
+
+  const int blocksPerGrid = p->gpu_dotprods_memsize;
 
   FREE( p->gpu_dotprods_partial_sums[0], complex_PRECISION, p->restart_length*blocksPerGrid );
   FREE( p->gpu_dotprods_partial_sums, complex_PRECISION*, p->restart_length );
