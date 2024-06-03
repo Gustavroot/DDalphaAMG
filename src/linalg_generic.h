@@ -100,7 +100,8 @@
   struct Thread;
 
   complex_PRECISION global_inner_product_PRECISION_cpu( vector_PRECISION *V, vector_PRECISION y,
-                    complex_PRECISION *result, int n, int start, int end, level_struct *l, struct Thread *threading );
+                    complex_PRECISION *result, int n, int start, int end, gmres_PRECISION_struct *p,
+                    level_struct *l, struct Thread *threading );
   complex_PRECISION process_inner_product_PRECISION( vector_PRECISION phi, vector_PRECISION psi, int start, int end, level_struct *l, struct Thread *threading );
 
   void process_multi_inner_product_PRECISION( int count, complex_PRECISION *results, vector_PRECISION *phi, vector_PRECISION psi,

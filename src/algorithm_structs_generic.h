@@ -266,6 +266,12 @@ typedef struct
     int syst_size;
     vector_PRECISION *Va, *Za;
 #endif
+
+#ifdef CUDA_OPT
+  vector_PRECISION *gpu_dotprods_partial_sums;;
+  cuda_vector_PRECISION *gpu_dotprods_dev_partial_sums;;
+  vector_PRECISION gpu_dotprods_global_sums;;
+#endif
 } gmres_PRECISION_struct;
 
 typedef struct

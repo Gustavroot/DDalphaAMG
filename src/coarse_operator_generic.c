@@ -454,7 +454,7 @@ void coarse_operator_PRECISION_test_routine( level_struct *l, struct Thread *thr
       dot += (op[2*i*SIMD_LENGTH_PRECISION+0] + I*op[2*i*SIMD_LENGTH_PRECISION+SIMD_LENGTH_PRECISION])*conj(op2[2*i*SIMD_LENGTH_PRECISION+0] + I*op2[2*i*SIMD_LENGTH_PRECISION+SIMD_LENGTH_PRECISION]);
     diff = dot/norm;
 #else
-    diff = global_inner_product_PRECISION( &(l->is_PRECISION.interpolation[0]), l->is_PRECISION.interpolation[1], NULL, 1, 0, ivs, l, no_threading )
+    diff = global_inner_product_PRECISION( &(l->is_PRECISION.interpolation[0]), l->is_PRECISION.interpolation[1], NULL, 1, 0, ivs, &(l->p_PRECISION), l, no_threading )
          / global_norm_PRECISION( l->is_PRECISION.interpolation[0], 0, ivs, l, no_threading );
 #endif
     printf0("depth: %d, correctness of block_gram_schmidt: %le\n", l->depth, cabs(diff) );

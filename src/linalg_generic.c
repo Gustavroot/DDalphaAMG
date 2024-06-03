@@ -27,7 +27,8 @@
 
 #ifndef OPTIMIZED_LINALG_PRECISION
 complex_PRECISION global_inner_product_PRECISION_cpu( vector_PRECISION *V, vector_PRECISION psi,
-                  complex_PRECISION *result, int n, int start, int end, level_struct *l, struct Thread *threading ) {
+                  complex_PRECISION *result, int n, int start, int end, gmres_PRECISION_struct *p,
+                  level_struct *l, struct Thread *threading ) {
 
   vector_PRECISION phi = V[0];
   
