@@ -1,6 +1,7 @@
 #include <mpi.h>
 
 #include "gpu/cuda_componentwise.h"
+#include "gpu/cuda_linalg_PRECISION.h"
 
 // this block size is for the full-size Schur complement
 #ifdef RICHARDSON_SMOOTHER
@@ -303,3 +304,197 @@ extern "C" int cuda_richardson_PRECISION_vectorwrapper( gmres_PRECISION_struct *
   return p->num_restart * p->restart_length;
 }
 #endif
+
+// to be used from within GPU GMRES
+void cuda_qr_update_PRECISION( complex_PRECISION **H, complex_PRECISION *s,
+                               complex_PRECISION *c, complex_PRECISION *gamma, int j,
+                               level_struct *l, struct Thread *threading ) {
+
+/*********************************************************************************
+* Applies one Givens rotation to the Hessenberg matrix H in order to solve the 
+* least squares problem in (F)GMRES for computing the solution.
+* - complex_PRECISION **H: Hessenberg matrix from Arnoldi decomposition
+* - complex_PRECISION *s: sin values from givens rotations
+* - complex_PRECISION *c: cos valies from givens rotations
+* - complex_PRECISION *gamma: Approximation to residual from every step
+* - int j: Denotes current iteration.
+*********************************************************************************/  
+
+  //PROF_PRECISION_START_UNTHREADED( _SMALL1 );
+
+  int i;
+  complex_PRECISION beta;
+
+  // update QR factorization
+  // apply previous Givens rotation
+  for ( i=0; i<j; i++ ) {
+    beta = (-s[i])*H[j][i] + (c[i])*H[j][i+1];
+    H[j][i] = conj_PRECISION(c[i])*H[j][i] + conj_PRECISION(s[i])*H[j][i+1];
+    H[j][i+1] = beta;
+  }
+  // compute current Givens rotation
+  beta = (complex_PRECISION) sqrt( NORM_SQUARE_PRECISION(H[j][j]) + NORM_SQUARE_PRECISION(H[j][j+1]) );
+  s[j] = H[j][j+1]/beta; c[j] = H[j][j]/beta;
+  // update right column
+  gamma[j+1] = (-s[j])*gamma[j]; gamma[j] = conj_PRECISION(c[j])*gamma[j];
+  // apply current Givens rotation
+  H[j][j] = beta; H[j][j+1] = 0;
+
+  //PROF_PRECISION_STOP_UNTHREADED( _SMALL1, 6*j+6 );
+}
+
+void cuda_compute_solution_PRECISION( cuda_vector_PRECISION x, cuda_vector_PRECISION *V, complex_PRECISION *y,
+                                      complex_PRECISION *gamma, complex_PRECISION **H, int j, int ol,
+                                      gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+  
+  int i, k;
+  // start and end indices for vector functions depending on thread
+  int start;
+  int end;
+
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  start = p->v_start;
+  end = p->v_end;
+
+  //PROF_PRECISION_START( _SMALL2 );
+
+  // backward substitution
+  for ( i=j; i>=0; i-- ) {
+    y[i] = gamma[i];
+    for ( k=i+1; k<=j; k++ ) {
+      y[i] -= H[k][i]*y[k];
+    }
+    y[i] /= H[i][i];
+  }
+
+  //PROF_PRECISION_STOP( _SMALL2, ((j+1)*(j+2))/2 + j+1 );
+
+  // x = x + V*y
+  if ( ol ) {
+    for ( i=0; i<=j; i++ ) {
+      cuda_vector_PRECISION_saxpy( x, x, V[i], make_cu_cmplx_PRECISION(creal_PRECISION(y[i]),cimag_PRECISION(y[i])),
+                                   start, end, l, _CUDA_SYNC, 0, streams );
+    }
+  } else {
+    cuda_vector_PRECISION_scale( x, V[0], make_cu_cmplx_PRECISION(creal_PRECISION(y[0]),cimag_PRECISION(y[0])),
+                                 start, end, l, _CUDA_SYNC, 0, streams);
+    for ( i=1; i<=j; i++ ) {
+      cuda_vector_PRECISION_saxpy( x, x, V[i], make_cu_cmplx_PRECISION(creal_PRECISION(y[i]),cimag_PRECISION(y[i])),
+                                   start, end, l, _CUDA_SYNC, 0, streams );
+    }
+  }
+}
+
+int cuda_arnoldi_step_PRECISION( cuda_vector_PRECISION *V, cuda_vector_PRECISION *Z, cuda_vector_PRECISION w,
+                                 complex_PRECISION **H, complex_PRECISION* buffer, int j, void (*prec)(),
+                                 complex_PRECISION shift, gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+
+  int i;
+  int start, end;
+
+  start = p->v_start;
+  end = p->v_end;
+
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  cuda_apply_schur_complement_PRECISION( w, V[j], p->op, l );
+  if ( shift ) cuda_vector_PRECISION_saxpy( w, w, V[j], make_cu_cmplx_PRECISION(creal_PRECISION(shift),cimag_PRECISION(shift)),
+                                            start, end, l, _CUDA_SYNC, 0, streams );
+
+  cuda_global_inner_product_PRECISION( V, w, H[j], j+1, start, end, p, l, threading );
+
+  for( i=0; i<=j; i++ ) {
+    cuda_vector_PRECISION_saxpy( w, w, V[i], make_cu_cmplx_PRECISION(-creal_PRECISION(H[j][i]),cimag_PRECISION(H[j][i])),
+                                 start, end, l, _CUDA_SYNC, 0, streams );
+  }
+
+  complex_PRECISION tmp2;
+  cuda_global_inner_product_PRECISION( &w, w, &tmp2, 1, start, end, p, l, threading );
+  tmp2 = (complex_PRECISION)sqrt(creal_PRECISION(tmp2));
+  H[j][j+1] = tmp2;
+
+  // V_j+1 = w / H_j+1,j
+  if ( cabs_PRECISION( H[j][j+1] ) > 1e-15 ) {
+    cuda_vector_PRECISION_scale( V[j+1], w, make_cu_cmplx_PRECISION(1.0/creal_PRECISION(H[j][j+1]),0.0),
+                                 start, end, l, _CUDA_SYNC, 0, streams);
+  }
+
+  return 1;
+}
+
+int cuda_fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+
+  // start and end indices for vector functions depending on thread
+  int start, end;
+
+  int j=-1, finish=0, iter=0, il, ol, res;
+  complex_PRECISION gamma0 = 0;
+  complex_PRECISION beta = 0;
+
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+
+  double norm_r0=1, gamma_jp1=1, t0=0, t1=0;
+
+  cuda_vector_PRECISION x  = p->x_componentwise_gpu;
+  cuda_vector_PRECISION r  = p->r_componentwise_gpu;
+  cuda_vector_PRECISION b  = p->b_componentwise_gpu;
+  cuda_vector_PRECISION w  = p->w_componentwise_gpu;
+  // TODO : allocate the memory for these V vectors
+  cuda_vector_PRECISION *V = p->V_componentwise_gpu;
+
+  start = p->v_start;
+  end = p->v_end;
+
+  for( ol=0; ol<p->num_restart && finish==0; ol++ )  {
+
+    if( ol == 0 && p->initial_guess_zero ) {
+      res = _NO_RES;
+      cuda_vector_PRECISION_copy( r, b, start, end-start, l, _D2D, _CUDA_SYNC, 0, streams );
+    } else {
+      res = _RES;
+      cuda_apply_schur_complement_PRECISION( w, x, p->op, l );
+      cuda_vector_PRECISION_minus( r, b, w, start, end, l, _CUDA_SYNC, 0, streams );
+    }
+
+    cuda_global_inner_product_PRECISION( &r, r, &gamma0, 1, start, end, p, l, threading );
+    gamma0 = (complex_PRECISION)sqrt(creal_PRECISION(gamma0));
+    p->gamma[0] = gamma0;
+
+    if( ol == 0) {
+      norm_r0 = creal(p->gamma[0]);
+    }
+
+    cuda_vector_PRECISION_scale( V[0], r, make_cu_cmplx_PRECISION(1.0/creal_PRECISION(p->gamma[0]),0.0),
+                                 start, end, l, _CUDA_SYNC, 0, streams);
+
+    for( il=0; il<p->restart_length && finish==0; il++) {
+
+      j = il; iter++;
+
+      // one step of Arnoldi
+      cuda_arnoldi_step_PRECISION( V, NULL, w, p->H, p->y, j, NULL, p->shift, p, l, threading );
+      
+      if ( cabs( p->H[j][j+1] ) > p->tol/10 ) {
+        cuda_qr_update_PRECISION( p->H, p->s, p->c, p->gamma, j, l, threading );
+        gamma_jp1 = cabs( p->gamma[j+1] );
+
+        if( gamma_jp1/norm_r0 < p->tol || gamma_jp1/norm_r0 > 1E+5 ) { // if satisfied ... stop
+          finish = 1;
+          if ( gamma_jp1/norm_r0 > 1E+5 ) printf0("Divergence of fgmres_PRECISION, iter = %d, level=%d\n", iter, l->level );
+        }
+      } else {
+        printf0("depth: %d, iter: %d, p->H(%d,%d) = %+lf+%lfi\n", l->depth, iter, j+1, j, CSPLIT( p->H[j][j+1] ) );
+        finish = 1;
+        break;
+      }
+    } // end of a single restart
+
+    cuda_compute_solution_PRECISION( x, V, p->y, p->gamma, p->H, j, (res==_NO_RES)?ol:1, p, l, threading );
+  } // end of fgmres
+
+  return iter;
+}

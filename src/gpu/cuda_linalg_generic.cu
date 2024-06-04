@@ -95,7 +95,8 @@ __global__ void _cuda_vector_PRECISION_minus( cuda_vector_PRECISION z, cuda_vect
   z[idx] = cu_csub_PRECISION( x[idx],y[idx] );
 }
 
-extern "C" void cuda_vector_PRECISION_minus( cuda_vector_PRECISION z, cuda_vector_PRECISION x, cuda_vector_PRECISION y, int start,
+extern "C" void
+cuda_vector_PRECISION_minus( cuda_vector_PRECISION z, cuda_vector_PRECISION x, cuda_vector_PRECISION y, int start,
                                              int length, level_struct *l, int sync_type, int stream_id, cudaStream_t *streams ){
 
   int nr_threads = length;
@@ -117,7 +118,8 @@ __global__ void _cuda_vector_PRECISION_saxpy( cuda_vector_PRECISION z, cuda_vect
   z[idx] = cu_cadd_PRECISION( x[idx] , cu_cmul_PRECISION( alpha,y[idx] ) );
 }
 
-extern "C" void cuda_vector_PRECISION_saxpy( cuda_vector_PRECISION z, cuda_vector_PRECISION x, cuda_vector_PRECISION y, cu_cmplx_PRECISION alpha, int start,
+extern "C" void
+cuda_vector_PRECISION_saxpy( cuda_vector_PRECISION z, cuda_vector_PRECISION x, cuda_vector_PRECISION y, cu_cmplx_PRECISION alpha, int start,
                                              int length, level_struct *l, int sync_type, int stream_id, cudaStream_t *streams ){
 
   int nr_threads = length;
@@ -210,7 +212,8 @@ void cuda_global_inner_product_PRECISION( cuda_vector_PRECISION* V, cuda_vector_
   }
 }
 
-extern "C" void cuda_global_inner_product_PRECISION_vectorwrapper( vector_PRECISION* V, vector_PRECISION psi,
+extern "C" void
+cuda_global_inner_product_PRECISION_vectorwrapper( vector_PRECISION* V, vector_PRECISION psi,
                 complex_PRECISION *result, int n, int start, int end, gmres_PRECISION_struct *p,
                 level_struct *l, struct Thread *threading ) {
 

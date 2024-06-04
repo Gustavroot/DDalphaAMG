@@ -23,6 +23,10 @@ void cuda_global_inner_product_PRECISION_vectorwrapper( vector_PRECISION* V, vec
                                   complex_PRECISION *result, int n, int start, int end, gmres_PRECISION_struct *p,
                                   level_struct *l, struct Thread *threading );
 
+void cuda_global_inner_product_PRECISION( cuda_vector_PRECISION* V, cuda_vector_PRECISION psi,
+     complex_PRECISION *result, int n, int start, int end, gmres_PRECISION_struct *p,
+     level_struct *l, struct Thread *threading );
+
 #ifdef __cplusplus
 }
 #endif

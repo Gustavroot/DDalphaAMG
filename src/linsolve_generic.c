@@ -111,6 +111,7 @@ void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   p->x_gpu = NULL;
   p->b_componentwise_gpu = NULL;
   p->b_gpu = NULL;
+  p->V_componentwise_gpu = NULL;
 
   p->gpu_dotprods_partial_sums = NULL;
   p->gpu_dotprods_dev_partial_sums = NULL;
@@ -418,6 +419,10 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
     CUDA_MALLOC( p->x_gpu, cu_cmplx_PRECISION, vl );
     CUDA_MALLOC( p->b_componentwise_gpu, cu_cmplx_PRECISION, vl );
     CUDA_MALLOC( p->b_gpu, cu_cmplx_PRECISION, vl );
+    MALLOC( p->V_componentwise_gpu, cuda_vector_PRECISION, p->restart_length+1 );
+    for ( i=0;i<(p->restart_length+1);i++ ) {
+      CUDA_MALLOC( p->V_componentwise_gpu[i], cu_cmplx_PRECISION, vl );
+    }
   }
 #endif
 
@@ -568,6 +573,10 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
     CUDA_FREE( p->x_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
     CUDA_FREE( p->b_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
     CUDA_FREE( p->b_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    for ( int i=0;i<(p->restart_length+1);i++ ) {
+      CUDA_FREE( p->V_componentwise_gpu[i], cu_cmplx_PRECISION, p->gpu_syst_size );
+    }
+    FREE( p->V_componentwise_gpu, cuda_vector_PRECISION, p->restart_length+1 );
   }
 #endif
 

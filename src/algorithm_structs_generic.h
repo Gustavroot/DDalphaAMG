@@ -226,7 +226,7 @@ typedef struct
 
     cuda_vector_PRECISION b_gpu, b_componentwise_gpu, x_gpu,
                           x_componentwise_gpu, w_componentwise_gpu,
-                          r_componentwise_gpu;
+                          r_componentwise_gpu, *V_componentwise_gpu;
 #endif
     complex_PRECISION **H, *y, *gamma, *c, *s, shift;
     config_PRECISION *D, *clover;
