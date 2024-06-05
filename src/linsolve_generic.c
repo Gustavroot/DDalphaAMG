@@ -21,6 +21,14 @@
 
 #include "main.h"
 #include "profiling.h"
+#include "proxies/linalg_proxy_PRECISION.h"
+//#include "global_defs.h"
+
+// this macro is used to determine the number of threads per
+// CUDA block for dot products offloaded to GPUs
+#define imin(a,b) (a<b?a:b)
+// IMPORTANT : if changed, change also in src/linsolve_generic.c
+static const int threadsPerBlockDP = 256;
 
 
 void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
@@ -103,6 +111,11 @@ void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   p->x_gpu = NULL;
   p->b_componentwise_gpu = NULL;
   p->b_gpu = NULL;
+  p->V_componentwise_gpu = NULL;
+
+  p->gpu_dotprods_partial_sums = NULL;
+  p->gpu_dotprods_dev_partial_sums = NULL;
+  p->gpu_dotprods_global_sums = NULL;
 #endif
 
 #ifdef GCR_SMOOTHER
@@ -406,12 +419,36 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
     CUDA_MALLOC( p->x_gpu, cu_cmplx_PRECISION, vl );
     CUDA_MALLOC( p->b_componentwise_gpu, cu_cmplx_PRECISION, vl );
     CUDA_MALLOC( p->b_gpu, cu_cmplx_PRECISION, vl );
+    MALLOC( p->V_componentwise_gpu, cuda_vector_PRECISION, p->restart_length+1 );
+    for ( i=0;i<(p->restart_length+1);i++ ) {
+      CUDA_MALLOC( p->V_componentwise_gpu[i], cu_cmplx_PRECISION, vl );
+    }
   }
 #endif
 
 #ifdef GCR_SMOOTHER
   MALLOC( p->gcr_buffer_dotprods, complex_PRECISION, p->restart_length+1 );
   MALLOC( p->gcr_betas_dotprods,  complex_PRECISION, p->restart_length+1 );
+#endif
+
+#ifdef CUDA_OPT
+  const int N = p->v_end-p->v_start;
+  const int blocksPerGrid = imin(32, (N+threadsPerBlockDP-1) / threadsPerBlockDP);
+  p->gpu_dotprods_memsize = blocksPerGrid;
+
+  MALLOC( p->gpu_dotprods_partial_sums, complex_PRECISION*, p->restart_length );
+  p->gpu_dotprods_partial_sums[0] = NULL;
+  MALLOC( p->gpu_dotprods_partial_sums[0], complex_PRECISION, p->restart_length*blocksPerGrid );
+  for ( int i=1;i<p->restart_length;i++ ) {
+    p->gpu_dotprods_partial_sums[i] = p->gpu_dotprods_partial_sums[0] + i*blocksPerGrid;
+  }
+  MALLOC( p->gpu_dotprods_dev_partial_sums, cu_cmplx_PRECISION*, p->restart_length );
+  p->gpu_dotprods_dev_partial_sums[0] = NULL;
+  CUDA_MALLOC( p->gpu_dotprods_dev_partial_sums[0], cu_cmplx_PRECISION, p->restart_length*blocksPerGrid );
+  for ( int i=1;i<p->restart_length;i++ ) {
+    p->gpu_dotprods_dev_partial_sums[i] = p->gpu_dotprods_dev_partial_sums[0] + i*blocksPerGrid;
+  }
+  MALLOC( p->gpu_dotprods_global_sums, complex_PRECISION, p->restart_length );
 #endif
 }
 
@@ -536,12 +573,29 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
     CUDA_FREE( p->x_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
     CUDA_FREE( p->b_componentwise_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
     CUDA_FREE( p->b_gpu, cu_cmplx_PRECISION, p->gpu_syst_size );
+    for ( int i=0;i<(p->restart_length+1);i++ ) {
+      CUDA_FREE( p->V_componentwise_gpu[i], cu_cmplx_PRECISION, p->gpu_syst_size );
+    }
+    FREE( p->V_componentwise_gpu, cuda_vector_PRECISION, p->restart_length+1 );
   }
 #endif
 
 #ifdef GCR_SMOOTHER
   FREE( p->gcr_buffer_dotprods, complex_PRECISION, p->restart_length+1 );
   FREE( p->gcr_betas_dotprods,  complex_PRECISION, p->restart_length+1 );
+#endif
+
+#ifdef CUDA_OPT
+  //const int N = p->v_end-p->v_start;
+  //const int blocksPerGrid = imin(32, (N+threadsPerBlockDP-1) / threadsPerBlockDP);
+
+  const int blocksPerGrid = p->gpu_dotprods_memsize;
+
+  FREE( p->gpu_dotprods_partial_sums[0], complex_PRECISION, p->restart_length*blocksPerGrid );
+  FREE( p->gpu_dotprods_partial_sums, complex_PRECISION*, p->restart_length );
+  CUDA_FREE( p->gpu_dotprods_dev_partial_sums[0], cu_cmplx_PRECISION, p->restart_length*blocksPerGrid );
+  FREE( p->gpu_dotprods_dev_partial_sums, cu_cmplx_PRECISION*, p->restart_length );
+  FREE( p->gpu_dotprods_global_sums, complex_PRECISION, p->restart_length );
 #endif
 }
 
@@ -875,7 +929,7 @@ void bicgstab_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thr
     iter++;
     
     rho_old = rho;
-    rho = global_inner_product_PRECISION( r_tilde, r, ps->v_start, ps->v_end, l, threading );
+    rho = global_inner_product_PRECISION( &r_tilde, r, NULL, 1, ps->v_start, ps->v_end, ps, l, threading );
     if ( rho == 0 ) {
       START_MASTER(threading)
       printf0("rho = 0: BiCGstab did not converge.\n");
@@ -891,7 +945,7 @@ void bicgstab_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thr
       vector_PRECISION_saxpy( p,  r, pp,   beta, start, end, l );
     }    
     apply_operator_PRECISION( v, p, ps, l, threading );
-    alpha = rho / global_inner_product_PRECISION( r_tilde, v, ps->v_start, ps->v_end, l, threading );
+    alpha = rho / global_inner_product_PRECISION( &r_tilde, v, NULL, 1, ps->v_start, ps->v_end, ps, l, threading );
     vector_PRECISION_saxpy( s, r, v, -alpha, start, end, l );
     s_norm = global_norm_PRECISION( s, ps->v_start, ps->v_end, l, threading );
     
@@ -901,8 +955,8 @@ void bicgstab_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thr
     }
     
     apply_operator_PRECISION( t, s, ps, l, threading );
-    omega = global_inner_product_PRECISION( t, s, ps->v_start, ps->v_end, l, threading )
-          / global_inner_product_PRECISION( t, t, ps->v_start, ps->v_end, l, threading );
+    omega = global_inner_product_PRECISION( &t, s, NULL, 1, ps->v_start, ps->v_end, ps, l, threading )
+          / global_inner_product_PRECISION( &t, t, NULL, 1, ps->v_start, ps->v_end, ps, l, threading );
     vector_PRECISION_saxpy( x, x, p,  alpha, start, end, l );
     vector_PRECISION_saxpy( x, x, s,  omega, start, end, l );
     vector_PRECISION_saxpy( r, s, t, -omega, start, end, l );
@@ -959,7 +1013,7 @@ void cgn_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *
   
   vector_PRECISION_copy( p, r_old, start, end, l );
   r0_norm = creal(global_norm_PRECISION( r_old, ps->v_start, ps->v_end, l, threading ));
-  prod_rr_old = global_inner_product_PRECISION( r_old, r_old, ps->v_start, ps->v_end, l, threading );
+  prod_rr_old = global_inner_product_PRECISION( &r_old, r_old, NULL, 1, ps->v_start, ps->v_end, ps, l, threading );
 #if defined(TRACK_RES) && !defined(WILSON_BENCHMARK)
   if ( ps->print ) {
     START_MASTER(threading)
@@ -973,12 +1027,12 @@ void cgn_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *
     apply_operator_PRECISION( pp, p, ps, l, threading );
     apply_operator_dagger_PRECISION( Dp, pp, ps, l, threading );
     
-    gamma = global_inner_product_PRECISION( p, Dp, ps->v_start, ps->v_end, l, threading );
+    gamma = global_inner_product_PRECISION( &p, Dp, NULL, 1, ps->v_start, ps->v_end, ps, l, threading );
     alpha = prod_rr_old / gamma;
     vector_PRECISION_saxpy( x, x, p, alpha, start, end, l );
     vector_PRECISION_saxpy( r_new, r_old, Dp, -alpha, start, end, l );
     
-    gamma = global_inner_product_PRECISION( r_new, r_new, ps->v_start, ps->v_end, l, threading );
+    gamma = global_inner_product_PRECISION( &r_new, r_new, NULL, 1, ps->v_start, ps->v_end, ps, l, threading );
     beta = gamma / prod_rr_old;
     
     vector_PRECISION_saxpy( p, r_new, p, beta, start, end, l );
@@ -1013,7 +1067,7 @@ void cgn_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *
     apply_operator_PRECISION( pp, p, ps, l, threading );
     apply_operator_dagger_PRECISION( Dp, pp, ps, l, threading );
     
-    gamma = global_inner_product_PRECISION( p, Dp, ps->v_start, ps->v_end, l, threading );
+    gamma = global_inner_product_PRECISION( &p, Dp, NULL, 1, ps->v_start, ps->v_end, ps, l, threading );
     alpha = prod_rr_old / gamma;
     vector_PRECISION_saxpy( x, x, p, alpha, start, end, l );
     vector_PRECISION_saxpy( r_new, r_old, Dp, -alpha, start, end, l );
@@ -1021,7 +1075,7 @@ void cgn_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *
     // residual update
     vector_PRECISION_saxpy( r_true, r_true, pp, -alpha, start, end, l );
     r_norm = creal(global_norm_PRECISION( r_true, ps->v_start, ps->v_end, l, threading ));
-    gamma = global_inner_product_PRECISION( r_new, r_new, ps->v_start, ps->v_end, l, threading );
+    gamma = global_inner_product_PRECISION( &r_new, r_new, NULL, 1, ps->v_start, ps->v_end, ps, l, threading );
     beta = gamma / prod_rr_old;
     
     vector_PRECISION_saxpy( p, r_new, p, beta, start, end, l );
@@ -1797,8 +1851,8 @@ int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *t
       // global number of iters
       iter++;
 
-      deltas[k] = global_inner_product_PRECISION( Z[k], Z[k], p->v_start, p->v_end, l, threading );
-      alpha     = global_inner_product_PRECISION( Z[k], p->r, p->v_start, p->v_end, l, threading ) / deltas[k];
+      deltas[k] = global_inner_product_PRECISION( &(Z[k]), Z[k], NULL, 1, p->v_start, p->v_end, p, l, threading );
+      alpha     = global_inner_product_PRECISION( &(Z[k]), p->r, NULL, 1, p->v_start, p->v_end, p, l, threading ) / deltas[k];
 
       vector_PRECISION_saxpy( p->x, p->x, P[k], alpha,  start, end, l );
       vector_PRECISION_saxpy( p->r, p->r, Z[k], -alpha, start, end, l );
@@ -1831,7 +1885,7 @@ int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *t
       }
 
       //for ( j=0;j<=k;j++ ) {
-      //  betas[j] = -global_inner_product_PRECISION( Z[j], p->w, p->v_start, p->v_end, l, threading ) / deltas[j];
+      //  betas[j] = -global_inner_product_PRECISION( &(Z[j]), p->w, NULL, 1, p->v_start, p->v_end, p, l, threading ) / deltas[j];
       //}
 
       vector_PRECISION_copy( P[k+1], p->r, start, end, l );
@@ -1900,7 +1954,7 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
       // first project
       for ( k=0;k<j;k++ ) {
         // dot product
-        dot_prod = global_inner_product_PRECISION( V[k], V[j], p->v_start, p->v_end, l, threading );
+        dot_prod = global_inner_product_PRECISION( &(V[k]), V[j], NULL, 1, p->v_start, p->v_end, p, l, threading );
         // axpy
         vector_PRECISION_saxpy( V[j], V[j], V[k], -dot_prod, start, end, l );
       }
@@ -1920,7 +1974,7 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
     // extract the i-th Rayleigh quotient
     apply_operator_PRECISION( p->w, V[i], p, l, threading );
     norm = global_norm_PRECISION( V[i], p->v_start, p->v_end, l, threading );
-    lmaxb = global_inner_product_PRECISION( V[i], p->w, p->v_start, p->v_end, l, threading ) / (norm*norm);
+    lmaxb = global_inner_product_PRECISION( &(V[i]), p->w, NULL, 1, p->v_start, p->v_end, p, l, threading ) / (norm*norm);
     // if this i-th Rayleigh quotient is larger than the j-th stored one, replace
     for ( j=0;j<p->richardson_sub_degree;j++ ) {
       if ( cabs_PRECISION(lmaxb)>cabs_PRECISION(lmax[j]) ) { lmax[j] = lmaxb; break; }

@@ -226,7 +226,7 @@ typedef struct
 
     cuda_vector_PRECISION b_gpu, b_componentwise_gpu, x_gpu,
                           x_componentwise_gpu, w_componentwise_gpu,
-                          r_componentwise_gpu;
+                          r_componentwise_gpu, *V_componentwise_gpu;
 #endif
     complex_PRECISION **H, *y, *gamma, *c, *s, shift;
     config_PRECISION *D, *clover;
@@ -265,6 +265,13 @@ typedef struct
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
     int syst_size;
     vector_PRECISION *Va, *Za;
+#endif
+
+#ifdef CUDA_OPT
+  int gpu_dotprods_memsize;
+  vector_PRECISION *gpu_dotprods_partial_sums;
+  cuda_vector_PRECISION *gpu_dotprods_dev_partial_sums;
+  vector_PRECISION gpu_dotprods_global_sums;
 #endif
 } gmres_PRECISION_struct;
 

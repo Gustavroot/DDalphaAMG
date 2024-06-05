@@ -19,16 +19,18 @@ void local_minres_PRECISION_CUDA(cuda_vector_PRECISION phi, cuda_vector_PRECISIO
                                  int *DD_blocks_to_compute, cudaStream_t *streams, int stream_id,
                                  int sites_to_solve);
 
+int cuda_fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading );
+
+#ifdef RICHARDSON_SMOOTHER
+int cuda_richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l,
+                               struct Thread *threading );
+#endif
+
 #ifdef __cplusplus
 }
 #endif
 
 extern int cuda_richardson_PRECISION_vectorwrapper( gmres_PRECISION_struct *p, level_struct *l, 
                                                     struct Thread *threading );
-
-#ifdef RICHARDSON_SMOOTHER
-int cuda_richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l,
-                               struct Thread *threading );
-#endif
 
 #endif

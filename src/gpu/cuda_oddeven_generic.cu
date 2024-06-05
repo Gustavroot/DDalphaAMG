@@ -4439,12 +4439,14 @@ void cuda_solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION
 #endif
     }
     else {
-      error0("GMRES smoother on GPUs has not been constructed\n");
+      //error0("GMRES smoother on GPUs has not been constructed\n");
       //fgmres_PRECISION( p, l, threading );
+      cuda_fgmres_PRECISION( p, l, threading );
     }
 #else
-    error0("GMRES smoother on GPUs has not been constructed\n");
+    //error0("GMRES smoother on GPUs has not been constructed\n");
     //fgmres_PRECISION( p, l, threading );
+    cuda_fgmres_PRECISION( p, l, threading );
 #endif
   } else if ( g.method == 5 ) {
     error0("Smoother for method=5 on GPUs has not been constructed\n");
