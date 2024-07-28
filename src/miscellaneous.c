@@ -47,7 +47,7 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
     // setting flag to re-update lejas
     level_struct *lx = l;
     while (1) {
-      if ( lx->level==0 ) {
+      if ( (lx->level==0 || g.method==5) ) {
         if ( g.mixed_precision==0 ) {
           lx->p_double.polyprec_double.update_lejas = 1;
           lx->p_double.polyprec_double.preconditioner = NULL;
@@ -75,7 +75,7 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
     // setting flag to re-update lejas
     level_struct *lx = l;
     while (1) {
-      if ( lx->level==0 ) {
+      if ( (lx->level==0 || g.method==5) ) {
         if ( g.mixed_precision==0 ) {
           lx->p_double.block_jacobi_double.local_p.polyprec_double.update_lejas = 1;
           lx->p_double.block_jacobi_double.BJ_usable = 0;
@@ -97,7 +97,7 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
     // setting flag to re-update recycling subspace
     level_struct *lx = l;
     while (1) {
-      if ( lx->level==0 ) {
+      if ( (lx->level==0 || g.method==5) ) {
         if ( g.mixed_precision==0 ) {
           //lx->p_double.gcrodr_double.CU_usable = 0;
           lx->p_double.gcrodr_double.update_CU = 1;
@@ -129,7 +129,7 @@ void coarsest_level_resets( level_struct* l, struct Thread* threading ) {
         END_MASTER(threading)
 
         while (1) {
-          if ( lx->level==0 ) {
+          if ( (lx->level==0 || g.method==5) ) {
 
             if ( !(lx->idle) ) {
 
@@ -264,7 +264,7 @@ void set_some_coarsest_level_improvs_params_for_setup( level_struct* l, struct T
     {
       level_struct *lx = l;
       while (1) {
-        if ( lx->level==0 ) {
+        if ( (lx->level==0 || g.method==5) ) {
           if ( g.mixed_precision==0 ) {
 #ifdef GCRODR
             lx->p_double.gcrodr_double.k = g.gcrodr_k_setup;
@@ -296,11 +296,21 @@ void set_some_coarsest_level_improvs_params_for_setup( level_struct* l, struct T
 void set_some_coarsest_level_improvs_params_for_solve( level_struct* l, struct Thread* threading ) {
 
 #if defined(POLYPREC) || defined(GCRODR)
+
+    // hardcoding : if method=5, we assume mixed precision and GCRODR + POLYPREC
+    //              within FGMRES and no AMG
+    // TODO : add, where appropriate, this constrain of method=5 and mixed precision
+    if ( g.method==5 ) {
+      l->sp_float.polyprec_float.d_poly = g.polyprec_d_solve;
+      l->sp_float.gcrodr_float.k = g.gcrodr_k_solve;
+      return;
+    }
+
     START_MASTER(threading)
     {
       level_struct *lx = l;
       while (1) {
-        if ( lx->level==0 ) {
+        if ( (lx->level==0 || g.method==5) ) {
           if ( g.mixed_precision==0 ) {
 #ifdef POLYPREC
             lx->p_double.polyprec_double.d_poly = g.polyprec_d_solve;

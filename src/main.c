@@ -118,7 +118,9 @@ int main( int argc, char **argv ) {
     method_setup( NULL, &l, &threading );
     endProfilingRange(rangeHandle);
 
-    set_some_coarsest_level_improvs_params_for_setup( &l, &threading );
+    if ( g.method>=1 && g.method<=4 ) {
+      set_some_coarsest_level_improvs_params_for_setup( &l, &threading );
+    }
 
     rangeHandle = startProfilingRange("Update");
     // iterative phase
@@ -126,6 +128,10 @@ int main( int argc, char **argv ) {
     endProfilingRange(rangeHandle);
 
     set_some_coarsest_level_improvs_params_for_solve( &l, &threading );
+    // TODO : does the following 'coarsest' call go here?
+    if ( g.method==5 ) {
+      coarsest_level_resets_float( &l, &threading );
+    }
 
     rangeHandle = startProfilingRange("Solve");
     g.on_solve=1;

@@ -33,7 +33,7 @@
 //#ifdef BLOCK_JACOBI
 #if 0
 
-    if ( l->level==0 && p->block_jacobi_PRECISION.BJ_usable==1 ) {
+    if ( (l->level==0 || g.method==5) && p->block_jacobi_PRECISION.BJ_usable==1 ) {
 
       //printf0("APPLYING BJ OP\n");
 
@@ -53,12 +53,12 @@
       END_MASTER(threading)
     } else {
       START_MASTER(threading)
-      if ( l->level==0 )
+      if ( (l->level==0 || g.method==5) )
         g.matmul_time -= MPI_Wtime();
       END_MASTER(threading)
       p->eval_operator( output, input, p->op, l, threading );
       START_MASTER(threading)
-      if ( l->level==0 )
+      if ( (l->level==0 || g.method==5) )
         g.matmul_time += MPI_Wtime();
       END_MASTER(threading)
     }

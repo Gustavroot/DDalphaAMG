@@ -99,7 +99,7 @@ void flgcrodr_PRECISION_struct_alloc( int m, int n, long int vl, PRECISION tol, 
 
   fgmres_PRECISION_struct_alloc( m, n, vl, tol, type, prec_kind, precond, eval_op, p, l );
 
-  if ( l->level==0 ) {
+  if ( (l->level==0 || g.method==5) ) {
 
     if ( g.gcrodr_k >= p->restart_length ) {
       error0("The value of k in GCRO-DR needs to be smaller than the restart length m\n");
@@ -298,7 +298,7 @@ void flgcrodr_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *l 
 
   fgmres_PRECISION_struct_free( p, l );
 
-  if ( l->level==0 ) {
+  if ( (l->level==0 || g.method==5) ) {
     // g_ln is the length m+k of subspaces used in FL-GCRO-DR
     int g_ln = p->restart_length + p->gcrodr_PRECISION.k;
 
@@ -675,7 +675,7 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       //printf0("OUT OF INITIAL GMRES, finish = %d ***\n", p->gcrodr_PRECISION.finish);
     }
 
-    if ( l->level==0 && p->block_jacobi_PRECISION.BJ_usable==1 ) {
+    if ( (l->level==0 || g.method==5) && p->block_jacobi_PRECISION.BJ_usable==1 ) {
       block_jacobi_apply_PRECISION( l->p_PRECISION.block_jacobi_PRECISION.xtmp, p->w, p, l, threading );
       vector_PRECISION_minus( p->r, p->b, l->p_PRECISION.block_jacobi_PRECISION.xtmp, start, end, l ); // compute r = b - w
     } else {
@@ -872,7 +872,7 @@ int flgcrodr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Threa
       //printf0("OUT OF INNER GMRES, finish = %d ***\n", p->gcrodr_PRECISION.finish);
     }
 
-    if ( l->level==0 && p->block_jacobi_PRECISION.BJ_usable==1 ) {
+    if ( (l->level==0 || g.method==5) && p->block_jacobi_PRECISION.BJ_usable==1 ) {
       block_jacobi_apply_PRECISION( l->p_PRECISION.block_jacobi_PRECISION.xtmp, p->w, p, l, threading );
       vector_PRECISION_minus( p->r, p->b, l->p_PRECISION.block_jacobi_PRECISION.xtmp, start, end, l ); // compute r = b - w
     } else {
@@ -1046,7 +1046,7 @@ int fgmresx_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread
   PRECISION norm_r0=1, gamma_jp1=1;
 
   START_LOCKED_MASTER(threading)
-  if ( l->level==0 && g.num_levels > 1 && g.interpolation ) p->tol = g.coarse_tol;
+  if ( (l->level==0 || g.method==5) && g.num_levels > 1 && g.interpolation ) p->tol = g.coarse_tol;
   END_LOCKED_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
 
@@ -1062,7 +1062,7 @@ int fgmresx_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread
   vector_PRECISION_real_scale( p->V[0], p->r, 1/p->gamma[0], start, end, l ); // v_0 = r / gamma_0
 
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
-  if ( l->level == 0 && l->depth > 0 ) {
+  if ( (l->level == 0 || g.method==5) && l->depth > 0 ) {
     arnoldi_step_PRECISION( p->V, p->Z, p->w, p->H, p->y, 0, p->preconditioner, p, l, threading );
   }
 #endif
@@ -1087,7 +1087,7 @@ int fgmresx_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread
 
     // one step of Arnoldi
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
-    if ( l->level == 0 && l->depth > 0 ) {
+    if ( (l->level == 0 || g.method==5) && l->depth > 0 ) {
       if ( !arnoldi_step_PRECISION( p->V, p->Z, p->w, p->H, p->y, j+1, p->preconditioner, p, l, threading ) ) {
         printf0("| -------------- iteration %d, restart due to H(%d,%d) < 0 |\n", iter, j+2, j+1 );
         break;
@@ -1118,7 +1118,7 @@ int fgmresx_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread
       //printf0("g (proc=%d,j=%d) rel residual (gcro-dr) = %f\n\n", g.my_rank, j, gamma_jp1/norm_r0);
       END_MASTER(threading)
 
-      //printf0("WITHIN INNER GMRES, inner rel res = %.8f ***\n", cabs( p->gamma[j+1] )/norm_r0);
+      printf0("WITHIN INNER GMRES, inner rel res = %.8f ***\n", cabs( p->gamma[j+1] )/norm_r0);
 
       // check if the four most significant digits of the residual haven't changed
       if ( j%5==0 ) {
@@ -1177,7 +1177,7 @@ int fgmresx_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread
     }
   } // end of the (only and) single restart
 
-  if ( l->level == 0 ) {
+  if ( (l->level == 0 || g.method==5) ) {
     START_LOCKED_MASTER(threading)
     g.coarse_iter_count += iter;
     END_LOCKED_MASTER(threading)

@@ -808,8 +808,24 @@ void solve_oddeven_PRECISION_cpu( gmres_PRECISION_struct *p, operator_PRECISION_
 #else
     fgmres_PRECISION( p, l, threading );
 #endif
-  else if ( g.method == 5 )
-    bicgstab_PRECISION( p, l, threading );
+  else if ( g.method == 5 ) {
+    //bicgstab_PRECISION( p, l, threading );
+
+    // TODO : add here the call to GCRODR+POLYPREC in the same careful way that
+    //        we do in vcycle_generic.c
+
+    if ( l->sp_PRECISION.polyprec_PRECISION.update_lejas == 1 ) {
+      re_construct_lejas_PRECISION( l, threading );
+    }
+    START_MASTER(threading)
+    p->preconditioner = p->polyprec_PRECISION.preconditioner;
+    END_MASTER(threading)
+    SYNC_MASTER_TO_ALL(threading)
+
+    int iters = flgcrodr_PRECISION( p, l, threading );
+    // TODO : remove this print
+    printf0("GCRO-DR iters = %d\n",iters);
+  }
   diag_oo_inv_PRECISION( p->x, p->b, op, l, start, end );
   
   // even to odd

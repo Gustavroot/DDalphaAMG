@@ -245,12 +245,19 @@ void level_PRECISION_init( level_struct *l ) {
 #endif
   interpolation_PRECISION_struct_init( &(l->is_PRECISION) );
 #ifdef GCRODR
-  if ( l->level==0 ) {
+  if ( (l->level==0 || g.method==5) ) {
     flgcrodr_PRECISION_struct_init( &(l->p_PRECISION) );
     flgcrodr_PRECISION_struct_init( &(l->sp_PRECISION) );
   } else {
-    fgmres_PRECISION_struct_init( &(l->p_PRECISION) );
-    fgmres_PRECISION_struct_init( &(l->sp_PRECISION) );
+
+    if ( g.method==5 ) {
+      flgcrodr_PRECISION_struct_init( &(l->p_PRECISION) );
+      flgcrodr_PRECISION_struct_init( &(l->sp_PRECISION) );
+    } else {
+      fgmres_PRECISION_struct_init( &(l->p_PRECISION) );
+      fgmres_PRECISION_struct_init( &(l->sp_PRECISION) );
+    }
+
   }
 #else
   fgmres_PRECISION_struct_init( &(l->p_PRECISION) );

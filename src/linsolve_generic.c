@@ -157,7 +157,7 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
     MALLOC( p->Z, complex_PRECISION*, k );
   } else {
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
-    if ( l->level == 0 && l->depth > 0 ) {
+    if ( (l->level == 0 || g.method==5) && l->depth > 0 ) {
       total += (m+2)*vl;
       k = m+2;
       MALLOC( p->Z, complex_PRECISION*, k );
@@ -253,7 +253,7 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
   }
 
 #if defined(GCRODR) || defined(POLYPREC)
-  if (l->level==0) {
+  if ( (l->level==0 || g.method==5) ) {
 #endif
 
   // FIXME : is this function-pointer-assignment really necessary ?
@@ -285,6 +285,7 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
 #endif
 
 #ifdef POLYPREC
+
   int d_max = (g.polyprec_d_setup>g.polyprec_d_solve)?g.polyprec_d_setup:g.polyprec_d_solve;
   p->polyprec_PRECISION.d_poly = d_max;
   int d_poly = p->polyprec_PRECISION.d_poly;
@@ -372,7 +373,7 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
 #if 0
   p->block_jacobi_PRECISION.syst_size = vl;
 
-  if (l->level==0) {
+  if ((l->level==0 || g.method==5)) {
     // these two always go together
     p->block_jacobi_PRECISION.BJ_usable = 0;
     p->block_jacobi_PRECISION.local_p.polyprec_PRECISION.update_lejas = 1;
@@ -413,6 +414,7 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
   MALLOC( p->gcr_buffer_dotprods, complex_PRECISION, p->restart_length+1 );
   MALLOC( p->gcr_betas_dotprods,  complex_PRECISION, p->restart_length+1 );
 #endif
+
 }
 
 
@@ -430,7 +432,7 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
       k = 1;
   } else {
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
-    if ( l->level == 0 && l->depth > 0 ) {
+    if ( (l->level == 0 || g.method==0) && l->depth > 0 ) {
       k = p->restart_length+2;
     }
 #else
@@ -460,7 +462,7 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
   // --- COARSEST-LEVEL IMPROVEMENTS
 
 #if defined(GCRODR) || defined(POLYPREC)
-  if (l->level==0) {
+  if ((l->level==0 || g.method==5)) {
 #endif
 
   // copy of Hesselnberg matrix
@@ -514,7 +516,7 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
 
 //#ifdef BLOCK_JACOBI
 #if 0
-  if (l->level==0) {
+  if ((l->level==0 || g.method==5)) {
     FREE( p->block_jacobi_PRECISION.b_backup, complex_PRECISION, p->block_jacobi_PRECISION.syst_size );
     FREE( p->block_jacobi_PRECISION.xtmp, complex_PRECISION, p->block_jacobi_PRECISION.syst_size );
 
@@ -570,7 +572,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
 
   if ( l->depth==0 && ( p->timing || p->print ) ) prof_init( l );
 
-  if ( l->level==0 && g.num_levels > 1 && g.interpolation ) p->tol = g.coarse_tol;
+  if ( (l->level==0 || g.method==5) && g.num_levels > 1 && g.interpolation ) p->tol = g.coarse_tol;
   if ( l->depth > 0 ) p->timing = 1;
   if ( l->depth == 0 ) t0 = MPI_Wtime();
 #if defined(TRACK_RES) && !defined(WILSON_BENCHMARK)
@@ -632,7 +634,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
     
     vector_PRECISION_real_scale( p->V[0], p->r, 1/p->gamma[0], start, end, l ); // v_0 = r / gamma_0
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
-    if ( l->level == 0 && l->depth > 0 ) {
+    if ( (l->level == 0 || g.method==5) && l->depth > 0 ) {
       arnoldi_step_PRECISION( p->V, p->Z, p->w, p->H, p->y, 0, p->preconditioner, p->shift, p, l, threading );
     }
 #endif   
@@ -651,7 +653,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
       
       // one step of Arnoldi
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
-      if ( l->level == 0 && l->depth > 0 ) {
+      if ( (l->level == 0 || g.method==5) && l->depth > 0 ) {
         if ( !arnoldi_step_PRECISION( p->V, p->Z, p->w, p->H, p->y, j+1, p->preconditioner, p->shift, p, l, threading ) ) {
           printf0("| -------------- iteration %d, restart due to H(%d,%d) < 0 |\n", iter, j+2, j+1 );
           break;
@@ -687,7 +689,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
         if( gamma_jp1/norm_r0 < p->tol || gamma_jp1/norm_r0 > 1E+5 ) { // if satisfied ... stop
 //#ifdef BLOCK_JACOBI
 #if 0
-          if ( l->level==0 )
+          if ( (l->level==0 || g.method==5) )
           {
             // backup of p->x, just in case tol hasn't been reached we need to restore ...
             vector_PRECISION_copy( p->block_jacobi_PRECISION.xtmp, p->x, start, end, l );
@@ -729,7 +731,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
     } // end of a single restart
 //#ifdef BLOCK_JACOBI
 #if 0
-    if ( l->level==0 ) {
+    if ( (l->level==0 || g.method==5) ) {
       if ( finish==0 ) {
         compute_solution_PRECISION( p->x, (p->preconditioner&&p->kind==_RIGHT)?p->Z:p->V,
                                     p->y, p->gamma, p->H, j, (res==_NO_RES)?ol:1, p, l, threading );
@@ -807,7 +809,7 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
   }
 #endif
 
-  if ( l->level == 0 ) {
+  if ( (l->level == 0 || g.method==5) ) {
     START_LOCKED_MASTER(threading)
     g.coarse_iter_count += iter;
     END_LOCKED_MASTER(threading)
@@ -854,7 +856,7 @@ void bicgstab_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thr
   // this puts zero for all other hyperthreads, so we can call functions below with all hyperthreads
   compute_core_start_end(ps->v_start, ps->v_end, &start, &end, l, threading);
   
-  tol = (l->level==0 && g.num_levels > 1 && g.interpolation )?g.coarse_tol:g.bicgstab_tol;
+  tol = ((l->level==0 || g.method==5) && g.num_levels > 1 && g.interpolation )?g.coarse_tol:g.bicgstab_tol;
   maxiter = 1000000; r = ps->r; b = ps->b; x = ps->x; p = ps->w;
   pp = ps->V[0]; r_tilde = ps->V[1]; v = ps->V[2]; s = ps->V[3]; t = ps->V[4];
   
@@ -941,7 +943,7 @@ void cgn_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *
   b = ps->b; x = ps->x;
   r_old = ps->V[2]; r_new = ps->V[3]; r_true = ps->r;
   p = ps->w; pp = ps->V[0]; Dp = ps->V[1];
-  tol = (l->level==0 && g.num_levels > 1 && g.interpolation )?g.coarse_tol:ps->tol;
+  tol = ((l->level==0 || g.method==5) && g.num_levels > 1 && g.interpolation )?g.coarse_tol:ps->tol;
   maxiter = ps->num_restart;
   
   START_MASTER(threading)
@@ -1059,7 +1061,7 @@ void cgn_PRECISION( gmres_PRECISION_struct *ps, level_struct *l, struct Thread *
   }
   
   START_LOCKED_MASTER(threading)
-  if ( l->level == 0 )
+  if ( (l->level == 0 || g.method==5) )
     g.coarse_iter_count += iter;
 
   if ( l->depth == 0 && g.vt.p_end != NULL  ) {
@@ -1249,7 +1251,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
       if ( shift ) vector_PRECISION_saxpy( Z[0], Z[0], V[j], shift, start, end, l );
       prec( w, NULL, Z[0], _NO_RES, l, threading );
     } else {
-      if ( l->level == 0 ) { 
+      if ( (l->level == 0 || g.method==5) ) { 
         prec( Z[j], NULL, V[j], _NO_RES, l, threading );
         apply_operator_PRECISION( w, Z[j], p, l, threading );
         //apply_operator_PRECISION( w, Z[j], p, l, threading );
@@ -1273,7 +1275,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
 #ifdef GCRODR
 //#if 0
   // orthogonalize against Ck whenever necessary
-  if ( l->level==0 && p->gcrodr_PRECISION.orth_against_Ck == 1 ) {
+  if ( (l->level==0 || g.method==5) && p->gcrodr_PRECISION.orth_against_Ck == 1 ) {
     SYNC_MASTER_TO_ALL(threading)
     SYNC_CORES(threading)
 
@@ -1297,7 +1299,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
     for ( i=0; i<(k+j+2); i++ )
       buffer[i] = tmpx[i];
     if ( g.num_processes > 1 ) {
-      //if ( l->level==0 ) printf0("CALLING MPI_Allreduce(...) !!!\n");
+      //if ( (l->level==0 || g.method==5) ) printf0("CALLING MPI_Allreduce(...) !!!\n");
       PROF_PRECISION_START( _ALLR );
       MPI_Allreduce( buffer, bf, k+j+2, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
       PROF_PRECISION_STOP( _ALLR, 1 );
@@ -1336,7 +1338,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
     for( i=0; i<=j; i++ )
       buffer[i] = tmp[i];
     if ( g.num_processes > 1 ) {
-      //if ( l->level==0 ) printf0("CALLING MPI_Allreduce(...) !!!\n");
+      //if ( (l->level==0 || g.method==5) ) printf0("CALLING MPI_Allreduce(...) !!!\n");
       PROF_PRECISION_START( _ALLR );
       MPI_Allreduce( buffer, tmp, j+1, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
       PROF_PRECISION_STOP( _ALLR, 1 );
@@ -1357,15 +1359,15 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
     complex_PRECISION tmp[j+2];
     complex_PRECISION *V_buff[j+2];
 
-    if ( l->level==0 ) {
+    if ( (l->level==0 || g.method==5) ) {
       for (i=0; i < j+1; i++) V_buff[i] = V[i];
       V_buff[j+1] = w;
     }
 
-    if ( l->level==0 ) process_multi_inner_product_PRECISION( j+2, tmp, V_buff, w, p->v_start, p->v_end, l, threading );
+    if ( (l->level==0 || g.method==5) ) process_multi_inner_product_PRECISION( j+2, tmp, V_buff, w, p->v_start, p->v_end, l, threading );
     else process_multi_inner_product_PRECISION( j+1, tmp, V, w, p->v_start, p->v_end, l, threading );
     START_MASTER(threading)
-    if ( l->level==0 ) {
+    if ( (l->level==0 || g.method==5) ) {
       for( i=0; i<=j+1; i++ )
         buffer[i] = tmp[i];
     } else {
@@ -1373,13 +1375,13 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
         buffer[i] = tmp[i];
     }
     if ( g.num_processes > 1 ) {
-      //if ( l->level==0 ) printf0("CALLING MPI_Allreduce(...) !!!\n");
+      //if ( (l->level==0 || g.method==5) ) printf0("CALLING MPI_Allreduce(...) !!!\n");
       PROF_PRECISION_START( _ALLR );
-      if ( l->level==0 ) MPI_Allreduce( buffer, H[j], j+2, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
+      if ( (l->level==0 || g.method==5) ) MPI_Allreduce( buffer, H[j], j+2, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
       else MPI_Allreduce( buffer, H[j], j+1, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
       PROF_PRECISION_STOP( _ALLR, 1 );
     } else {
-      if ( l->level==0 ) {
+      if ( (l->level==0 || g.method==5) ) {
         for( i=0; i<=j+1; i++ )
           H[j][i] = buffer[i];
       } else {
@@ -1401,7 +1403,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
     for( i=0; i<=j; i++ )
       buffer[i] = tmp[i];
     if ( g.num_processes > 1 ) {
-      //if ( l->level==0 ) printf0("CALLING MPI_Allreduce(...) !!!\n");
+      //if ( (l->level==0 || g.method==5) ) printf0("CALLING MPI_Allreduce(...) !!!\n");
       PROF_PRECISION_START( _ALLR );
       MPI_Allreduce( buffer, tmp, j+1, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
       PROF_PRECISION_STOP( _ALLR, 1 );
@@ -1424,15 +1426,15 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
   complex_PRECISION tmp[j+2];
   complex_PRECISION *V_buff[j+2];
 
-  if ( l->level==0 ) {
+  if ( (l->level==0 || g.method==5) ) {
     for (i=0; i < j+1; i++) V_buff[i] = V[i];
     V_buff[j+1] = w;
   }
 
-  if ( l->level==0 ) process_multi_inner_product_PRECISION( j+2, tmp, V_buff, w, p->v_start, p->v_end, l, threading );
+  if ( (l->level==0 || g.method==5) ) process_multi_inner_product_PRECISION( j+2, tmp, V_buff, w, p->v_start, p->v_end, l, threading );
   else process_multi_inner_product_PRECISION( j+1, tmp, V, w, p->v_start, p->v_end, l, threading );
   START_MASTER(threading)
-  if ( l->level==0 ) {
+  if ( (l->level==0 || g.method==5) ) {
     for( i=0; i<=j+1; i++ )
       buffer[i] = tmp[i];
   } else {
@@ -1440,13 +1442,13 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
       buffer[i] = tmp[i];
   }
   if ( g.num_processes > 1 ) {
-    //if ( l->level==0 ) printf0("CALLING MPI_Allreduce(...) !!!\n");
+    //if ( (l->level==0 || g.method==5) ) printf0("CALLING MPI_Allreduce(...) !!!\n");
     PROF_PRECISION_START( _ALLR );
-    if ( l->level==0 ) MPI_Allreduce( buffer, H[j], j+2, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
+    if ( (l->level==0 || g.method==5) ) MPI_Allreduce( buffer, H[j], j+2, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
     else MPI_Allreduce( buffer, H[j], j+1, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
     PROF_PRECISION_STOP( _ALLR, 1 );
   } else {
-    if ( l->level==0 ) {
+    if ( (l->level==0 || g.method==5) ) {
       for( i=0; i<=j+1; i++ )
         H[j][i] = buffer[i];
     } else {
@@ -1468,7 +1470,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
   for( i=0; i<=j; i++ )
     buffer[i] = tmp[i];
   if ( g.num_processes > 1 ) {
-    //if ( l->level==0 ) printf0("CALLING MPI_Allreduce(...) !!!\n");
+    //if ( (l->level==0 || g.method==5) ) printf0("CALLING MPI_Allreduce(...) !!!\n");
     PROF_PRECISION_START( _ALLR );
     MPI_Allreduce( buffer, tmp, j+1, MPI_COMPLEX_PRECISION, MPI_SUM, (l->depth==0)?g.comm_cart:l->gs_PRECISION.level_comm );
     PROF_PRECISION_STOP( _ALLR, 1 );
@@ -1493,7 +1495,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
   //SYNC_MASTER_TO_ALL(threading)
 
 //=============================================================
-  if ( l->level==0 ) {
+  if ( (l->level==0 || g.method==5) ) {
     START_MASTER(threading)
     complex_PRECISION tmp = H[j][j+1];
     for ( i=0; i<=j; i++ )
@@ -1502,7 +1504,7 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
 // LAST STAGE
 #ifdef GCRODR
 //#if 0
-    if ( l->level==0 && p->gcrodr_PRECISION.orth_against_Ck == 1 )
+    if ( (l->level==0 || g.method==5) && p->gcrodr_PRECISION.orth_against_Ck == 1 )
     {      
       int k = p->gcrodr_PRECISION.k;
       complex_PRECISION **B = p->gcrodr_PRECISION.ort_B;
@@ -1572,20 +1574,20 @@ int arnoldi_step_PRECISION( vector_PRECISION *V, vector_PRECISION *Z, vector_PRE
   // copy of Hesselnberg matrix (only level=0 currently)
 #if defined(GCRODR) && defined(POLYPREC)
 //#if 0
-  if (l->dup_H==1 && l->level==0)
+  if (l->dup_H==1 && (l->level==0 || g.method==5))
   {
     memcpy( p->gcrodr_PRECISION.eigslvr.Hc[jx], H[jx], sizeof(complex_PRECISION)*(jx+2) );
     memset( p->gcrodr_PRECISION.eigslvr.Hc[jx]+jx+2, 0.0, sizeof(complex_PRECISION)*(p->restart_length + 1 - (jx+2)) );
   }
 #elif defined(GCRODR)
 //#elif 0
-  if (l->dup_H==1 && l->level==0)
+  if (l->dup_H==1 && (l->level==0 || g.method==5))
   {
     memcpy( p->gcrodr_PRECISION.eigslvr.Hc[jx], H[jx], sizeof(complex_PRECISION)*(jx+2) );
     memset( p->gcrodr_PRECISION.eigslvr.Hc[jx]+jx+2, 0.0, sizeof(complex_PRECISION)*(p->restart_length + 1 - (jx+2)) );
   }
 #elif defined(POLYPREC)
-  if (l->dup_H==1 && l->level==0)
+  if (l->dup_H==1 && (l->level==0 || g.method==5))
   {
     memcpy( p->polyprec_PRECISION.eigslvr.Hc[jx], H[jx], sizeof(complex_PRECISION)*(jx+2) );
     memset( p->polyprec_PRECISION.eigslvr.Hc[jx]+jx+2, 0.0, sizeof(complex_PRECISION)*(p->restart_length + 1 - (jx+2)) );
