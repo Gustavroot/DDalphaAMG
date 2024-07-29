@@ -193,9 +193,13 @@ int update_lejas_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct T
   SYNC_MASTER_TO_ALL(threading)
   SYNC_CORES(threading)
 
+  double t0 = MPI_Wtime();
+
   fgmres_itersx = fgmres_PRECISION(p, l, threading);
 
-  //printf0( "FROM WITHIN POLYPREC SETUP : %d, d POLY = %d\n",fgmres_itersx,p->polyprec_PRECISION.d_poly );
+  double t1 = MPI_Wtime();
+
+  printf0( "FROM WITHIN POLYPREC SETUP : %d, d POLY = %d, time elapsed = %f\n",fgmres_itersx,p->polyprec_PRECISION.d_poly,t1-t0 );
 
   SYNC_MASTER_TO_ALL(threading)
   SYNC_CORES(threading)

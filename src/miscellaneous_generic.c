@@ -1,13 +1,16 @@
 #include "main.h"
+#include "oddeven_PRECISION.h"
 
 
 void coarsest_level_resets_PRECISION( level_struct* l, struct Thread* threading ) {
 
-  if ( g.method==5 ) {
-    l->sp_PRECISION.polyprec_PRECISION.update_lejas = 1;
-    l->sp_PRECISION.polyprec_PRECISION.preconditioner = NULL;
-    return;
-  }
+  //if ( g.method==5 ) {
+  //  l->sp_PRECISION.polyprec_PRECISION.update_lejas = 1;
+  //  l->sp_PRECISION.polyprec_PRECISION.preconditioner = NULL;
+  //  return;
+  //}
+
+  //gmres_PRECISION_struct pbuff;
 
   START_MASTER(threading)
   g.coarsest_time = 0.0;
@@ -25,8 +28,8 @@ void coarsest_level_resets_PRECISION( level_struct* l, struct Thread* threading 
     level_struct *lx = l;
     while (1) {
       if ( (lx->level==0 || g.method==5) ) {
-        lx->p_PRECISION.polyprec_PRECISION.update_lejas = 1;
-        lx->p_PRECISION.polyprec_PRECISION.preconditioner = NULL;
+        lx->sp_PRECISION.polyprec_PRECISION.update_lejas = 1;
+        lx->sp_PRECISION.polyprec_PRECISION.preconditioner = NULL;
         break;
       }
       else { lx = lx->next_level; }
@@ -47,9 +50,9 @@ void coarsest_level_resets_PRECISION( level_struct* l, struct Thread* threading 
     level_struct *lx = l;
     while (1) {
       if ( (lx->level==0 || g.method==5) ) {
-        lx->p_PRECISION.gcrodr_PRECISION.CU_usable = 0;
-        lx->p_PRECISION.gcrodr_PRECISION.update_CU = 1;
-        lx->p_PRECISION.gcrodr_PRECISION.upd_ctr = 0;
+        lx->sp_PRECISION.gcrodr_PRECISION.CU_usable = 0;
+        lx->sp_PRECISION.gcrodr_PRECISION.update_CU = 1;
+        lx->sp_PRECISION.gcrodr_PRECISION.upd_ctr = 0;
         break;
       }
       else { lx = lx->next_level; }
@@ -73,7 +76,7 @@ void coarsest_level_resets_PRECISION( level_struct* l, struct Thread* threading 
 
             if ( !(lx->idle) ) {
 
-              gmres_PRECISION_struct* px = &(lx->p_PRECISION);
+              gmres_PRECISION_struct* px = &(lx->sp_PRECISION);
 
               START_MASTER(threading)
               g.gcrodr_calling_from_setup = 1;
@@ -96,7 +99,7 @@ void coarsest_level_resets_PRECISION( level_struct* l, struct Thread* threading 
                 END_MASTER(threading)
                 SYNC_MASTER_TO_ALL(threading)
 
-                coarse_solve_odd_even_PRECISION( px, &(lx->oe_op_PRECISION), lx, threading );
+                solve_oddeven_PRECISION_cpu( px, &(lx->oe_op_PRECISION), lx, threading );
                 try_ctr++;
                 if ( try_ctr>=2 && px->gcrodr_PRECISION.CU_usable==0 ) {
                   START_MASTER(threading)
