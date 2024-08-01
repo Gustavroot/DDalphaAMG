@@ -91,7 +91,7 @@ typedef struct level_struct
 
   struct Thread *threading;
 
-#if defined(GCRODR) || defined(POLYPREC)
+#if defined(GCRODR) || defined(POLYPREC) || defined(DOUBLE_POLYPREC)
   // 'bool', if on H will be copied
   int dup_H;
 #endif

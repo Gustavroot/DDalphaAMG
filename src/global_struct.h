@@ -95,6 +95,10 @@ typedef struct global_struct
     int polyprec_d, polyprec_d_setup, polyprec_d_solve;
 #endif
 
+#ifdef DOUBLE_POLYPREC
+    int double_polyprec_d, double_polyprec_d_setup, double_polyprec_d_solve, use_double_polyprec;
+#endif
+
 //#ifdef BLOCK_JACOBI
 #if 0
     int local_polyprec_d;

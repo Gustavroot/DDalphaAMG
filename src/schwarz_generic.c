@@ -102,11 +102,19 @@ void schwarz_PRECISION_alloc( schwarz_PRECISION_struct *s, level_struct *l ) {
     //                               (g.odd_even?coarse_apply_schur_complement_PRECISION:apply_coarse_operator_PRECISION),
     //                               &(l->sp_PRECISION), l );
     // TODO : replace the hardcoded tolerance by a .ini parameter
-    flgcrodr_PRECISION_struct_alloc( l->block_iter, 1, (l->depth==0)?l->inner_vector_size:l->vector_size,
-                                     1.0E-2, _COARSE_GMRES, _RIGHT, apply_polyprec_PRECISION,
+    if (g.use_double_polyprec) {
+      flgcrodr_PRECISION_struct_alloc( l->block_iter, 1, (l->depth==0)?l->inner_vector_size:l->vector_size,
+                                     2.0E-1, _COARSE_GMRES, _RIGHT, apply_double_polyprec_PRECISION,
                                      (l->depth==0)?(g.odd_even?apply_schur_complement_PRECISION:d_plus_clover_PRECISION):
                                      (g.odd_even?coarse_apply_schur_complement_PRECISION:apply_coarse_operator_PRECISION),
                                      &(l->sp_PRECISION), l );
+    } else {
+      flgcrodr_PRECISION_struct_alloc( l->block_iter, 1, (l->depth==0)?l->inner_vector_size:l->vector_size,
+                                     2.0E-1, _COARSE_GMRES, _RIGHT, apply_polyprec_PRECISION,
+                                     (l->depth==0)?(g.odd_even?apply_schur_complement_PRECISION:d_plus_clover_PRECISION):
+                                     (g.odd_even?coarse_apply_schur_complement_PRECISION:apply_coarse_operator_PRECISION),
+                                     &(l->sp_PRECISION), l );
+    }
   } else if ( g.method == 6 ) {
     fgmres_PRECISION_struct_alloc( l->block_iter, 1, (l->depth==0)?l->inner_vector_size:l->vector_size,
                                    EPS_PRECISION, _COARSE_GMRES, _NOTHING, NULL,

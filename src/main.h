@@ -241,3 +241,8 @@
   #include "polyprec_double.h"
   #include "polyprec_float.h"
 #endif
+
+#ifdef DOUBLE_POLYPREC
+  #include "double_polyprec_double.h"
+  #include "double_polyprec_float.h"
+#endif

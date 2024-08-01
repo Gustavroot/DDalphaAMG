@@ -295,13 +295,14 @@ void set_some_coarsest_level_improvs_params_for_setup( level_struct* l, struct T
 
 void set_some_coarsest_level_improvs_params_for_solve( level_struct* l, struct Thread* threading ) {
 
-#if defined(POLYPREC) || defined(GCRODR)
+#if defined(POLYPREC) || defined(GCRODR) || defined(DOUBLE_POLYPREC)
 
     // hardcoding : if method=5, we assume mixed precision and GCRODR + POLYPREC
     //              within FGMRES and no AMG
     // TODO : add, where appropriate, this constrain of method=5 and mixed precision
     if ( g.method==5 ) {
       l->sp_float.polyprec_float.d_poly = g.polyprec_d_solve;
+      l->sp_float.double_polyprec_float.d_poly = g.double_polyprec_d_solve;
       l->sp_float.gcrodr_float.k = g.gcrodr_k_solve;
       return;
     }

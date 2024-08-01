@@ -1228,14 +1228,27 @@ void coarse_solve_odd_even_PRECISION( gmres_PRECISION_struct *p, operator_PRECIS
   }
 #endif
 
-#ifdef POLYPREC
+#ifdef DOUBLE_POLYPREC
+  if ( l->level==0 && l->p_PRECISION.double_polyprec_PRECISION.update_lejas == 1 ) {
+    // re-construct Lejas
+    re_construct_double_lejas_PRECISION( l, threading );
+  }
+#elif defined(POLYPREC)
   if ( l->level==0 && l->p_PRECISION.polyprec_PRECISION.update_lejas == 1 ) {
     // re-construct Lejas
     re_construct_lejas_PRECISION( l, threading );
   }
 #endif
 
-#ifdef POLYPREC
+#ifdef DOUBLE_POLYPREC
+  // TODO : there should be some sort of check after calling re_construct_lejas_PRECISION(...)
+  //        to make sure that we can do the following function pointer assignment
+  START_MASTER(threading)
+  p->preconditioner = p->double_polyprec_PRECISION.preconditioner;
+  END_MASTER(threading)
+
+  SYNC_MASTER_TO_ALL(threading)
+#elif defined(POLYPREC)
   // TODO : there should be some sort of check after calling re_construct_lejas_PRECISION(...)
   //        to make sure that we can do the following function pointer assignment
   START_MASTER(threading)

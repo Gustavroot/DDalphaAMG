@@ -814,11 +814,36 @@ void solve_oddeven_PRECISION_cpu( gmres_PRECISION_struct *p, operator_PRECISION_
     // TODO : add here the call to GCRODR+POLYPREC in the same careful way that
     //        we do in vcycle_generic.c
 
-    if ( l->sp_PRECISION.polyprec_PRECISION.update_lejas == 1 ) {
-      re_construct_lejas_PRECISION( l, threading );
+  #if defined(DOUBLE_POLYPREC) || defined(POLYPREC)
+    if (g.use_double_polyprec) {
+      if ( l->sp_PRECISION.double_polyprec_PRECISION.update_lejas == 1 ) {
+        re_construct_double_lejas_PRECISION( l, threading );
+      }
+      START_MASTER(threading)
+      p->preconditioner = p->double_polyprec_PRECISION.preconditioner;
+      END_MASTER(threading)
+    } else {
+      if ( l->sp_PRECISION.polyprec_PRECISION.update_lejas == 1 ) {
+        re_construct_lejas_PRECISION( l, threading );
+      }
+      START_MASTER(threading)
+      p->preconditioner = p->polyprec_PRECISION.preconditioner;
+      END_MASTER(threading)
     }
+  #endif
+    vector_PRECISION v1 = p->w;
+    vector_PRECISION v2 = p->r;
+    int start, end;
+
+    compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
+    vector_PRECISION_define_random( p->double_polyprec_PRECISION.random_rhs, p->v_start, p->v_end, l );
+    p->preconditioner( v2, NULL, p->double_polyprec_PRECISION.random_rhs, _NO_RES, l, threading );
+    apply_operator_PRECISION( v1, v2, p, l, threading );
+    vector_PRECISION_minus(v2, v1, p->double_polyprec_PRECISION.random_rhs, p->v_start, p->v_end, l);
+    PRECISION normApAx = global_norm_PRECISION( v2, p->v_start, p->v_end, l, threading );
+    PRECISION normx = global_norm_PRECISION( p->double_polyprec_PRECISION.random_rhs, p->v_start, p->v_end, l, threading );
     START_MASTER(threading)
-    p->preconditioner = p->polyprec_PRECISION.preconditioner;
+    printf0("|| q(A)*(A*v) - v || / || v || = %e\n",normApAx/normx);
     END_MASTER(threading)
     SYNC_MASTER_TO_ALL(threading)
 

@@ -258,6 +258,9 @@ typedef struct
 #ifdef POLYPREC
     polyprec_PRECISION_struct polyprec_PRECISION;
 #endif
+#ifdef DOUBLE_POLYPREC
+    polyprec_PRECISION_struct double_polyprec_PRECISION;
+#endif
 //#ifdef BLOCK_JACOBI
 #if 0
     block_jacobi_PRECISION_struct block_jacobi_PRECISION;

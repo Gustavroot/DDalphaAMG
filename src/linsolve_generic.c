@@ -80,6 +80,25 @@ void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
   p->polyprec_PRECISION.dirctslvr.b = NULL;
 #endif
 
+#ifdef DOUBLE_POLYPREC
+  p->double_polyprec_PRECISION.Hcc = NULL; 
+  p->double_polyprec_PRECISION.L = NULL;
+  p->double_polyprec_PRECISION.col_prods = NULL;
+  p->double_polyprec_PRECISION.accum_prod = NULL;
+  p->double_polyprec_PRECISION.product = NULL;
+  p->double_polyprec_PRECISION.temp = NULL;
+  p->double_polyprec_PRECISION.h_ritz = NULL;
+  p->double_polyprec_PRECISION.lejas = NULL;
+  p->double_polyprec_PRECISION.random_rhs = NULL;
+  p->double_polyprec_PRECISION.xtmp = NULL;
+
+  p->double_polyprec_PRECISION.eigslvr.vl = NULL;
+  p->double_polyprec_PRECISION.eigslvr.vr = NULL;
+  p->double_polyprec_PRECISION.dirctslvr.ipiv = NULL;
+  p->double_polyprec_PRECISION.dirctslvr.x = NULL;
+  p->double_polyprec_PRECISION.dirctslvr.b = NULL;
+#endif
+
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
   p->Va = NULL;
   p->Za = NULL;
@@ -252,7 +271,7 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
     ASSERT( type < 3 );
   }
 
-#if defined(GCRODR) || defined(POLYPREC)
+#if defined(GCRODR) || defined(POLYPREC) || defined(DOUBLE_POLYPREC)
   if ( (l->level==0 || g.method==5) ) {
 #endif
 
@@ -261,8 +280,26 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
   //p->polyprec_PRECISION.eigslvr.eigslvr_PRECISION = eigslvr_PRECISION;
 #endif
 
-  // copy of Hesselnberg matrix
-#if defined(GCRODR) && defined(POLYPREC)
+  // copy of Hessenberg matrix
+#if defined(DOUBLE_POLYPREC) && defined(GCRODR)
+  MALLOC(p->gcrodr_PRECISION.eigslvr.Hc, complex_PRECISION*, m);
+  p->polyprec_PRECISION.eigslvr.Hc = p->gcrodr_PRECISION.eigslvr.Hc;
+  p->double_polyprec_PRECISION.eigslvr.Hc = p->gcrodr_PRECISION.eigslvr.Hc;
+  p->gcrodr_PRECISION.eigslvr.Hc[0] = NULL; // allocate connected memory
+  MALLOC( p->gcrodr_PRECISION.eigslvr.Hc[0], complex_PRECISION, m*(m+1) );
+  for ( i=1; i<m; i++ )
+    p->gcrodr_PRECISION.eigslvr.Hc[i] = p->gcrodr_PRECISION.eigslvr.Hc[0] + i*(m+1);
+  p->polyprec_PRECISION.eigslvr.Hc[0] = p->gcrodr_PRECISION.eigslvr.Hc[0];
+  p->double_polyprec_PRECISION.eigslvr.Hc[0] = p->gcrodr_PRECISION.eigslvr.Hc[0];
+#elif defined(DOUBLE_POLYPREC)
+  MALLOC(p->polyprec_PRECISION.eigslvr.Hc, complex_PRECISION*, m);
+  p->double_polyprec_PRECISION.eigslvr.Hc = p->polyprec_PRECISION.eigslvr.Hc;
+  p->polyprec_PRECISION.eigslvr.Hc[0] = NULL; // allocate connected memory
+  MALLOC( p->polyprec_PRECISION.eigslvr.Hc[0], complex_PRECISION, m*(m+1) );
+  for ( i=1; i<m; i++ )
+    p->polyprec_PRECISION.eigslvr.Hc[i] = p->polyprec_PRECISION.eigslvr.Hc[0] + i*(m+1);
+  p->double_polyprec_PRECISION.eigslvr.Hc[0] = p->polyprec_PRECISION.eigslvr.Hc[0];
+#elif defined(GCRODR) && defined(POLYPREC)
   MALLOC(p->gcrodr_PRECISION.eigslvr.Hc, complex_PRECISION*, m);
   p->polyprec_PRECISION.eigslvr.Hc = p->gcrodr_PRECISION.eigslvr.Hc;
   p->gcrodr_PRECISION.eigslvr.Hc[0] = NULL; // allocate connected memory
@@ -345,7 +382,68 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
   p->polyprec_PRECISION.eigslvr.A = p->polyprec_PRECISION.Hc[0];
 #endif
 
-#if defined(GCRODR) || defined(POLYPREC)
+#ifdef DOUBLE_POLYPREC
+  int double_d_max = (g.double_polyprec_d_setup>g.double_polyprec_d_solve)?g.double_polyprec_d_setup:g.double_polyprec_d_solve;
+  p->double_polyprec_PRECISION.d_poly = double_d_max;
+  int double_d_poly = p->double_polyprec_PRECISION.d_poly;
+
+  MALLOC( p->double_polyprec_PRECISION.col_prods, complex_PRECISION, double_d_poly);
+  MALLOC( p->double_polyprec_PRECISION.h_ritz, complex_PRECISION, double_d_poly);
+  MALLOC( p->double_polyprec_PRECISION.lejas, complex_PRECISION, double_d_poly);
+  MALLOC( p->double_polyprec_PRECISION.random_rhs, complex_PRECISION, vl );
+  MALLOC( p->double_polyprec_PRECISION.accum_prod, complex_PRECISION, vl );
+  MALLOC( p->double_polyprec_PRECISION.product, complex_PRECISION, vl );
+  MALLOC( p->double_polyprec_PRECISION.temp, complex_PRECISION, vl );
+
+  MALLOC( p->double_polyprec_PRECISION.xtmp, complex_PRECISION, vl );
+
+  MALLOC( p->double_polyprec_PRECISION.Hcc, complex_PRECISION, double_d_poly*double_d_poly );
+  MALLOC( p->double_polyprec_PRECISION.L, complex_PRECISION*, double_d_poly+ 1);
+
+  p->double_polyprec_PRECISION.L[0] = NULL;
+
+  MALLOC( p->double_polyprec_PRECISION.L[0], complex_PRECISION, (double_d_poly+1)*double_d_poly );
+
+  for (i=1; i<double_d_poly+1; i++)
+  {
+    p->double_polyprec_PRECISION.L[i] = p->double_polyprec_PRECISION.L[0] + i*double_d_poly;
+  }
+
+  MALLOC( p->double_polyprec_PRECISION.dirctslvr.ipiv, int, double_d_poly);
+  MALLOC( p->double_polyprec_PRECISION.dirctslvr.x, complex_PRECISION, double_d_poly);
+  MALLOC( p->double_polyprec_PRECISION.dirctslvr.b, complex_PRECISION, double_d_poly);
+
+  p->double_polyprec_PRECISION.dirctslvr.N = double_d_poly;
+  p->double_polyprec_PRECISION.dirctslvr.lda = double_d_poly; // m here !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  p->double_polyprec_PRECISION.dirctslvr.ldb = double_d_poly;
+  p->double_polyprec_PRECISION.dirctslvr.nrhs = 1;
+  p->double_polyprec_PRECISION.dirctslvr.Hcc = p->double_polyprec_PRECISION.Hcc;
+  p->double_polyprec_PRECISION.dirctslvr.dirctslvr_PRECISION = dirctslvr_PRECISION;
+
+  MALLOC( p->double_polyprec_PRECISION.eigslvr.vl, complex_PRECISION, double_d_poly*double_d_poly );
+  MALLOC( p->double_polyprec_PRECISION.eigslvr.vr, complex_PRECISION, double_d_poly*double_d_poly );
+
+  p->double_polyprec_PRECISION.eigslvr.jobvl = 'N';
+  p->double_polyprec_PRECISION.eigslvr.jobvr = 'N';
+
+  p->double_polyprec_PRECISION.eigslvr.N = double_d_poly;
+  p->double_polyprec_PRECISION.eigslvr.lda = p->restart_length + 1;
+  p->double_polyprec_PRECISION.eigslvr.ldvl = double_d_poly;
+  p->double_polyprec_PRECISION.eigslvr.ldvr = double_d_poly;
+  p->double_polyprec_PRECISION.eigslvr.w = p->double_polyprec_PRECISION.h_ritz;
+  p->double_polyprec_PRECISION.Hc = p->double_polyprec_PRECISION.eigslvr.Hc;
+  p->double_polyprec_PRECISION.eigslvr.eigslvr_PRECISION = eigslvr_PRECISION;    
+
+  p->double_polyprec_PRECISION.update_lejas = 1;
+  p->double_polyprec_PRECISION.preconditioner = NULL;
+  p->double_polyprec_PRECISION.preconditioner_bare = p->preconditioner;
+  p->polyprec_PRECISION.preconditioner_bare = apply_polyprec_PRECISION;
+  p->double_polyprec_PRECISION.syst_size = vl;
+
+  p->double_polyprec_PRECISION.eigslvr.A = p->polyprec_PRECISION.Hc[0];
+#endif
+
+#if defined(GCRODR) || defined(POLYPREC) || defined(DOUBLE_POLYPREC)
   }
 #endif
 
@@ -461,7 +559,7 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
 
   // --- COARSEST-LEVEL IMPROVEMENTS
 
-#if defined(GCRODR) || defined(POLYPREC)
+#if defined(GCRODR) || defined(POLYPREC) || defined(DOUBLE_POLYPREC)
   if ((l->level==0 || g.method==5)) {
 #endif
 
@@ -503,7 +601,30 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
   FREE( p->polyprec_PRECISION.dirctslvr.b, complex_PRECISION, d_poly );
 #endif
 
-#if defined(GCRODR) || defined(POLYPREC)
+#ifdef DOUBLE_POLYPREC
+  int double_d_poly = 10;
+  int double_vl = p->double_polyprec_PRECISION.syst_size;
+  FREE( p->double_polyprec_PRECISION.Hcc, complex_PRECISION, double_d_poly*double_d_poly );
+  FREE( p->double_polyprec_PRECISION.L[0], complex_PRECISION, (double_d_poly+1)*double_d_poly );
+  FREE( p->double_polyprec_PRECISION.L, complex_PRECISION*, double_d_poly+1 );
+  FREE( p->double_polyprec_PRECISION.h_ritz,complex_PRECISION, double_d_poly );
+  FREE( p->double_polyprec_PRECISION.lejas,complex_PRECISION, double_d_poly );
+  FREE( p->double_polyprec_PRECISION.accum_prod, complex_PRECISION, double_vl );
+  FREE( p->double_polyprec_PRECISION.product, complex_PRECISION, double_vl );    
+  FREE( p->double_polyprec_PRECISION.temp, complex_PRECISION, double_vl );    
+  FREE( p->double_polyprec_PRECISION.xtmp, complex_PRECISION, double_vl );
+  FREE( p->double_polyprec_PRECISION.random_rhs, complex_PRECISION, double_vl );
+  FREE( p->double_polyprec_PRECISION.col_prods, complex_PRECISION, double_d_poly );
+
+  FREE( p->double_polyprec_PRECISION.eigslvr.vl,complex_PRECISION, double_d_poly*double_d_poly );
+  FREE( p->double_polyprec_PRECISION.eigslvr.vr,complex_PRECISION, double_d_poly*double_d_poly );  
+
+  FREE( p->double_polyprec_PRECISION.dirctslvr.ipiv, int, double_d_poly );
+  FREE( p->double_polyprec_PRECISION.dirctslvr.x, complex_PRECISION, double_d_poly );
+  FREE( p->double_polyprec_PRECISION.dirctslvr.b, complex_PRECISION, double_d_poly );
+#endif
+
+#if defined(GCRODR) || defined(POLYPREC) || defined(DOUBLE_POLYPREC)
   }
 #endif
 
