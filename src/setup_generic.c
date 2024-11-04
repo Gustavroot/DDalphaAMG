@@ -313,9 +313,10 @@ void re_setup_PRECISION( level_struct *l, struct Thread *threading ) {
         END_LOCKED_MASTER(threading)
         if ( g.method >= 4 && g.odd_even ) {
           coarse_oddeven_re_setup_PRECISION( &(l->next_level->s_PRECISION.op), _REORDER, l->next_level, threading );
-        } else {
-          coarse_operator_PRECISION_set_couplings( &(l->next_level->s_PRECISION.op), l->next_level, threading );
         }
+        // else {
+        coarse_operator_PRECISION_set_couplings( &(l->next_level->s_PRECISION.op), l->next_level, threading );
+        //}
       }
       if ( !l->next_level->idle && l->next_level->level == 0 && g.odd_even ) {
         coarse_oddeven_re_setup_PRECISION( &(l->next_level->s_PRECISION.op), _NO_REORDERING, l->next_level, threading );
