@@ -2,7 +2,9 @@
 #include "linsolve_proxy_PRECISION.h"
 #include "alloc_control.h"
 #include "linalg_PRECISION.h"
+#ifdef CUDA_OPT
 #include "gpu/cuda_linalg_PRECISION.h"
+#endif
 
 
 complex_PRECISION global_inner_product_PRECISION( vector_PRECISION* V, vector_PRECISION psi, complex_PRECISION *result,

@@ -27,8 +27,10 @@
 // this macro is used to determine the number of threads per
 // CUDA block for dot products offloaded to GPUs
 #define imin(a,b) (a<b?a:b)
+#ifdef CUDA_OPT
 // IMPORTANT : if changed, change also in src/linsolve_generic.c
 static const int threadsPerBlockDP = 256;
+#endif
 
 
 void cpu_fgmres_PRECISION_struct_init( gmres_PRECISION_struct *p ) {
