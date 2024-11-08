@@ -4434,7 +4434,7 @@ void cuda_solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION
       error0("GCR smoother on GPUs has not been constructed\n");
       //fgcr_PRECISION( p, l, threading );
 #else
-    if ( p->use_richardson == 1 && l->depth==0 ) {
+    if ( p->use_richardson == 1 ) {
       cuda_richardson_PRECISION( p, l, threading );
 #endif
     }
