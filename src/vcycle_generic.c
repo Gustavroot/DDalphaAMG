@@ -75,18 +75,22 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
       if ( g.odd_even ) {
         if ( res == _RES ) {
 #ifdef CUDA_OPT
-          // FIXME : this has to be fixed : forcing the double-precision Dirac operator to
-          // be done on CPUs, as things are not prepared properly currently for running
-          // it on GPUs
-          START_MASTER(threading)
-          l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu;
-          END_MASTER(threading)
-          SYNC_CORES(threading)
-          apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
-          START_MASTER(threading)
-          l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;
-          END_MASTER(threading)
-          SYNC_CORES(threading)
+          if ( l->depth==0 ) {
+            // FIXME : this has to be fixed : forcing the full (i.e. non-oddeven) Dirac operator to
+            // be done on CPUs, as things are not prepared properly currently for running
+            // it on GPUs
+            START_MASTER(threading)
+            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu;
+            END_MASTER(threading)
+            SYNC_CORES(threading)
+            apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
+            START_MASTER(threading)
+            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;
+            END_MASTER(threading)
+            SYNC_CORES(threading)
+          } else {
+            apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
+          }
 #else
           apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
 #endif
@@ -118,68 +122,7 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
             PROF_PRECISION_START( _SM_OE );
             END_MASTER(threading);
 
-//#if defined(RICHARDSON_SMOOTHER)
-//            // only Richardson enabled as GPU odd-even finest-level smoother at the moment
-//            solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
-//#else
-//            solve_oddeven_PRECISION_cpu( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
-//#endif
-
             solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
-
-            /*
-            {
-
-              vector_PRECISION bk = NULL;
-              PUBLIC_MALLOC( bk, complex_PRECISION, l->inner_vector_size );
-              vector_PRECISION out1 = NULL;
-              PUBLIC_MALLOC( out1, complex_PRECISION, l->inner_vector_size );
-              vector_PRECISION out2 = NULL;
-              PUBLIC_MALLOC( out2, complex_PRECISION, l->inner_vector_size );
-
-              START_MASTER(threading)
-              vector_PRECISION_copy( bk, l->sp_PRECISION.b, 0, l->inner_vector_size, l );
-              END_MASTER(threading)
-              SYNC_CORES(threading)
-
-              solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
-
-              START_MASTER(threading)
-              vector_PRECISION_copy( out1, l->sp_PRECISION.x, 0, l->inner_vector_size, l );
-              END_MASTER(threading)
-              SYNC_CORES(threading)
-
-              START_MASTER(threading)
-              vector_PRECISION_copy( l->sp_PRECISION.b, bk, 0, l->inner_vector_size, l );
-              END_MASTER(threading)
-              SYNC_CORES(threading)
-
-              solve_oddeven_PRECISION_cpu( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
-
-              START_MASTER(threading)
-              vector_PRECISION_copy( out2, l->sp_PRECISION.x, 0, l->inner_vector_size, l );
-              END_MASTER(threading)
-              SYNC_CORES(threading)
-
-              START_MASTER(threading)
-              vector_PRECISION_minus( out1, out1, out2, 0, l->inner_vector_size, l );
-              END_MASTER(threading)
-              SYNC_CORES(threading)
-
-              PRECISION norm1 = global_norm_PRECISION( out1, 0, l->inner_vector_size, l, threading );
-              PRECISION norm2 = global_norm_PRECISION( out2, 0, l->inner_vector_size, l, threading );
-
-              START_MASTER(threading)
-              printf0("rel err = %e\n",norm1/norm2);
-              END_MASTER(threading)
-              SYNC_CORES(threading)
-
-              PUBLIC_FREE( bk, complex_PRECISION, l->inner_vector_size );
-              PUBLIC_FREE( out1, complex_PRECISION, l->inner_vector_size );
-              PUBLIC_FREE( out2, complex_PRECISION, l->inner_vector_size );
-
-            }
-            */
 
             START_MASTER(threading);
             PROF_PRECISION_STOP( _SM_OE, 1 );
