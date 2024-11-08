@@ -798,7 +798,7 @@ void solve_oddeven_PRECISION_cpu( gmres_PRECISION_struct *p, operator_PRECISION_
     if ( p->use_gcr == 1 && l->depth==0 ) {
       fgcr_PRECISION( p, l, threading );
 #else
-    if ( p->use_richardson == 1 && l->depth==0 ) {
+    if ( p->use_richardson == 1 ) {
       richardson_PRECISION( p, l, threading );
 #endif
     }
