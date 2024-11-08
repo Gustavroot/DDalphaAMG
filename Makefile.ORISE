@@ -48,7 +48,7 @@ endif
 # GCR as a smoother
 #COMMON_COMPILE_FLAGS += -DGCR_SMOOTHER
 # Richardson as a smoother
-COMMON_COMPILE_FLAGS += -DRICHARDSON_SMOOTHER
+#COMMON_COMPILE_FLAGS += -DRICHARDSON_SMOOTHER
 
 # include twisted mass term at the coarsest level
 #COMMON_COMPILE_FLAGS += -DTM_COARSEST
@@ -89,7 +89,7 @@ COMPILE_FLAGS = $(COMMON_COMPILE_FLAGS) -DPARAMOUTPUT -DTRACK_RES -DFGMRES_RESTE
 ifeq ($(CUDA_ENABLER),yes)
 COMPILE_FLAGS += -fopenmp -DOPENMP
 else
-COMPILE_FLAGS += -fopenmp
+COMPILE_FLAGS += -fopenmp -DOPENMP
 endif
 
 ifeq ($(SSE_ENABLER),yes)
