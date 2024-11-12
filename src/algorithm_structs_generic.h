@@ -12,6 +12,7 @@
 #include "gpu/cuda_vectors_PRECISION.h"
 #include "gpu/cuda_algorithm_structs_PRECISION.h"
 #include "gpu/cuda_communication_PRECISION.h"
+#include "complex_types_double.h"
 #endif
 
 #include "block_struct.h"
@@ -272,6 +273,11 @@ typedef struct
   vector_PRECISION *gpu_dotprods_partial_sums;
   cuda_vector_PRECISION *gpu_dotprods_dev_partial_sums;
   vector_PRECISION gpu_dotprods_global_sums;
+#endif
+
+#ifdef CUDA_OPT
+  vector_double buff1_fine_grid_matmul;
+  vector_double buff2_fine_grid_matmul;
 #endif
 } gmres_PRECISION_struct;
 

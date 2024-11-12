@@ -161,6 +161,10 @@ void method_setup( vector_double *V, level_struct *l, struct Thread *threading )
       fgmres_double_struct_alloc( g.restart, g.max_restart, l->inner_vector_size, g.tol,
                                   _GLOBAL_FGMRES, _RIGHT, preconditioner,
                                   g.method==6?g5D_plus_clover_double:d_plus_clover_double, &(g.p), l );
+#ifdef CUDA_OPT
+      MALLOC( g.p.buff1_fine_grid_matmul,complex_double,l->inner_vector_size );
+      MALLOC( g.p.buff2_fine_grid_matmul,complex_double,l->inner_vector_size );
+#endif
     }
   }
   else if ( g.method == 0 ) {
@@ -338,6 +342,10 @@ void method_free( level_struct *l ) {
     FREE( g.p.x, complex_double, l->inner_vector_size );
 #endif
   } else {
+#ifdef CUDA_OPT
+    FREE( g.p.buff1_fine_grid_matmul,complex_double,l->inner_vector_size );
+    FREE( g.p.buff2_fine_grid_matmul,complex_double,l->inner_vector_size );
+#endif
     fgmres_double_struct_free( &(g.p), l );
   }
 

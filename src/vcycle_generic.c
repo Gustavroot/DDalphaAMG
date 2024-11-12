@@ -76,18 +76,14 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
         if ( res == _RES ) {
 #ifdef CUDA_OPT
           if ( l->depth==0 ) {
-            // FIXME : this has to be fixed : forcing the full (i.e. non-oddeven) Dirac operator to
-            // be done on CPUs, as things are not prepared properly currently for running
-            // it on GPUs
-            START_MASTER(threading)
-            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu;
-            END_MASTER(threading)
-            SYNC_CORES(threading)
-            apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
-            START_MASTER(threading)
-            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;
-            END_MASTER(threading)
-            SYNC_CORES(threading)
+            // forcing the use of the fine-grid GPU matmul
+
+            vector_double buffx_1 = g.p.buff1_fine_grid_matmul;
+            vector_double buffx_2 = g.p.buff1_fine_grid_matmul;
+
+            trans_back_PRECISION( buffx_2, phi, l->s_PRECISION.op.translation_table, l, threading );
+            apply_operator_double( buffx_1, buffx_2, &(g.p), l, threading );
+            trans_PRECISION( l->sp_PRECISION.x, buffx_1, l->s_PRECISION.op.translation_table, l, threading );
           } else {
             apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
           }
