@@ -31,6 +31,10 @@
 void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECISION eta,
                          int n, const int res, complex_PRECISION shift, level_struct *l, struct Thread *threading ) {
 
+  START_MASTER(threading)
+  printf0("Smoother from level %d\n",l->depth);
+  END_MASTER(threading)
+
   ASSERT( phi != eta );
 
   START_MASTER(threading);
@@ -104,44 +108,45 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
           if ( l->depth == 0 ) g5D_solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
           else g5D_coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
         } else {
+#ifdef GCR_SMOOTHER
+          START_MASTER(threading)
+          l->sp_PRECISION.use_gcr = 1;
+          END_MASTER(threading)
+          SYNC_CORES(threading)
+#endif
+#ifdef RICHARDSON_SMOOTHER
+          START_MASTER(threading)
+          l->sp_PRECISION.use_richardson = 1;
+          END_MASTER(threading)
+          SYNC_CORES(threading)
+#endif
+
+          START_MASTER(threading);
+          PROF_PRECISION_START( _SM_OE );
+          END_MASTER(threading);
+
           if ( l->depth == 0 ) {
-#ifdef GCR_SMOOTHER
-            START_MASTER(threading)
-            l->sp_PRECISION.use_gcr = 1;
-            END_MASTER(threading)
-            SYNC_CORES(threading)
-#endif
-#ifdef RICHARDSON_SMOOTHER
-            START_MASTER(threading)
-            l->sp_PRECISION.use_richardson = 1;
-            END_MASTER(threading)
-            SYNC_CORES(threading)
-#endif
-
-            START_MASTER(threading);
-            PROF_PRECISION_START( _SM_OE );
-            END_MASTER(threading);
-
             solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+          } else {
+            coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+          }
 
-            START_MASTER(threading);
-            PROF_PRECISION_STOP( _SM_OE, 1 );
-            END_MASTER(threading);
+          START_MASTER(threading);
+          PROF_PRECISION_STOP( _SM_OE, 1 );
+          END_MASTER(threading);
 
 #ifdef GCR_SMOOTHER
-            START_MASTER(threading)
-            l->sp_PRECISION.use_gcr = 0;
-            END_MASTER(threading)
-            SYNC_CORES(threading)
+          START_MASTER(threading)
+          l->sp_PRECISION.use_gcr = 0;
+          END_MASTER(threading)
+          SYNC_CORES(threading)
 #endif
 #ifdef RICHARDSON_SMOOTHER
-            START_MASTER(threading)
-            l->sp_PRECISION.use_richardson = 0;
-            END_MASTER(threading)
-            SYNC_CORES(threading)
+          START_MASTER(threading)
+          l->sp_PRECISION.use_richardson = 0;
+          END_MASTER(threading)
+          SYNC_CORES(threading)
 #endif
-           }
-          else coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
         }
         if ( res == _NO_RES ) {
           oddeven_to_block_PRECISION( phi, l->sp_PRECISION.x, l, threading );

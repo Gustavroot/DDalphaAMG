@@ -171,6 +171,10 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
     }
     MALLOC( p->Z, complex_PRECISION*, k );
   } else {
+
+#if defined(PIPELINED_ARNOLDI) && defined(GCR_SMOOTHER)
+  error0("Pipelining and GCR cannot be used at the same time as they both make use of p->Z\n");
+#endif
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
     if ( l->level == 0 && l->depth > 0 ) {
       total += (m+2)*vl;
@@ -179,12 +183,12 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
     }
 #else
 #ifdef GCR_SMOOTHER
-    if ( l->depth==0 ) {
+    //if ( l->depth==0 ) {
       total += (m+1)*vl; // Z
       k = m+1;
       MALLOC( p->Z, complex_PRECISION*, k );
-    }
-    else { k=0; }
+    //}
+    //else { k=0; }
 #else
     k = 0;
 #endif
@@ -474,10 +478,10 @@ void cpu_fgmres_PRECISION_struct_free( gmres_PRECISION_struct *p, level_struct *
     }
 #else
 #ifdef GCR_SMOOTHER
-    if ( l->depth==0 ) {
+    //if ( l->depth==0 ) {
       k = p->restart_length+1;
-    }
-    else { k=0; }
+    //}
+    //else { k=0; }
 #else
     k = 0;
 #endif
@@ -608,6 +612,11 @@ int fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread 
 * Uses FGMRES to solve the system D x = b, where b is taken from p->b and x is 
 * stored in p->x.                                                              
 *********************************************************************************/  
+
+  START_MASTER(threading)
+  printf0("GMRES CPU from level %d\n",l->depth);
+  END_MASTER(threading)
+
   RangeHandleType profilingRangeResFgmres = startProfilingRange("Restarted FGMRES (PRECISION)");
   // RE-ENABLE !
   //printf0("WITHIN fgmres_PRECISION(...), depth=%d \n", l->depth);
@@ -1806,6 +1815,10 @@ int fgcr_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *t
 * stored in p->x.                                                              
 *********************************************************************************/
 
+  START_MASTER(threading)
+  printf0("GCR CPU from level %d\n",l->depth);
+  END_MASTER(threading)
+
   int k, j, iter=0, ol, start, end;
 
   compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
@@ -1908,19 +1921,30 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   int start, end, i, j, k;
   PRECISION norm;
   complex_PRECISION lmaxb, dot_prod;
+  int vs;
+  if ( l->depth==0 ) { vs = l->inner_vector_size; }
+  else { vs = l->vector_size; }
 
   // if e.g. we want 2 shifts in Richardson, we use 2 BPI vectors .. but this code
   // is in principle ready to apply block power iteration in a more general way
   int bpi_base = 1 * p->richardson_sub_degree;
 
+  START_MASTER(threading)
+  printf0("inside 1 from level %d (p->richardson_sub_degree = %d)\n",l->depth,p->richardson_sub_degree);
+  END_MASTER(threading)
+
   // allocate the BPI base
   vector_PRECISION *V = NULL;
   PUBLIC_MALLOC( V, vector_PRECISION, bpi_base );
   V[0] = NULL;
-  PUBLIC_MALLOC( V[0], complex_PRECISION, l->inner_vector_size * bpi_base );
+  PUBLIC_MALLOC( V[0], complex_PRECISION, vs * bpi_base );
   for( i=1;i<bpi_base;i++ ){
-    V[i] = V[0] + i*l->inner_vector_size;
+    V[i] = V[0] + i * vs;
   }
+
+  START_MASTER(threading)
+  printf0("inside 2 from level %d\n",l->depth);
+  END_MASTER(threading)
 
   compute_core_start_end( p->v_start, p->v_end, &start, &end, l, threading );
 
@@ -1932,7 +1956,7 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   // initially set the BPI vectors to random
   START_MASTER(threading)
   for ( i=0;i<bpi_base;i++ ) {
-    vector_PRECISION_define_random( V[i], 0, l->inner_vector_size, l );
+    vector_PRECISION_define_random( V[i], 0, vs, l );
   }
   END_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
@@ -1966,6 +1990,10 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
     }
   }
 
+  START_MASTER(threading)
+  printf0("inside 3 from level %d\n",l->depth);
+  END_MASTER(threading)
+
   // extract the largest Rayleigh quotients
 
   complex_PRECISION lmax[p->richardson_sub_degree];
@@ -1994,12 +2022,20 @@ void richardson_update_omega_PRECISION( gmres_PRECISION_struct *p, level_struct 
   END_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
 
-  PUBLIC_FREE( V[0], complex_PRECISION, l->inner_vector_size * bpi_base );
+  PUBLIC_FREE( V[0], complex_PRECISION, vs * bpi_base );
   PUBLIC_FREE( V, vector_PRECISION, bpi_base );
+
+  START_MASTER(threading)
+  printf0("inside n from level %d\n",l->depth);
+  END_MASTER(threading)
 }
 
 // used as smoother at the moment
 int richardson_PRECISION_cpu( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
+
+  START_MASTER(threading)
+  printf0("Richardson CPU from level %d\n",l->depth);
+  END_MASTER(threading)
 
   if ( p->richardson_update_omega==1 ) {
     richardson_update_omega_PRECISION( p, l, threading );
