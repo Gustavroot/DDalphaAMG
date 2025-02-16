@@ -78,32 +78,86 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
     if ( g.method == 4 || g.method == 6 ) {
       if ( g.odd_even ) {
         if ( res == _RES ) {
+          // compute the residual, if necessary. Do this always, except when
+          // using GPUs and at depth=0
 #ifdef CUDA_OPT
           if ( l->depth==0 ) {
-            // FIXME : this has to be fixed : forcing the full (i.e. non-oddeven) Dirac operator to
-            // be done on CPUs, as things are not prepared properly currently for running
-            // it on GPUs
-            START_MASTER(threading)
-            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu;
-            END_MASTER(threading)
-            SYNC_CORES(threading)
+            // we don't do anything .. we leave this residual computation to the GPU code and to
+            // be within the solve itself
+          }
+          else {
             apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
-            START_MASTER(threading)
-            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;
-            END_MASTER(threading)
-            SYNC_CORES(threading)
-          } else {
-            apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
+            vector_PRECISION_minus( l->sp_PRECISION.x, eta, l->sp_PRECISION.x, start, end, l );
           }
 #else
           apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
-#endif
           vector_PRECISION_minus( l->sp_PRECISION.x, eta, l->sp_PRECISION.x, start, end, l );
+#endif
         }
+        // reorder, to block ordering, the residual which has been saved to l->sp_PRECISION.x,
+        // or if no residual was computed then it's already in eta. Do this always, except when
+        // using GPUs and depth=0 .. in this case we have to reorder b and possibly x
+#ifdef CUDA_OPT
+        if ( l->depth==0 ) {
+          if ( res==_RES ) {
+            block_to_oddeven_PRECISION( l->sp_PRECISION.x, phi, l, threading );
+          }
+          block_to_oddeven_PRECISION( l->sp_PRECISION.b, eta, l, threading );
+        }
+        else {
+          block_to_oddeven_PRECISION( l->sp_PRECISION.b, res==_RES?l->sp_PRECISION.x:eta, l, threading );
+        }
+#else
         block_to_oddeven_PRECISION( l->sp_PRECISION.b, res==_RES?l->sp_PRECISION.x:eta, l, threading );
+#endif
+        // we set the initial guess to_NO_RES always, because the residual has been computed a few lines
+        // ago, so what we will solve now is Ae=r .. except when using GPUs and depth=0, in which case we
+        // have not computed the residual yet and we are still about to solve Ax=b, to we set it to res
+
+#ifdef CUDA_OPT
+        if ( l->depth==0 ) {
+          START_LOCKED_MASTER(threading)
+          l->sp_PRECISION.initial_guess_zero = res;
+          END_LOCKED_MASTER(threading)
+        }
+        else {
+          START_LOCKED_MASTER(threading)
+          l->sp_PRECISION.initial_guess_zero = _NO_RES;
+          END_LOCKED_MASTER(threading)
+        }
+#else
         START_LOCKED_MASTER(threading)
         l->sp_PRECISION.initial_guess_zero = _NO_RES;
         END_LOCKED_MASTER(threading)
+#endif
+
+//#ifdef CUDA_OPT
+//          if ( l->depth==0 ) {
+//            // FIXME : this has to be fixed : forcing the full (i.e. non-oddeven) Dirac operator to
+//            // be done on CPUs, as things are not prepared properly currently for running
+//            // it on GPUs
+//            START_MASTER(threading)
+//            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu;
+//            END_MASTER(threading)
+//            SYNC_CORES(threading)
+//            apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
+//            START_MASTER(threading)
+//            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;
+//            END_MASTER(threading)
+//            SYNC_CORES(threading)
+//          } else {
+//            apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
+//          }
+//#else
+//          apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
+//#endif
+//          vector_PRECISION_minus( l->sp_PRECISION.x, eta, l->sp_PRECISION.x, start, end, l );
+//        }
+//        block_to_oddeven_PRECISION( l->sp_PRECISION.b, res==_RES?l->sp_PRECISION.x:eta, l, threading );
+//        START_LOCKED_MASTER(threading)
+//        l->sp_PRECISION.initial_guess_zero = _NO_RES;
+//        END_LOCKED_MASTER(threading)
+
         if ( g.method == 6 ) {
           if ( l->depth == 0 ) g5D_solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
           else g5D_coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );

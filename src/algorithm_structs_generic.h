@@ -21,13 +21,14 @@
 
 typedef struct
 {
-    config_PRECISION D, clover, oe_clover;
+    config_PRECISION D, clover, oe_clover, clover_oo_copy;
 #ifdef CUDA_OPT
     cuda_config_PRECISION
         /** Self coupling coefficients on the GPU. */
         clover_gpu,
+        clover_gpu_oo_copy,
         /** Self coupling coefficients in componentwise ordering on the GPU.*/
-        clover_componentwise_gpu,
+        clover_componentwise_gpu, clover_componentwise_gpu_oo_copy,
         /** Neighbor coupling coefficients on the GPU. */
         D_gpu;
     /** Neighbor coupling coefficients in componentwise ordering on the GPU.
