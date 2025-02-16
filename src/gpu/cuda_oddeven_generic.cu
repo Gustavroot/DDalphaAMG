@@ -4503,20 +4503,6 @@ void cuda_solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION
   cuda_vector_PRECISION_minus( x, x, b, start_odd, end_odd-start_odd, l, _CUDA_SYNC, 0, streams );
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // this is the full Dirac operator in odd-even ordering, based on the Schur complement components
 
 void cuda_apply_oe_op_PRECISION( cuda_vector_PRECISION out, cuda_vector_PRECISION in,
@@ -4527,56 +4513,24 @@ void cuda_apply_oe_op_PRECISION( cuda_vector_PRECISION out, cuda_vector_PRECISIO
   // out_e  = Dee*in_e + Deo*in_o
   // out_o  = Doe*in_e + Doo*in_o
 
-  //// labels for certain vectors, and assignments for in/out in a CUDA sense
-  //cuda_vector_PRECISION tmp = op->buffer_gpu[0];
-
   cuda_vector_PRECISION tmp0=op->buffer_gpu[0],tmp1=op->buffer_gpu[1];
 
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
 
-
-  //cuda_vector_PRECISION_copy( out, in, 0, l->inner_vector_size, l, _D2D, _CUDA_SYNC, 0, streams );
-  //return;
-
-
-
-
-  //// labels for certain vectors, and assignments for in/out in a CUDA sense
-  //// these are componentwise by default
-  //cuda_vector_PRECISION b, x;
-  //b = p->b_componentwise_gpu;
-  //x = p->x_componentwise_gpu;
-
-
-
-
-
-
   // sizes of local vectors, totals as no threading within here
   int start_even = 0;
-  //int end_even = op->num_even_sites*l->num_lattice_site_var;
   int start_odd;
   start_odd = op->num_even_sites*l->num_lattice_site_var;
-  //end_odd = l->inner_vector_size;
   // size of the clover term per lattice site
   unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
-
-
 
   // set the whole tmp1 to zero
   // set GPU buffer to zero, to be used later in the intermediate steps
   cuda_vector_PRECISION_define(tmp1, make_cu_cmplx_PRECISION(0,0), 0,
                                l->inner_vector_size, l, _CUDA_SYNC, 0, streams);
 
-
-
-
-
-
-
-
-  // out_e  = Dee*in_e + Deo*in_o
+  // FIRST : out_e  = Dee*in_e + Deo*in_o
 
   // even to even : tmp0_e = Dee * in_e
   PROF_PRECISION_START_UNTHREADED( _SC );
@@ -4584,112 +4538,14 @@ void cuda_apply_oe_op_PRECISION( cuda_vector_PRECISION out, cuda_vector_PRECISIO
                                        op->clover_componentwise_gpu,
                                        op->num_even_sites, l );
   PROF_PRECISION_STOP_UNTHREADED( _SC, 1 );
-
-
-
-
-  //cuda_vector_PRECISION_copy( out, tmp0, 0, op->num_even_sites*l->num_lattice_site_var, l, _D2D, _CUDA_SYNC, 0, streams );
-  //cuda_vector_PRECISION_copy( out+start_odd, in+start_odd, 0, op->num_odd_sites*l->num_lattice_site_var, l, _D2D, _CUDA_SYNC, 0, streams );
-  //return;
-
-
-
-
   // tmp1_e = tmp1_e + Deo * in_o .. but note how tmp1_e is zero right before this call
   PROF_PRECISION_START_UNTHREADED( _NC );
   cuda_hopping_term_PRECISION( tmp1, in, op, _EVEN_SITES, l );
   PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
-
-  //cuda_vector_PRECISION_plus( out, tmp0, tmp1, start_even, end_even, l, _CUDA_SYNC, 0, streams );
-
   cuda_vector_PRECISION_saxpy( out, tmp0, tmp1, make_cu_cmplx_PRECISION(1.0,0.0), start_even,
                                op->num_even_sites*l->num_lattice_site_var, l, _CUDA_SYNC, 0, streams );
 
-  //cuda_vector_PRECISION_copy( out, tmp0, 0, op->num_even_sites*l->num_lattice_site_var, l, _D2D, _CUDA_SYNC, 0, streams );
-  //cuda_vector_PRECISION_copy( out+start_odd, tmp1+start_odd, 0, op->num_odd_sites*l->num_lattice_site_var, l, _D2D, _CUDA_SYNC, 0, streams );
-  //return;
-
-
-
-
-
-
-
-  //// odd to even
-  //PROF_PRECISION_START_UNTHREADED( _SC );
-  //cuda_diag_oo_inv_componentwise_PRECISION( tmp+start_odd, b+start_odd,
-  //                                          op->clover_componentwise_gpu+css*(start_odd/12),
-  //                                          op->num_odd_sites, l );
-  //PROF_PRECISION_STOP_UNTHREADED( _SC, 0 );
-
-
-
-
-
-
-  //cuda_vector_PRECISION_scale( tmp, tmp, make_cu_cmplx_PRECISION(-1.0,0.0),
-  //                             start_odd, end_odd-start_odd, l, _CUDA_SYNC, 0, streams );
-
-
-
-
-
-
-
-  //// labels for certain vectors, and assignments for in/out in a CUDA sense
-  //cuda_vector_PRECISION tmp0=op->buffer_gpu[0],tmp1=op->buffer_gpu[1];
-
-  //cudaStream_t stream = CU_STREAM_PER_THREAD;
-  //cudaStream_t* const streams = &stream;
-
-  //// sizes of local vectors, totals as no threading within here
-  //int start_even = 0;
-  //int end_even = op->num_even_sites*l->num_lattice_site_var;
-  //int start_odd = op->num_even_sites*l->num_lattice_site_var;
-  //// size of the clover term per lattice site
-  //unsigned int css = clover_site_size(l->num_lattice_site_var, l->depth);
-
-  //// set the whole tmp0 to zero
-  //// set GPU buffer to zero, to be used later in the intermediate steps of this Schur
-  //// complement
-  //cuda_vector_PRECISION_define(tmp0, make_cu_cmplx_PRECISION(0,0), 0,
-  //                             l->inner_vector_size, l, _CUDA_SYNC, 0, streams);
-
-  //// out_e = Dee * in_e
-  //PROF_PRECISION_START_UNTHREADED( _SC );
-  //cuda_diag_ee_componentwise_PRECISION(out, in, op->clover_componentwise_gpu, op->num_even_sites, l);
-  //PROF_PRECISION_STOP_UNTHREADED( _SC, 1 );
-
-  //// tmp0_o = tmp0_o + Doe * in_e .. but note now tmp0_o is zero right before this call
-  //PROF_PRECISION_START_UNTHREADED( _NC );
-  //cuda_hopping_term_PRECISION( tmp0, in, op, _ODD_SITES, l );
-  //PROF_PRECISION_STOP_UNTHREADED( _NC, 0 );
-
-  //// tmp1_o = Dooinv * tmp0_o
-  //PROF_PRECISION_START_UNTHREADED( _SC );
-  //cuda_diag_oo_inv_componentwise_PRECISION( tmp1+start_odd, tmp0+start_odd,
-  //                                          op->clover_componentwise_gpu+css*(start_odd/12),
-  //                                          op->num_odd_sites, l );
-  //PROF_PRECISION_STOP_UNTHREADED( _SC, 0 );
-
-  //// tmp0_e = tmp0_e + Deo * tmp1_o .. but note how tmp0_e is zero right before this call
-  //PROF_PRECISION_START_UNTHREADED( _NC );
-  //cuda_hopping_term_PRECISION( tmp0, tmp1, op, _EVEN_SITES, l );
-  //PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
-
-  //cuda_vector_PRECISION_minus( out, out, tmp0, start_even, end_even, l, _CUDA_SYNC, 0, streams );
-
-
-
-
-
-
-
-
-
-
-
-  // out_o  = Doe*in_e + Doo*in_o
+  // SECOND : out_o  = Doe*in_e + Doo*in_o
 
   // odd to odd : tmp0_o = Doo * in_o
   PROF_PRECISION_START_UNTHREADED( _SC );
@@ -4697,131 +4553,13 @@ void cuda_apply_oe_op_PRECISION( cuda_vector_PRECISION out, cuda_vector_PRECISIO
                                        op->clover_componentwise_gpu_oo_copy,
                                        op->num_odd_sites, l );
   PROF_PRECISION_STOP_UNTHREADED( _SC, 0 );
-
   // tmp1_o = tmp1_o + Doe * in_e .. but note how tmp1_o is zero right before this call
   PROF_PRECISION_START_UNTHREADED( _NC );
   cuda_hopping_term_PRECISION( tmp1, in, op, _ODD_SITES, l );
   PROF_PRECISION_STOP_UNTHREADED( _NC, 0 );
-
   cuda_vector_PRECISION_saxpy( out+start_odd, tmp0+start_odd, tmp1+start_odd, make_cu_cmplx_PRECISION(1.0,0.0), 0,
                                op->num_odd_sites*l->num_lattice_site_var, l, _CUDA_SYNC, 0, streams );
-
-  //cuda_vector_PRECISION_copy( out, tmp0, 0, op->num_even_sites*l->num_lattice_site_var, l, _D2D, _CUDA_SYNC, 0, streams );
-  //cuda_vector_PRECISION_copy( out+start_odd, tmp1+start_odd, 0, op->num_odd_sites*l->num_lattice_site_var, l, _D2D, _CUDA_SYNC, 0, streams );
-  //return;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  //PROF_PRECISION_START_UNTHREADED( _NC );
-  //cuda_hopping_term_PRECISION( b, tmp, op, _EVEN_SITES, l );
-  //PROF_PRECISION_STOP_UNTHREADED( _NC, 0 );
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//  if ( g.method == 4 ) {
-//#if defined(GCR_SMOOTHER) || defined(RICHARDSON_SMOOTHER)
-//    // restricting GCR and Richardson to be used as smoothers at the finest level only
-//#ifdef GCR_SMOOTHER
-//    if ( p->use_gcr == 1 && l->depth==0 ) {
-//      error0("GCR smoother on GPUs has not been constructed\n");
-//      //fgcr_PRECISION( p, l, threading );
-//#else
-//    if ( p->use_richardson == 1 ) {
-//      cuda_richardson_PRECISION( p, l, threading );
-//#endif
-//    }
-//    else {
-//      //error0("GMRES smoother on GPUs has not been constructed\n");
-//      //fgmres_PRECISION( p, l, threading );
-//      cuda_fgmres_PRECISION( p, l, threading );
-//    }
-//#else
-//    //error0("GMRES smoother on GPUs has not been constructed\n");
-//    //fgmres_PRECISION( p, l, threading );
-//    cuda_fgmres_PRECISION( p, l, threading );
-//#endif
-//  } else if ( g.method == 5 ) {
-//    error0("Smoother for method=5 on GPUs has not been constructed\n");
-//    //bicgstab_PRECISION( p, l, threading );
-//  }
-
-//  cuda_diag_oo_inv_componentwise_PRECISION( x+start_odd, b+start_odd,
-//                                            op->clover_componentwise_gpu+css*(start_odd/12),
-//                                            op->num_odd_sites, l );
-
-//  // even to odd
-//  cuda_vector_PRECISION_define( tmp, make_cu_cmplx_PRECISION(0,0), start_odd,
-//                                end_odd-start_odd, l, _CUDA_SYNC, 0, streams );
-
-//  PROF_PRECISION_START_UNTHREADED( _NC );
-//  cuda_hopping_term_PRECISION( tmp, x, op, _ODD_SITES, l );
-//  PROF_PRECISION_STOP_UNTHREADED( _NC, 1 );
-
-//  PROF_PRECISION_START_UNTHREADED( _SC );
-//  cuda_diag_oo_inv_componentwise_PRECISION( b+start_odd, tmp+start_odd,
-//                                            op->clover_componentwise_gpu+css*(start_odd/12),
-//                                            op->num_odd_sites, l );
-//  PROF_PRECISION_STOP_UNTHREADED( _SC, 1 );
-
-//  cuda_vector_PRECISION_minus( x, x, b, start_odd, end_odd-start_odd, l, _CUDA_SYNC, 0, streams );
-
-
-
-
-
-
-
-
-  
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 extern "C" void cuda_solve_oddeven_PRECISION_vectorwrapper( gmres_PRECISION_struct *p, operator_PRECISION_struct *op,
                                                             level_struct *l, struct Thread *threading ){

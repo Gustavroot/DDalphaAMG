@@ -31,10 +31,6 @@
 void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECISION eta,
                          int n, const int res, complex_PRECISION shift, level_struct *l, struct Thread *threading ) {
 
-  START_MASTER(threading)
-  printf0("Smoother from level %d\n",l->depth);
-  END_MASTER(threading)
-
   ASSERT( phi != eta );
 
   START_MASTER(threading);
@@ -52,10 +48,6 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
       END_LOCKED_MASTER(threading)
 
       SYNC_CORES(threading)
-
-      //START_LOCKED_MASTER(threading)
-      //printf("(%d) right after smoother...\n", g.my_rank);
-      //END_LOCKED_MASTER(threading)
     }
     else{
       //schwarz_PRECISION( phi, Dphi, eta, n, res, &(l->s_PRECISION), l, threading );
@@ -130,33 +122,6 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
         l->sp_PRECISION.initial_guess_zero = _NO_RES;
         END_LOCKED_MASTER(threading)
 #endif
-
-//#ifdef CUDA_OPT
-//          if ( l->depth==0 ) {
-//            // FIXME : this has to be fixed : forcing the full (i.e. non-oddeven) Dirac operator to
-//            // be done on CPUs, as things are not prepared properly currently for running
-//            // it on GPUs
-//            START_MASTER(threading)
-//            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu;
-//            END_MASTER(threading)
-//            SYNC_CORES(threading)
-//            apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
-//            START_MASTER(threading)
-//            l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;
-//            END_MASTER(threading)
-//            SYNC_CORES(threading)
-//          } else {
-//            apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
-//          }
-//#else
-//          apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
-//#endif
-//          vector_PRECISION_minus( l->sp_PRECISION.x, eta, l->sp_PRECISION.x, start, end, l );
-//        }
-//        block_to_oddeven_PRECISION( l->sp_PRECISION.b, res==_RES?l->sp_PRECISION.x:eta, l, threading );
-//        START_LOCKED_MASTER(threading)
-//        l->sp_PRECISION.initial_guess_zero = _NO_RES;
-//        END_LOCKED_MASTER(threading)
 
         if ( g.method == 6 ) {
           if ( l->depth == 0 ) g5D_solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
