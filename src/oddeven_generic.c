@@ -296,6 +296,9 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
   config_double sc_in = in->clover, nc_in = in->D;
   config_PRECISION Aee = NULL, Aoo = NULL;
   operator_PRECISION_struct *op = &(l->oe_op_PRECISION);
+#ifdef CUDA_OPT
+  config_PRECISION Aoo_copy = NULL;
+#endif
   
   for ( mu=0; mu<4; mu++ ) {
     le[mu] = l->local_lattice[mu];
@@ -328,6 +331,12 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
     MALLOC( op->clover, complex_PRECISION, lu_dec_size*n );
 #ifdef CUDA_OPT
     CUDA_MALLOC( op->clover_gpu, cu_cmplx_PRECISION, lu_dec_size*n );
+    // we want to make a copy of the odd part of clover, to build an odd-even matvec
+    if ( g.method==4 ) {
+      MALLOC( op->clover_oo_copy, complex_PRECISION, lu_dec_size*op->num_odd_sites );
+      CUDA_MALLOC( op->clover_gpu_oo_copy, cu_cmplx_PRECISION, lu_dec_size*op->num_odd_sites );
+      Aoo_copy = op->clover_oo_copy;
+    }
 #endif
     Aee = op->clover;
     Aoo = op->clover + op->num_even_sites*lu_dec_size;
@@ -348,6 +357,17 @@ void oddeven_setup_PRECISION( operator_double_struct *in, level_struct *l ) {
               sse_site_clover_invert_PRECISION( tmp, Aoo_vectorized );
               Aoo_vectorized += 2*2*36;
 #endif
+
+#ifdef CUDA_OPT
+              // copy the odd part of clover to op->clover_oo_copy
+              if ( g.method==4 ) {
+                //memcpy( Aoo_copy, sc_in, sc_size*sizeof(complex_PRECISION) );
+                selfcoupling_cholesky_decomposition_PRECISION( Aoo_copy, sc_in );
+                //Aoo_copy += sc_size;
+                Aoo_copy += lu_dec_size;
+              }
+#endif
+
               selfcoupling_cholesky_decomposition_PRECISION( Aoo, sc_in );
               Aoo += lu_dec_size;
             } else {
@@ -483,9 +503,15 @@ void oddeven_free_PRECISION( level_struct *l ) {
   FREE( l->oe_op_PRECISION.D, complex_PRECISION, 4*nc_size*n );
   if ( g.csw ) {
     FREE( l->oe_op_PRECISION.clover, complex_PRECISION, lu_dec_size*n );
+
 #ifdef CUDA_OPT
     CUDA_FREE( l->oe_op_PRECISION.clover_gpu, cu_cmplx_PRECISION, lu_dec_size*n );
+    if ( g.method==4 ) {
+      FREE( l->oe_op_PRECISION.clover_oo_copy, cu_cmplx_PRECISION, lu_dec_size*l->oe_op_PRECISION.num_odd_sites );
+      CUDA_FREE( l->oe_op_PRECISION.clover_gpu_oo_copy, cu_cmplx_PRECISION, lu_dec_size*l->oe_op_PRECISION.num_odd_sites );
+    }
 #endif
+
   } else {
     FREE( l->oe_op_PRECISION.clover, complex_PRECISION, 12*n );
 #ifdef CUDA_OPT

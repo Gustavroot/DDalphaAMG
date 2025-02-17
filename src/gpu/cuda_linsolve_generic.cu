@@ -247,10 +247,6 @@ int cuda_richardson_PRECISION( gmres_PRECISION_struct *p, level_struct *l,
 extern "C" int cuda_richardson_PRECISION_vectorwrapper( gmres_PRECISION_struct *p, level_struct *l,
                                                         struct Thread *threading ) {
 
-  START_MASTER(threading)
-  printf0("Richardson GPU from level %d\n",l->depth);
-  END_MASTER(threading)
-
   if ( p->richardson_update_omega==1 ) {
     richardson_update_omega_PRECISION( p, l, threading );
     START_MASTER(threading)
@@ -431,21 +427,17 @@ int cuda_arnoldi_step_PRECISION( cuda_vector_PRECISION *V, cuda_vector_PRECISION
 
 int cuda_fgmres_PRECISION( gmres_PRECISION_struct *p, level_struct *l, struct Thread *threading ) {
 
-  START_MASTER(threading)
-  printf0("GMRES GPU from level %d\n",l->depth);
-  END_MASTER(threading)
-
   // start and end indices for vector functions depending on thread
   int start, end;
 
   int j=-1, finish=0, iter=0, il, ol, res;
   complex_PRECISION gamma0 = 0;
-  complex_PRECISION beta = 0;
+  //complex_PRECISION beta = 0;
 
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
 
-  double norm_r0=1, gamma_jp1=1, t0=0, t1=0;
+  double norm_r0=1, gamma_jp1=1;
 
   cuda_vector_PRECISION x  = p->x_componentwise_gpu;
   cuda_vector_PRECISION r  = p->r_componentwise_gpu;
