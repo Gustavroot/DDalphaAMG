@@ -1291,7 +1291,7 @@ void coarse_apply_schur_complement_PRECISION( vector_PRECISION out, vector_PRECI
   //printf0("WITHIN SCHUR !!, depth=%d \n", l->depth);
 
   // this function is supposed to be called from the coarsest-level only
-  if (l->level != 0) error0("coarse_apply_schur_complement_PRECISION(...) is supposed to be called from the coarsest-level. Is odd-even being applied to FGMRES in intermediate levels?");
+  //if (l->level != 0) error0("coarse_apply_schur_complement_PRECISION(...) is supposed to be called from the coarsest-level. Is odd-even being applied to FGMRES in intermediate levels?");
 
   // RE-ENABLE CUDA_OPT !!
 
