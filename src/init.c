@@ -1012,6 +1012,9 @@ void read_solver_parameters( FILE *in, level_struct *l ) {
   if ( g.num_levels == 1 ) g.interpolation = 0; else {
     save_pt = &(g.interpolation); g.interpolation = 2;
     read_parameter( &save_pt, "interpolation:", "%d", 1, in, _DEFAULT_SET );
+
+    save_pt = &(g.interpolation_vectors); g.interpolation_vectors = 0;
+    read_parameter( &save_pt, "interpolation vectors:", "%d", 1, in, _DEFAULT_SET );
   }
 
   save_pt = &(g.randomize); g.randomize = 0;

@@ -192,7 +192,7 @@ void coarse_grid_correction_PRECISION_free( level_struct *l ) {
 
 
 void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct Thread *threading ) {
-  
+
   int k, i, n = l->num_eig_vect,
       pc = 0, pi = 1, pn = n*10;
   vector_PRECISION *buffer = NULL;
@@ -213,7 +213,6 @@ void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct T
     if ( g.print > 0 ) printf0("initial definition --- depth: %d\n", l->depth );
     if ( g.print > 0 ) { printf0("\033[0;42m\033[1;37m|"); fflush(0); }
     END_MASTER(threading)
-    
 
     for ( k=0; k<n; k++ ) {
 //       if ( l->depth == 0 ) {
@@ -224,14 +223,55 @@ void interpolation_PRECISION_define( vector_double *V, level_struct *l, struct T
 
       // TODO : explore further error caused here by multiple OpenMP threads when GPU-enabled
 
+      if ( g.interpolation_vectors == 1 ){
+        // multiply the test vectors with gamma5 before going into the solves
+        if ( l->depth == 0 ){
+          gamma5_PRECISION( l->is_PRECISION.test_vector[k], l->is_PRECISION.test_vector[k], l, threading );
+        } 
+        else {
+          int start, end;
+          compute_core_start_end_custom(0, l->inner_vector_size, &start, &end, l, threading, l->num_lattice_site_var );
+          SYNC_CORES(threading)
+          coarse_gamma5_PRECISION( l->is_PRECISION.test_vector[k], l->is_PRECISION.test_vector[k], start, end, l );
+          SYNC_CORES(threading)
+        }
+      }
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
                           2, _NO_RES, _NO_SHIFT, l, threading );
+
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
 
+      if ( g.interpolation_vectors == 1 ){
+        // multiply the test vectors with gamma5 before going into the solves
+        if ( l->depth == 0 ){
+          gamma5_PRECISION( l->is_PRECISION.test_vector[k], l->is_PRECISION.test_vector[k], l, threading );
+        } 
+        else {
+          int start, end;
+          compute_core_start_end_custom(0, l->inner_vector_size, &start, &end, l, threading, l->num_lattice_site_var );
+          SYNC_CORES(threading)
+          coarse_gamma5_PRECISION( l->is_PRECISION.test_vector[k], l->is_PRECISION.test_vector[k], start, end, l );
+          SYNC_CORES(threading)
+        }
+      }
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
                           g.method>=4?1:3, _NO_RES, _NO_SHIFT, l, threading );
+
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
 
+      if ( g.interpolation_vectors == 1 ){
+        // multiply the test vectors with gamma5 before going into the solves
+        if ( l->depth == 0 ){
+          gamma5_PRECISION( l->is_PRECISION.test_vector[k], l->is_PRECISION.test_vector[k], l, threading );
+        } 
+        else {
+          int start, end;
+          compute_core_start_end_custom(0, l->inner_vector_size, &start, &end, l, threading, l->num_lattice_site_var );
+          SYNC_CORES(threading)
+          coarse_gamma5_PRECISION( l->is_PRECISION.test_vector[k], l->is_PRECISION.test_vector[k], start, end, l );
+          SYNC_CORES(threading)
+        }
+      }
       smoother_PRECISION( buffer[0], NULL, l->is_PRECISION.test_vector[k],
                           g.method>=4?1:5, _NO_RES, _NO_SHIFT, l, threading );
       vector_PRECISION_copy( l->is_PRECISION.test_vector[k], buffer[0], start, end, l );
@@ -497,6 +537,19 @@ void test_vector_PRECISION_update( int i, level_struct *l, struct Thread *thread
 
 void inv_iter_inv_fcycle_PRECISION( int setup_iter, level_struct *l, struct Thread *threading ) {
 
+  /*
+    a comment on g.interpolation_vectors = 1 :
+    
+    we want to use the low modes of Q as the test vectors. This means that, instead of solving
+    the block problems:
+    
+    D X = B
+    
+    we are now solving:
+    
+    Q X = B  <=>  D X = G5 B
+  */
+
 #ifdef CUDA_OPT
   if( l->depth==0 ){
     START_LOCKED_MASTER(threading)
@@ -531,6 +584,20 @@ void inv_iter_inv_fcycle_PRECISION( int setup_iter, level_struct *l, struct Thre
       gram_schmidt_PRECISION( l->is_PRECISION.test_vector, buffer, 0, l->num_eig_vect, l, threading );
 
       for ( int i=0; i<l->num_eig_vect; i++ ) {
+        if ( g.interpolation_vectors == 1 ){
+          // multiply the test vectors with gamma5 before going into the solves
+          if ( l->depth == 0 ){
+            gamma5_PRECISION( l->is_PRECISION.test_vector[i], l->is_PRECISION.test_vector[i], l, threading );
+          } 
+          else {
+            int start, end;
+            compute_core_start_end_custom(0, l->inner_vector_size, &start, &end, l, threading, l->num_lattice_site_var );
+            SYNC_CORES(threading)
+            coarse_gamma5_PRECISION( l->is_PRECISION.test_vector[i], l->is_PRECISION.test_vector[i], start, end, l );
+            SYNC_CORES(threading)
+          }
+        }
+
 #ifdef CUDA_OPT
         if( l->depth==0 ){
           vcycle_PRECISION( l->p_PRECISION.xtmp, NULL, l->is_PRECISION.test_vector[i], _NO_RES, l, threading );

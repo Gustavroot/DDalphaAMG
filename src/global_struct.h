@@ -37,7 +37,8 @@ typedef struct global_struct
         *post_smooth_iter, *block_iter, *setup_iter, *ncycle,
         method, odd_even, anti_pbc, rhs, propagator_coords[4],
         interpolation, randomize, *num_eig_vect, num_coarse_eig_vect, kcycle, mixed_precision,
-        restart, max_restart, kcycle_restart, kcycle_max_restart, coarse_iter, coarse_restart;
+        restart, max_restart, kcycle_restart, kcycle_max_restart, coarse_iter, coarse_restart,
+        interpolation_vectors;
     double tol, coarse_tol, kcycle_tol, csw, rho, *relax_fac;
 
     // profiling, analysis, output
