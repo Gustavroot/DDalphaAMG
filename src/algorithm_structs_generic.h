@@ -311,6 +311,9 @@ typedef struct
         *agg_boundary_neighbor[4], agg_boundary_length[4], num_bootstrap_vect;
     vector_PRECISION *test_vector, *interpolation, *bootstrap_vector, tmp;
     complex_PRECISION *op, *eigenvalues, *bootstrap_eigenvalues;
+#ifdef CUDA_OPT
+    cuda_vector_PRECISION op_gpu, phi_gpu, phi_c_gpu; // device buffers for restriction
+#endif
 } interpolation_PRECISION_struct;
 
 #endif // ALGORITHM_STRUCTS_PRECISION_H

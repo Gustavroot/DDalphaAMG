@@ -200,6 +200,8 @@
   #include "gpu/cuda_coarse_oddeven_double.h"
   #include "gpu/cuda_coarse_operator_float.h"
   #include "gpu/cuda_coarse_operator_double.h"
+  #include "gpu/cuda_interpolation_float.h"
+  #include "gpu/cuda_interpolation_double.h"
   #include "gpu/cuda_miscellaneous.h"
 #endif
 

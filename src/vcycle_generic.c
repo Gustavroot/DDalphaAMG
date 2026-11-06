@@ -79,12 +79,12 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
           // be done on CPUs, as things are not prepared properly currently for running
           // it on GPUs
           START_MASTER(threading)
-          l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu;
+          if ( l->depth == 0 ) l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu; // coarse levels keep their operator
           END_MASTER(threading)
           SYNC_CORES(threading)
           apply_operator_PRECISION( l->sp_PRECISION.x, phi, &(l->p_PRECISION), l, threading );
           START_MASTER(threading)
-          l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;
+          if ( l->depth == 0 ) l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;     // coarse levels keep their operator
           END_MASTER(threading)
           SYNC_CORES(threading)
 #else
@@ -222,12 +222,12 @@ void vcycle_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRECI
         // initial guess and more than one V-cycle applications is quite unusual when calling
         // this function vcycle_PRECISION(...)
         START_MASTER(threading)
-        l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu;
+        if ( l->depth == 0 ) l->p_PRECISION.eval_operator = d_plus_clover_PRECISION_cpu; // coarse levels keep their operator
         END_MASTER(threading)
         SYNC_CORES(threading)
         apply_operator_PRECISION( l->vbuf_PRECISION[2], phi, &(l->p_PRECISION), l, threading );
         START_MASTER(threading)
-        l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;
+        if ( l->depth == 0 ) l->p_PRECISION.eval_operator = d_plus_clover_PRECISION;     // coarse levels keep their operator
         END_MASTER(threading)
         SYNC_CORES(threading)
 #else
