@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 extern "C"{
 
@@ -126,6 +127,62 @@ __global__ void cuda_restrict_PRECISION_kernel( cuda_vector_PRECISION phi_c, con
 }
 
 
+// Interpolation phi (+)= P phi_c. One thread per row of the fine vector:
+//   phi[row] (+)= sum_j op(row, j) * phi_c[(2*i + k1)*nev + j]      (no complex conjugate)
+// with row = ((i*agg_sites + k)*2 + k1)*npev + k2 (aggregate i, site k, spin half k1).
+// add = 0: phi = P phi_c (interpolate3_PRECISION), add = 1: phi += P phi_c (interpolate_PRECISION).
+// The sum over j runs in increasing j, as in the plain CPU loop.
+template<bool SSE_LAYOUT>
+__global__ void cuda_interpolate_PRECISION_kernel( cuda_vector_PRECISION phi, const cu_cmplx_PRECISION *phi_c,
+                                                   const cu_cmplx_PRECISION *op, int nev, int npev,
+                                                   int agg_sites, size_t n_rows, size_t vector_size, int S,
+                                                   int add ) {
+
+  const size_t row = (size_t)blockIdx.x*blockDim.x + threadIdx.x;
+  if ( row >= n_rows ) return;
+
+  const size_t b  = row / npev;                      // = (i*agg_sites + k)*2 + k1
+  const int    k1 = (int)( b % 2 );
+  const size_t i  = b / ( 2*(size_t)agg_sites );
+  const cu_cmplx_PRECISION *pc = phi_c + ( 2*i + k1 )*nev;
+
+  PRECISION re = 0, im = 0;
+  if ( SSE_LAYOUT ) {
+    // SSE layout: test vectors in blocks of S, block jb starts at jb*S*vector_size;
+    // each row stores [re_0 .. re_{S-1}, im_0 .. im_{S-1}]
+    const PRECISION *opf = (const PRECISION*) op;
+    for ( int jb=0; jb*S<nev; jb++ ) {
+      const PRECISION *o = opf + 2*( (size_t)jb*S*vector_size + (size_t)S*row );
+      for ( int jj=0; jj<S && jb*S+jj<nev; jj++ ) {
+        PRECISION o_re = o[jj], o_im = o[S+jj];
+        cu_cmplx_PRECISION c = pc[jb*S+jj];
+        PRECISION c_re = cu_creal_PRECISION(c), c_im = cu_cimag_PRECISION(c);
+        // op * phi_c
+        re += o_re*c_re - o_im*c_im;
+        im += o_re*c_im + o_im*c_re;
+      }
+    }
+  } else {
+    // plain layout (interpolation_generic.c): interleaved complex numbers, test vector index fastest
+    const cu_cmplx_PRECISION *o = op + row*nev;
+    for ( int j=0; j<nev; j++ ) {
+      cu_cmplx_PRECISION oo = o[j], c = pc[j];
+      PRECISION o_re = cu_creal_PRECISION(oo), o_im = cu_cimag_PRECISION(oo),
+                c_re = cu_creal_PRECISION(c),  c_im = cu_cimag_PRECISION(c);
+      re += o_re*c_re - o_im*c_im;
+      im += o_re*c_im + o_im*c_re;
+    }
+  }
+
+  if ( add ) {
+    cu_cmplx_PRECISION p = phi[row];
+    re += cu_creal_PRECISION(p);
+    im += cu_cimag_PRECISION(p);
+  }
+  phi[row] = make_cu_cmplx_PRECISION( re, im );
+}
+
+
 // number of SMs of the current device (queried once)
 static int restrict_num_sms_PRECISION( void ) {
   static int num_sms = 0;
@@ -172,10 +229,28 @@ static void cuda_restrict_PRECISION_launch( cuda_vector_PRECISION phi_c_gpu, con
 }
 
 
-#ifdef CUDA_RESTRICT_TEST
+// launches the interpolation kernel for the given operator layout (one thread per fine row)
+template<bool SSE_LAYOUT>
+static void cuda_interpolate_PRECISION_launch( cuda_vector_PRECISION phi_gpu, const cu_cmplx_PRECISION *phi_c_gpu,
+                                               const cu_cmplx_PRECISION *op_gpu, level_struct *l, int add ) {
 
-// one test per level (indexed by depth)
-static int restrict_tested_PRECISION[64] = {0};
+  int num_agg   = l->is_PRECISION.num_agg,
+      nev       = l->num_eig_vect,
+      npev      = l->num_lattice_site_var/2,
+      agg_sites = l->num_inner_lattice_sites / num_agg;
+  size_t n_rows = (size_t)l->inner_vector_size;
+
+  const int threads = 256;
+  unsigned int nr_blocks = (unsigned int)( (n_rows + threads - 1) / threads );
+
+  cuda_interpolate_PRECISION_kernel<SSE_LAYOUT><<< nr_blocks, threads >>>( phi_gpu, phi_c_gpu, op_gpu, nev, npev,
+                                                                           agg_sites, n_rows, (size_t)l->vector_size,
+                                                                           restrict_simd_length_PRECISION(), add );
+  CUDA_CHECK_INTERP( cudaGetLastError() );
+}
+
+
+#if defined( CUDA_RESTRICT_TEST ) || defined( CUDA_INTERP_TEST )
 
 // entry (row, j) of the host operator, read in the native layout of this build
 static void host_op_entry_PRECISION( const PRECISION *opf, size_t row, int j, int nev, size_t vector_size, int S,
@@ -189,6 +264,31 @@ static void host_op_entry_PRECISION( const PRECISION *opf, size_t row, int j, in
     *im = opf[ 2*(row*nev + j) + 1 ];
   }
 }
+
+// host copy of the operator in the plain layout op_plain[row*nev + j] (2 reals per entry)
+static PRECISION *host_op_plain_PRECISION( level_struct *l ) {
+  size_t n_rows = (size_t)l->inner_vector_size;
+  int nev = l->num_eig_vect, S = restrict_simd_length_PRECISION();
+  const PRECISION *opf = (const PRECISION*) l->is_PRECISION.op;
+  PRECISION *op_plain = (PRECISION*) malloc( 2*n_rows*nev*sizeof(PRECISION) );
+  if ( op_plain == NULL ) {
+    fprintf( stderr, "cuda interpolation test: host allocation failed\n" );
+    MPI_Abort( MPI_COMM_WORLD, 1 );
+  }
+  for ( size_t row=0; row<n_rows; row++ )
+    for ( int j=0; j<nev; j++ )
+      host_op_entry_PRECISION( opf, row, j, nev, (size_t)l->vector_size, S,
+                               &op_plain[2*(row*nev+j)], &op_plain[2*(row*nev+j)+1] );
+  return op_plain;
+}
+
+#endif
+
+
+#ifdef CUDA_RESTRICT_TEST
+
+// one test per level (indexed by depth)
+static int restrict_tested_PRECISION[64] = {0};
 
 // Unit test of the plain-layout kernel (the one used in builds without SSE):
 //   1. converts the host operator to the plain layout of interpolation_generic.c
@@ -291,6 +391,94 @@ static void cuda_restrict_PRECISION_plain_layout_test( vector_PRECISION phi, lev
 #endif // CUDA_RESTRICT_TEST
 
 
+#ifdef CUDA_INTERP_TEST
+
+// one test per level and variant (indexed by depth, add)
+static int interp_tested_PRECISION[64][2] = {{0}};
+
+// Unit test of the interpolation (once per depth and variant):
+//   1. CPU reference with the loop of interpolation_generic.c (plain layout, double accumulation)
+//   2. plain-layout instance of the GPU kernel
+//   3. compares both GPU results (plain-layout test and production, phi_out) with the reference
+// phi_in: copy of phi before the call (used when add = 1); phi_c: distributed coarse vector
+// (transfer buffer), already on the GPU in l->is_PRECISION.phi_c_gpu.
+static void cuda_interpolate_PRECISION_test( const cu_cmplx_PRECISION *phi_in, vector_PRECISION phi_out,
+                                             int add, level_struct *l ) {
+
+  int num_agg   = l->is_PRECISION.num_agg,
+      nev       = l->num_eig_vect,
+      npev      = l->num_lattice_site_var/2,
+      agg_sites = l->num_inner_lattice_sites / num_agg;
+  size_t n_rows = (size_t)l->inner_vector_size;
+
+  PRECISION *op_plain = host_op_plain_PRECISION( l );
+  const PRECISION *pc   = (const PRECISION*) l->next_level->gs_PRECISION.transfer_buffer;
+  const PRECISION *pin  = (const PRECISION*) phi_in;
+  const PRECISION *pout = (const PRECISION*) phi_out;
+  PRECISION *ref     = (PRECISION*) malloc( 2*n_rows*sizeof(PRECISION) );
+  PRECISION *res_gpu = (PRECISION*) malloc( 2*n_rows*sizeof(PRECISION) );
+  if ( ref == NULL || res_gpu == NULL ) {
+    fprintf( stderr, "interpolate test: host allocation failed\n" );
+    MPI_Abort( MPI_COMM_WORLD, 1 );
+  }
+
+  // 1. CPU reference: loop of interpolation_generic.c
+  for ( int i=0; i<num_agg; i++ )
+    for ( int k=0; k<agg_sites; k++ )
+      for ( int k1=0; k1<2; k1++ )
+        for ( int k2=0; k2<npev; k2++ ) {
+          size_t row = ( ( (size_t)i*agg_sites + k )*2 + k1 )*npev + k2;
+          const PRECISION *c = pc + 2*( (size_t)2*i + k1 )*nev;
+          double re = add ? pin[2*row] : 0, im = add ? pin[2*row+1] : 0;
+          for ( int j=0; j<nev; j++ ) {
+            double o_re = op_plain[2*(row*nev+j)], o_im = op_plain[2*(row*nev+j)+1];
+            re += o_re*c[2*j] - o_im*c[2*j+1];
+            im += o_re*c[2*j+1] + o_im*c[2*j];
+          }
+          ref[2*row] = (PRECISION) re; ref[2*row+1] = (PRECISION) im;
+        }
+
+  // 2. GPU: plain-layout instance of the production kernel
+  cu_cmplx_PRECISION *op_plain_gpu = NULL, *phi_test_gpu = NULL;
+  CUDA_CHECK_INTERP( cudaMalloc( (void**)&op_plain_gpu, n_rows*nev*sizeof(cu_cmplx_PRECISION) ) );
+  CUDA_CHECK_INTERP( cudaMalloc( (void**)&phi_test_gpu, n_rows*sizeof(cu_cmplx_PRECISION) ) );
+  CUDA_CHECK_INTERP( cudaMemcpy( op_plain_gpu, op_plain, n_rows*nev*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+  CUDA_CHECK_INTERP( cudaMemcpy( phi_test_gpu, phi_in, n_rows*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+  cuda_interpolate_PRECISION_launch<false>( phi_test_gpu, l->is_PRECISION.phi_c_gpu, op_plain_gpu, l, add );
+  CUDA_CHECK_INTERP( cudaMemcpy( res_gpu, phi_test_gpu, n_rows*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
+  CUDA_CHECK_INTERP( cudaFree( op_plain_gpu ) );
+  CUDA_CHECK_INTERP( cudaFree( phi_test_gpu ) );
+
+  // 3. compare (max abs difference relative to the max abs entry of the reference)
+  double max_ref = 0, diff_plain = 0, diff_prod = 0;
+  for ( size_t m=0; m<2*n_rows; m++ ) {
+    max_ref    = fmax( max_ref,    fabs( (double)ref[m] ) );
+    diff_plain = fmax( diff_plain, fabs( (double)res_gpu[m] - (double)ref[m] ) );
+    diff_prod  = fmax( diff_prod,  fabs( (double)pout[m]    - (double)ref[m] ) );
+  }
+  if ( max_ref > 0 ) { diff_plain /= max_ref; diff_prod /= max_ref; }
+
+  double tol = ( sizeof(PRECISION) == sizeof(float) ) ? 1e-4 : 1e-10;
+  int rank;
+  MPI_Comm_rank( MPI_COMM_WORLD, &rank );
+  printf( "[rank %d] interpolate test (depth %d, %s, %s, build layout: %s):\n"
+          "[rank %d]   plain-layout GPU kernel vs CPU reference: max rel. diff = %.3e  %s\n"
+          "[rank %d]   production GPU kernel   vs CPU reference: max rel. diff = %.3e  %s\n",
+          rank, l->depth, add ? "phi += P phi_c" : "phi = P phi_c",
+          ( sizeof(PRECISION) == sizeof(float) ) ? "float" : "double",
+          restrict_sse_layout_PRECISION ? "SSE" : "plain",
+          rank, diff_plain, ( diff_plain < tol ) ? "PASS" : "FAIL",
+          rank, diff_prod,  ( diff_prod  < tol ) ? "PASS" : "FAIL" );
+  fflush( stdout );
+
+  free( op_plain );
+  free( ref );
+  free( res_gpu );
+}
+
+#endif // CUDA_INTERP_TEST
+
+
 // copies l->is_PRECISION.op to the GPU (allocates device buffers at first call)
 // to be called by one thread only, once the operator is final
 extern "C" void cuda_interpolation_PRECISION_op_to_gpu( level_struct *l ) {
@@ -360,6 +548,70 @@ extern "C" void cuda_restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISIO
 
   // distribution to the coarse-level processes stays on the CPU (MPI)
   vector_PRECISION_gather( phi_c, l->next_level->gs_PRECISION.transfer_buffer, l->next_level );
+
+  END_LOCKED_MASTER(threading)
+
+  PROF_PRECISION_STOP( _PR, 1, threading );
+}
+
+
+// GPU version of interpolate_PRECISION (add = 1, phi += P phi_c) and interpolate3_PRECISION
+// (add = 0, phi = P phi_c): same interface, phi and phi_c are host vectors
+extern "C" void cuda_interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l,
+                                            struct Thread *threading, int add ) {
+
+  // phi may have been written by all threads (add = 1)
+  SYNC_CORES(threading)
+  SYNC_HYPERTHREADS(threading)
+
+  PROF_PRECISION_START( _PR, threading );
+
+  START_LOCKED_MASTER(threading)
+
+  size_t n_fine   = (size_t)l->inner_vector_size,
+         n_coarse = (size_t)l->is_PRECISION.num_agg*2*l->num_eig_vect;
+
+  if ( l->is_PRECISION.op_gpu == NULL ) {
+    fprintf( stderr, "cuda_interpolate_PRECISION: interpolation operator not on GPU (depth=%d)\n", l->depth );
+    MPI_Abort( MPI_COMM_WORLD, 1 );
+  }
+
+  // distribution from the coarse-level processes stays on the CPU (MPI)
+  vector_PRECISION_distribute( l->next_level->gs_PRECISION.transfer_buffer, phi_c, l->next_level );
+
+#ifdef CUDA_INTERP_TEST
+  cu_cmplx_PRECISION *phi_in = NULL;
+  int do_test = ( l->depth < 64 && !interp_tested_PRECISION[l->depth][add?1:0] );
+  if ( do_test ) {
+    interp_tested_PRECISION[l->depth][add?1:0] = 1;
+    phi_in = (cu_cmplx_PRECISION*) malloc( n_fine*sizeof(cu_cmplx_PRECISION) );
+    if ( phi_in == NULL ) {
+      fprintf( stderr, "interpolate test: host allocation failed\n" );
+      MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
+    memcpy( phi_in, phi, n_fine*sizeof(cu_cmplx_PRECISION) );
+  }
+#endif
+
+  CUDA_CHECK_INTERP( cudaMemcpy( l->is_PRECISION.phi_c_gpu, l->next_level->gs_PRECISION.transfer_buffer,
+                                 n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+  if ( add )
+    CUDA_CHECK_INTERP( cudaMemcpy( l->is_PRECISION.phi_gpu, phi, n_fine*sizeof(cu_cmplx_PRECISION),
+                                   cudaMemcpyHostToDevice ) );
+
+  cuda_interpolate_PRECISION_launch<restrict_sse_layout_PRECISION>( l->is_PRECISION.phi_gpu, l->is_PRECISION.phi_c_gpu,
+                                                                    l->is_PRECISION.op_gpu, l, add );
+
+  // synchronous copy on the default stream: waits for the kernel to finish
+  CUDA_CHECK_INTERP( cudaMemcpy( phi, l->is_PRECISION.phi_gpu, n_fine*sizeof(cu_cmplx_PRECISION),
+                                 cudaMemcpyDeviceToHost ) );
+
+#ifdef CUDA_INTERP_TEST
+  if ( do_test ) {
+    cuda_interpolate_PRECISION_test( phi_in, phi, add, l );
+    free( phi_in );
+  }
+#endif
 
   END_LOCKED_MASTER(threading)
 
