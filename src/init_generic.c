@@ -239,9 +239,9 @@ void level_PRECISION_init( level_struct *l ) {
   operator_PRECISION_init( &(l->oe_op_PRECISION) );
   schwarz_PRECISION_init( &(l->s_PRECISION), l );
 #ifdef CUDA_OPT
-  if( l->depth==0 && g.odd_even ){
-    schwarz_PRECISION_init_CUDA( &(l->s_PRECISION), l );
-  }
+  // only sets the GPU pointers to NULL, so it is called on every level: here l->depth and
+  // g.odd_even are not known yet (l_init runs before the input file is read)
+  schwarz_PRECISION_init_CUDA( &(l->s_PRECISION), l );
 #endif
   interpolation_PRECISION_struct_init( &(l->is_PRECISION) );
 #ifdef GCRODR

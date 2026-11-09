@@ -27,6 +27,8 @@ void cuda_operator_PRECISION_init(operator_PRECISION_struct *op) {
   op->prnY_gpu = NULL;
   op->prnX_gpu = NULL;
   op->neighbor_table_gpu = NULL;
+  op->buffer_gpu[0] = NULL;
+  op->buffer_gpu[1] = NULL;
 
   // Communication stuff
   for ( int i=0; i<8; i++ ) {
