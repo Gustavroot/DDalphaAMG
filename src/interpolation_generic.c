@@ -36,6 +36,11 @@ void interpolation_PRECISION_alloc( level_struct *l ) {
     l->is_PRECISION.interpolation[k] = l->is_PRECISION.interpolation[0] + k*l->vector_size;
   MALLOC( l->is_PRECISION.op, complex_PRECISION, n*l->inner_vector_size );
   l->is_PRECISION.test_vector[0] = NULL;
+#ifdef CUDA_OPT
+  l->is_PRECISION.op_gpu    = NULL;
+  l->is_PRECISION.phi_gpu   = NULL;
+  l->is_PRECISION.phi_c_gpu = NULL;
+#endif
   MALLOC_HUGEPAGES( l->is_PRECISION.test_vector[0], complex_PRECISION, n*l->inner_vector_size, 64 );
   for ( k=1; k<n; k++ ) {
     l->is_PRECISION.test_vector[k] = l->is_PRECISION.test_vector[0] + k*l->inner_vector_size;
@@ -58,6 +63,9 @@ void interpolation_PRECISION_dummy_free( level_struct *l ) {
 
 
 void interpolation_PRECISION_free( level_struct *l ) {
+#ifdef CUDA_OPT
+  cuda_interpolation_PRECISION_free( l );
+#endif
   
   int n = l->num_eig_vect;
   
@@ -87,10 +95,18 @@ void define_interpolation_PRECISION_operator( complex_PRECISION **interpolation,
       operator++;
     }
   SYNC_CORES(threading)
+#ifdef CUDA_OPT
+  START_LOCKED_MASTER(threading)
+  cuda_interpolation_PRECISION_op_to_gpu( l );
+  END_LOCKED_MASTER(threading)
+#endif
 }
 
 
 void interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, struct Thread *threading ) {
+#if defined( CUDA_OPT ) && !defined( HALF_PREC_STORAGE )
+  cuda_interpolate_PRECISION( phi, phi_c, l, threading, 1 );   // phi += P phi_c on the GPU
+#else
   
   PROF_PRECISION_START( _PR, threading );
   int i, j, k, k1, k2, num_aggregates = l->is_PRECISION.num_agg, num_eig_vect = l->num_eig_vect, sign = 1,
@@ -124,10 +140,14 @@ void interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_
   PROF_PRECISION_STOP( _PR, 1, threading );
 
   SYNC_HYPERTHREADS(threading)
+#endif
 }
 
 
 void interpolate3_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, struct Thread *threading ) {
+#if defined( CUDA_OPT ) && !defined( HALF_PREC_STORAGE )
+  cuda_interpolate_PRECISION( phi, phi_c, l, threading, 0 );   // phi = P phi_c on the GPU
+#else
   
   PROF_PRECISION_START( _PR, threading );
   int i, j, k, k1, k2, num_aggregates = l->is_PRECISION.num_agg, num_eig_vect = l->num_eig_vect,
@@ -163,10 +183,14 @@ void interpolate3_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level
   PROF_PRECISION_STOP( _PR, 1, threading );
 
   SYNC_HYPERTHREADS(threading)
+#endif
 }
 
 
 void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_struct *l, struct Thread *threading ) {
+#if defined( CUDA_OPT ) && !defined( HALF_PREC_STORAGE )
+  cuda_restrict_PRECISION( phi_c, phi, l, threading );
+#else
   
   SYNC_CORES(threading)
   SYNC_HYPERTHREADS(threading)
@@ -204,6 +228,7 @@ void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_str
   vector_PRECISION_gather( phi_c, l->next_level->gs_PRECISION.transfer_buffer, l->next_level );
   END_LOCKED_MASTER(threading)
   PROF_PRECISION_STOP( _PR, 1, threading );
+#endif // CUDA_OPT && !HALF_PREC_STORAGE
 }
 
 #endif
