@@ -14,17 +14,6 @@ extern "C"{
 
 #ifdef CUDA_OPT
 
-#define CUDA_CHECK_INTERP(call)                                                   \
-  do {                                                                            \
-    cudaError_t err_ = (call);                                                    \
-    if ( err_ != cudaSuccess ) {                                                  \
-      fprintf( stderr, "CUDA error at %s:%d: %s\n", __FILE__, __LINE__,           \
-               cudaGetErrorString(err_) );                                        \
-      MPI_Abort( MPI_COMM_WORLD, 1 );                                             \
-    }                                                                             \
-  } while (0)
-
-
 // memory layout of l->is_PRECISION.op in this build
 #if defined( SSE ) && defined( INTERPOLATION_OPERATOR_LAYOUT_OPTIMIZED_PRECISION )
 static constexpr bool restrict_sse_layout_PRECISION = true;
@@ -188,8 +177,8 @@ static int restrict_num_sms_PRECISION( void ) {
   static int num_sms = 0;
   if ( num_sms == 0 ) {
     int dev;
-    CUDA_CHECK_INTERP( cudaGetDevice( &dev ) );
-    CUDA_CHECK_INTERP( cudaDeviceGetAttribute( &num_sms, cudaDevAttrMultiProcessorCount, dev ) );
+    cuda_safe_call( cudaGetDevice( &dev ) );
+    cuda_safe_call( cudaDeviceGetAttribute( &num_sms, cudaDevAttrMultiProcessorCount, dev ) );
   }
   return num_sms;
 }
@@ -225,7 +214,7 @@ static void cuda_restrict_PRECISION_launch( cuda_vector_PRECISION phi_c_gpu, con
   cuda_restrict_PRECISION_kernel<SSE_LAYOUT><<< nr_blocks, block, smem >>>( phi_c_gpu, phi_gpu, op_gpu, nev, npev,
                                                                             agg_sites, (size_t)l->vector_size,
                                                                             restrict_simd_length_PRECISION() );
-  CUDA_CHECK_INTERP( cudaGetLastError() );
+  cuda_check_error( _SOFT_CHECK );
 }
 
 
@@ -246,7 +235,7 @@ static void cuda_interpolate_PRECISION_launch( cuda_vector_PRECISION phi_gpu, co
   cuda_interpolate_PRECISION_kernel<SSE_LAYOUT><<< nr_blocks, threads >>>( phi_gpu, phi_c_gpu, op_gpu, nev, npev,
                                                                            agg_sites, n_rows, (size_t)l->vector_size,
                                                                            restrict_simd_length_PRECISION(), add );
-  CUDA_CHECK_INTERP( cudaGetLastError() );
+  cuda_check_error( _SOFT_CHECK );
 }
 
 
@@ -354,13 +343,13 @@ static void cuda_restrict_PRECISION_plain_layout_test( vector_PRECISION phi, lev
 
   // 3. GPU: plain-layout instance of the production kernel
   cu_cmplx_PRECISION *op_plain_gpu = NULL, *phi_c_test_gpu = NULL;
-  CUDA_CHECK_INTERP( cudaMalloc( (void**)&op_plain_gpu,   n_op*sizeof(cu_cmplx_PRECISION) ) );
-  CUDA_CHECK_INTERP( cudaMalloc( (void**)&phi_c_test_gpu, n_coarse*sizeof(cu_cmplx_PRECISION) ) );
-  CUDA_CHECK_INTERP( cudaMemcpy( op_plain_gpu, op_plain, n_op*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+  cuda_safe_call( cudaMalloc( (void**)&op_plain_gpu,   n_op*sizeof(cu_cmplx_PRECISION) ) );
+  cuda_safe_call( cudaMalloc( (void**)&phi_c_test_gpu, n_coarse*sizeof(cu_cmplx_PRECISION) ) );
+  cuda_safe_call( cudaMemcpy( op_plain_gpu, op_plain, n_op*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
   cuda_restrict_PRECISION_launch<false>( phi_c_test_gpu, l->is_PRECISION.phi_gpu, op_plain_gpu, l );
-  CUDA_CHECK_INTERP( cudaMemcpy( res_gpu, phi_c_test_gpu, n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
-  CUDA_CHECK_INTERP( cudaFree( op_plain_gpu ) );
-  CUDA_CHECK_INTERP( cudaFree( phi_c_test_gpu ) );
+  cuda_safe_call( cudaMemcpy( res_gpu, phi_c_test_gpu, n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
+  cuda_safe_call( cudaFree( op_plain_gpu ) );
+  cuda_safe_call( cudaFree( phi_c_test_gpu ) );
 
   // 4. compare (max abs difference relative to the max abs entry of the reference)
   double max_ref = 0, diff_plain = 0, diff_prod = 0;
@@ -440,14 +429,14 @@ static void cuda_interpolate_PRECISION_test( const cu_cmplx_PRECISION *phi_in, v
 
   // 2. GPU: plain-layout instance of the production kernel
   cu_cmplx_PRECISION *op_plain_gpu = NULL, *phi_test_gpu = NULL;
-  CUDA_CHECK_INTERP( cudaMalloc( (void**)&op_plain_gpu, n_rows*nev*sizeof(cu_cmplx_PRECISION) ) );
-  CUDA_CHECK_INTERP( cudaMalloc( (void**)&phi_test_gpu, n_rows*sizeof(cu_cmplx_PRECISION) ) );
-  CUDA_CHECK_INTERP( cudaMemcpy( op_plain_gpu, op_plain, n_rows*nev*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
-  CUDA_CHECK_INTERP( cudaMemcpy( phi_test_gpu, phi_in, n_rows*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+  cuda_safe_call( cudaMalloc( (void**)&op_plain_gpu, n_rows*nev*sizeof(cu_cmplx_PRECISION) ) );
+  cuda_safe_call( cudaMalloc( (void**)&phi_test_gpu, n_rows*sizeof(cu_cmplx_PRECISION) ) );
+  cuda_safe_call( cudaMemcpy( op_plain_gpu, op_plain, n_rows*nev*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+  cuda_safe_call( cudaMemcpy( phi_test_gpu, phi_in, n_rows*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
   cuda_interpolate_PRECISION_launch<false>( phi_test_gpu, l->is_PRECISION.phi_c_gpu, op_plain_gpu, l, add );
-  CUDA_CHECK_INTERP( cudaMemcpy( res_gpu, phi_test_gpu, n_rows*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
-  CUDA_CHECK_INTERP( cudaFree( op_plain_gpu ) );
-  CUDA_CHECK_INTERP( cudaFree( phi_test_gpu ) );
+  cuda_safe_call( cudaMemcpy( res_gpu, phi_test_gpu, n_rows*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
+  cuda_safe_call( cudaFree( op_plain_gpu ) );
+  cuda_safe_call( cudaFree( phi_test_gpu ) );
 
   // 3. compare (max abs difference relative to the max abs entry of the reference)
   double max_ref = 0, diff_plain = 0, diff_prod = 0;
@@ -488,22 +477,22 @@ extern "C" void cuda_interpolation_PRECISION_op_to_gpu( level_struct *l ) {
          n_coarse = (size_t)l->is_PRECISION.num_agg*2*l->num_eig_vect;
 
   if ( l->is_PRECISION.op_gpu == NULL ) {
-    CUDA_CHECK_INTERP( cudaMalloc( (void**)&(l->is_PRECISION.op_gpu),    op_size*sizeof(cu_cmplx_PRECISION) ) );
-    CUDA_CHECK_INTERP( cudaMalloc( (void**)&(l->is_PRECISION.phi_gpu),   n_fine*sizeof(cu_cmplx_PRECISION) ) );
-    CUDA_CHECK_INTERP( cudaMalloc( (void**)&(l->is_PRECISION.phi_c_gpu), n_coarse*sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMalloc( (void**)&(l->is_PRECISION.op_gpu),    op_size*sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMalloc( (void**)&(l->is_PRECISION.phi_gpu),   n_fine*sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMalloc( (void**)&(l->is_PRECISION.phi_c_gpu), n_coarse*sizeof(cu_cmplx_PRECISION) ) );
   }
 
-  CUDA_CHECK_INTERP( cudaMemcpy( l->is_PRECISION.op_gpu, l->is_PRECISION.op,
-                                 op_size*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+  cuda_safe_call( cudaMemcpy( l->is_PRECISION.op_gpu, l->is_PRECISION.op,
+                              op_size*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
 }
 
 
 extern "C" void cuda_interpolation_PRECISION_free( level_struct *l ) {
 
   if ( l->is_PRECISION.op_gpu != NULL ) {
-    CUDA_CHECK_INTERP( cudaFree( l->is_PRECISION.op_gpu ) );
-    CUDA_CHECK_INTERP( cudaFree( l->is_PRECISION.phi_gpu ) );
-    CUDA_CHECK_INTERP( cudaFree( l->is_PRECISION.phi_c_gpu ) );
+    cuda_safe_call( cudaFree( l->is_PRECISION.op_gpu ) );
+    cuda_safe_call( cudaFree( l->is_PRECISION.phi_gpu ) );
+    cuda_safe_call( cudaFree( l->is_PRECISION.phi_c_gpu ) );
     l->is_PRECISION.op_gpu    = NULL;
     l->is_PRECISION.phi_gpu   = NULL;
     l->is_PRECISION.phi_c_gpu = NULL;
@@ -529,15 +518,15 @@ extern "C" void cuda_restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISIO
     MPI_Abort( MPI_COMM_WORLD, 1 );
   }
 
-  CUDA_CHECK_INTERP( cudaMemcpy( l->is_PRECISION.phi_gpu, phi, n_fine*sizeof(cu_cmplx_PRECISION),
-                                 cudaMemcpyHostToDevice ) );
+  cuda_safe_call( cudaMemcpy( l->is_PRECISION.phi_gpu, phi, n_fine*sizeof(cu_cmplx_PRECISION),
+                              cudaMemcpyHostToDevice ) );
 
   cuda_restrict_PRECISION_launch<restrict_sse_layout_PRECISION>( l->is_PRECISION.phi_c_gpu, l->is_PRECISION.phi_gpu,
                                                                  l->is_PRECISION.op_gpu, l );
 
   // synchronous copy on the default stream: waits for the kernel to finish
-  CUDA_CHECK_INTERP( cudaMemcpy( l->next_level->gs_PRECISION.transfer_buffer, l->is_PRECISION.phi_c_gpu,
-                                 n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
+  cuda_safe_call( cudaMemcpy( l->next_level->gs_PRECISION.transfer_buffer, l->is_PRECISION.phi_c_gpu,
+                              n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
 
 #ifdef CUDA_RESTRICT_TEST
   if ( l->depth < 64 && !restrict_tested_PRECISION[l->depth] ) {
@@ -593,18 +582,18 @@ extern "C" void cuda_interpolate_PRECISION( vector_PRECISION phi, vector_PRECISI
   }
 #endif
 
-  CUDA_CHECK_INTERP( cudaMemcpy( l->is_PRECISION.phi_c_gpu, l->next_level->gs_PRECISION.transfer_buffer,
-                                 n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+  cuda_safe_call( cudaMemcpy( l->is_PRECISION.phi_c_gpu, l->next_level->gs_PRECISION.transfer_buffer,
+                              n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
   if ( add )
-    CUDA_CHECK_INTERP( cudaMemcpy( l->is_PRECISION.phi_gpu, phi, n_fine*sizeof(cu_cmplx_PRECISION),
-                                   cudaMemcpyHostToDevice ) );
+    cuda_safe_call( cudaMemcpy( l->is_PRECISION.phi_gpu, phi, n_fine*sizeof(cu_cmplx_PRECISION),
+                                cudaMemcpyHostToDevice ) );
 
   cuda_interpolate_PRECISION_launch<restrict_sse_layout_PRECISION>( l->is_PRECISION.phi_gpu, l->is_PRECISION.phi_c_gpu,
                                                                     l->is_PRECISION.op_gpu, l, add );
 
   // synchronous copy on the default stream: waits for the kernel to finish
-  CUDA_CHECK_INTERP( cudaMemcpy( phi, l->is_PRECISION.phi_gpu, n_fine*sizeof(cu_cmplx_PRECISION),
-                                 cudaMemcpyDeviceToHost ) );
+  cuda_safe_call( cudaMemcpy( phi, l->is_PRECISION.phi_gpu, n_fine*sizeof(cu_cmplx_PRECISION),
+                              cudaMemcpyDeviceToHost ) );
 
 #ifdef CUDA_INTERP_TEST
   if ( do_test ) {
