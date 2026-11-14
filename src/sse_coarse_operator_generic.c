@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "proxies/interpolation_proxy_PRECISION.h"
 #include "vectorization_dirac_PRECISION.h"
 
 #ifdef SSE
@@ -27,12 +28,8 @@
 #include "sse_coarse_operator.h"
 
 void coarse_operator_PRECISION_setup_vectorized( complex_PRECISION *operator, level_struct *l, struct Thread *threading ) {
-#ifdef CUDA_OPT
-  // interpolation operator is final here (after Gram-Schmidt): copy it to the GPU for restrict_PRECISION
-  START_LOCKED_MASTER(threading)
-  cuda_interpolation_PRECISION_op_to_gpu( l );
-  END_LOCKED_MASTER(threading)
-#endif
+  // the interpolation operator is final here (after Gram-Schmidt): CPU: nothing; GPU: copy to the device
+  interpolation_PRECISION_op_to_device( l, threading );
   
   SYNC_HYPERTHREADS(threading)
   SYNC_CORES(threading)

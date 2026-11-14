@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "proxies/interpolation_proxy_PRECISION.h"
 #include "vcycle_PRECISION.h"
 #ifdef RICHARDSON_SMOOTHER
 #include "proxies/linsolve_proxy_PRECISION.h"

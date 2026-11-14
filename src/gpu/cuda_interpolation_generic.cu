@@ -468,6 +468,15 @@ static void cuda_interpolate_PRECISION_test( const cu_cmplx_PRECISION *phi_in, v
 #endif // CUDA_INTERP_TEST
 
 
+// GPU part of interpolation_PRECISION_alloc: the device buffers are allocated at the first copy
+// of the operator (cuda_interpolation_PRECISION_op_to_gpu), when their sizes are final
+extern "C" void cuda_interpolation_PRECISION_alloc( level_struct *l ) {
+  l->is_PRECISION.op_gpu    = NULL;
+  l->is_PRECISION.phi_gpu   = NULL;
+  l->is_PRECISION.phi_c_gpu = NULL;
+}
+
+
 // copies l->is_PRECISION.op to the GPU (allocates device buffers at first call)
 // to be called by one thread only, once the operator is final
 extern "C" void cuda_interpolation_PRECISION_op_to_gpu( level_struct *l ) {
@@ -500,8 +509,28 @@ extern "C" void cuda_interpolation_PRECISION_free( level_struct *l ) {
 }
 
 
-// GPU version of restrict_PRECISION: same interface, phi and phi_c are host vectors
-extern "C" void cuda_restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_struct *l, struct Thread *threading ) {
+// Restriction on GPU vectors: phi_c_gpu = P^dagger phi_gpu, for the aggregates of this process
+// (before the gather to the coarse-level processes). phi_gpu in the ordering of the host vectors
+// of level l. Kernel on the default stream, not synchronised. One thread only.
+extern "C" void cuda_restrict_PRECISION( cuda_vector_PRECISION phi_c_gpu, cuda_vector_PRECISION phi_gpu, level_struct *l ) {
+  cuda_restrict_PRECISION_launch<restrict_sse_layout_PRECISION>( phi_c_gpu, phi_gpu, l->is_PRECISION.op_gpu, l );
+}
+
+
+// Interpolation on GPU vectors: phi_gpu = P phi_c_gpu (add = 0) or phi_gpu += P phi_c_gpu (add = 1),
+// phi_c_gpu for the aggregates of this process (after the distribution from the coarse-level
+// processes). Kernel on the default stream, not synchronised. One thread only.
+extern "C" void cuda_interpolate_PRECISION( cuda_vector_PRECISION phi_gpu, cuda_vector_PRECISION phi_c_gpu, level_struct *l,
+                                            int add ) {
+  cuda_interpolate_PRECISION_launch<restrict_sse_layout_PRECISION>( phi_gpu, phi_c_gpu, l->is_PRECISION.op_gpu, l, add );
+}
+
+
+// GPU version of restrict_PRECISION for host vectors (called by restrict_PRECISION in
+// proxies/interpolation_proxy_generic.c): copy of phi to the GPU, cuda_restrict_PRECISION,
+// copy of the result to the host, gather to the coarse-level processes (MPI, on the CPU)
+extern "C" void cuda_restrict_PRECISION_vectorwrapper( vector_PRECISION phi_c, vector_PRECISION phi, level_struct *l,
+                                                       struct Thread *threading ) {
 
   SYNC_CORES(threading)
   SYNC_HYPERTHREADS(threading)
@@ -514,15 +543,14 @@ extern "C" void cuda_restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISIO
          n_coarse = (size_t)l->is_PRECISION.num_agg*2*l->num_eig_vect;
 
   if ( l->is_PRECISION.op_gpu == NULL ) {
-    fprintf( stderr, "cuda_restrict_PRECISION: interpolation operator not on GPU (depth=%d)\n", l->depth );
+    fprintf( stderr, "cuda_restrict_PRECISION_vectorwrapper: interpolation operator not on GPU (depth=%d)\n", l->depth );
     MPI_Abort( MPI_COMM_WORLD, 1 );
   }
 
   cuda_safe_call( cudaMemcpy( l->is_PRECISION.phi_gpu, phi, n_fine*sizeof(cu_cmplx_PRECISION),
                               cudaMemcpyHostToDevice ) );
 
-  cuda_restrict_PRECISION_launch<restrict_sse_layout_PRECISION>( l->is_PRECISION.phi_c_gpu, l->is_PRECISION.phi_gpu,
-                                                                 l->is_PRECISION.op_gpu, l );
+  cuda_restrict_PRECISION( l->is_PRECISION.phi_c_gpu, l->is_PRECISION.phi_gpu, l );
 
   // synchronous copy on the default stream: waits for the kernel to finish
   cuda_safe_call( cudaMemcpy( l->next_level->gs_PRECISION.transfer_buffer, l->is_PRECISION.phi_c_gpu,
@@ -545,9 +573,10 @@ extern "C" void cuda_restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISIO
 
 
 // GPU version of interpolate_PRECISION (add = 1, phi += P phi_c) and interpolate3_PRECISION
-// (add = 0, phi = P phi_c): same interface, phi and phi_c are host vectors
-extern "C" void cuda_interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l,
-                                            struct Thread *threading, int add ) {
+// (add = 0, phi = P phi_c) for host vectors: distribution from the coarse-level processes (MPI, on
+// the CPU), copies to the GPU, cuda_interpolate_PRECISION, copy of the result to the host
+static void cuda_interpolate_PRECISION_host( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l,
+                                             struct Thread *threading, int add ) {
 
   // phi may have been written by all threads (add = 1)
   SYNC_CORES(threading)
@@ -561,7 +590,7 @@ extern "C" void cuda_interpolate_PRECISION( vector_PRECISION phi, vector_PRECISI
          n_coarse = (size_t)l->is_PRECISION.num_agg*2*l->num_eig_vect;
 
   if ( l->is_PRECISION.op_gpu == NULL ) {
-    fprintf( stderr, "cuda_interpolate_PRECISION: interpolation operator not on GPU (depth=%d)\n", l->depth );
+    fprintf( stderr, "cuda_interpolate_PRECISION_vectorwrapper: interpolation operator not on GPU (depth=%d)\n", l->depth );
     MPI_Abort( MPI_COMM_WORLD, 1 );
   }
 
@@ -588,8 +617,7 @@ extern "C" void cuda_interpolate_PRECISION( vector_PRECISION phi, vector_PRECISI
     cuda_safe_call( cudaMemcpy( l->is_PRECISION.phi_gpu, phi, n_fine*sizeof(cu_cmplx_PRECISION),
                                 cudaMemcpyHostToDevice ) );
 
-  cuda_interpolate_PRECISION_launch<restrict_sse_layout_PRECISION>( l->is_PRECISION.phi_gpu, l->is_PRECISION.phi_c_gpu,
-                                                                    l->is_PRECISION.op_gpu, l, add );
+  cuda_interpolate_PRECISION( l->is_PRECISION.phi_gpu, l->is_PRECISION.phi_c_gpu, l, add );
 
   // synchronous copy on the default stream: waits for the kernel to finish
   cuda_safe_call( cudaMemcpy( phi, l->is_PRECISION.phi_gpu, n_fine*sizeof(cu_cmplx_PRECISION),
@@ -605,6 +633,18 @@ extern "C" void cuda_interpolate_PRECISION( vector_PRECISION phi, vector_PRECISI
   END_LOCKED_MASTER(threading)
 
   PROF_PRECISION_STOP( _PR, 1, threading );
+}
+
+
+// called by interpolate_PRECISION and interpolate3_PRECISION in proxies/interpolation_proxy_generic.c
+extern "C" void cuda_interpolate_PRECISION_vectorwrapper( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l,
+                                                          struct Thread *threading ) {
+  cuda_interpolate_PRECISION_host( phi, phi_c, l, threading, 1 );   // phi += P phi_c
+}
+
+extern "C" void cuda_interpolate3_PRECISION_vectorwrapper( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l,
+                                                           struct Thread *threading ) {
+  cuda_interpolate_PRECISION_host( phi, phi_c, l, threading, 0 );   // phi = P phi_c
 }
 
 #endif

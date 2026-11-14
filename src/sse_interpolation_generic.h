@@ -23,14 +23,14 @@
   #define SSE_INTERPOLATION_PRECISION_HEADER  
   
   #ifdef SSE
-  void interpolation_PRECISION_alloc( level_struct *l );
-  void interpolation_PRECISION_free( level_struct *l );
+  void cpu_interpolation_PRECISION_alloc( level_struct *l );
+  void cpu_interpolation_PRECISION_free( level_struct *l );
   void interpolation_PRECISION_dummy_alloc( level_struct *l );
   void interpolation_PRECISION_dummy_free( level_struct *l );
   
-  void interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, Thread *threading );
-  void interpolate3_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, Thread *threading );
-  void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_struct *l, Thread *threading );
+  void interpolate_PRECISION_cpu( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, Thread *threading );
+  void interpolate3_PRECISION_cpu( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, Thread *threading );
+  void restrict_PRECISION_cpu( vector_PRECISION phi_c, vector_PRECISION phi, level_struct *l, Thread *threading );
 #endif
   
 #endif
