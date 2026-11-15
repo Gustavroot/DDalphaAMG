@@ -647,4 +647,71 @@ extern "C" void cuda_interpolate3_PRECISION_vectorwrapper( vector_PRECISION phi,
   cuda_interpolate_PRECISION_host( phi, phi_c, l, threading, 0 );   // phi = P phi_c
 }
 
+
+
+#ifdef CUDA_INTERP_BENCHMARK
+
+static int cuda_interp_bench_cmp_PRECISION( const void *a, const void *b ) {
+  double x = *(const double*)a, y = *(const double*)b;
+  return (x > y) - (x < y);
+}
+
+// Benchmark of the GPU parts of one call (called by one thread): median over reps of the
+// host-to-device copies, the kernel and the device-to-host copy, in ms, with CUDA events.
+// op: 0 restriction, 1 interpolation phi += P phi_c, 2 interpolation phi = P phi_c.
+// Uses the device buffers of the interpolation and pageable host buffers, as the vectorwrappers.
+// t[0] = HtoD, t[1] = kernel, t[2] = DtoH, t[3] = 1 if the SSE layout of P is used, 0 otherwise.
+extern "C" void cuda_interpolation_PRECISION_bench( level_struct *l, int op, int reps, double *t ) {
+
+  size_t n_fine   = (size_t)l->inner_vector_size,
+         n_coarse = (size_t)l->is_PRECISION.num_agg*2*l->num_eig_vect;
+  cu_cmplx_PRECISION *h_fine   = (cu_cmplx_PRECISION*) calloc( n_fine, sizeof(cu_cmplx_PRECISION) ),
+                     *h_coarse = (cu_cmplx_PRECISION*) calloc( n_coarse, sizeof(cu_cmplx_PRECISION) );
+  double *tm = (double*) malloc( 3*(size_t)reps*sizeof(double) );
+  if ( h_fine == NULL || h_coarse == NULL || tm == NULL ) {
+    fprintf( stderr, "interpolation benchmark: host allocation failed\n" );
+    MPI_Abort( MPI_COMM_WORLD, 1 );
+  }
+  cudaEvent_t e[4];
+  for ( int i=0; i<4; i++ ) cuda_safe_call( cudaEventCreate( &e[i] ) );
+
+  for ( int r=0; r<reps; r++ ) {
+    cuda_safe_call( cudaEventRecord( e[0] ) );
+    if ( op == 0 ) {
+      cuda_safe_call( cudaMemcpy( l->is_PRECISION.phi_gpu, h_fine, n_fine*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+    } else {
+      cuda_safe_call( cudaMemcpy( l->is_PRECISION.phi_c_gpu, h_coarse, n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+      if ( op == 1 )
+        cuda_safe_call( cudaMemcpy( l->is_PRECISION.phi_gpu, h_fine, n_fine*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
+    }
+    cuda_safe_call( cudaEventRecord( e[1] ) );
+    if ( op == 0 )
+      cuda_restrict_PRECISION( l->is_PRECISION.phi_c_gpu, l->is_PRECISION.phi_gpu, l );
+    else
+      cuda_interpolate_PRECISION( l->is_PRECISION.phi_gpu, l->is_PRECISION.phi_c_gpu, l, op == 1 );
+    cuda_safe_call( cudaEventRecord( e[2] ) );
+    if ( op == 0 )
+      cuda_safe_call( cudaMemcpy( h_coarse, l->is_PRECISION.phi_c_gpu, n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
+    else
+      cuda_safe_call( cudaMemcpy( h_fine, l->is_PRECISION.phi_gpu, n_fine*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
+    cuda_safe_call( cudaEventRecord( e[3] ) );
+    cuda_safe_call( cudaEventSynchronize( e[3] ) );
+    for ( int i=0; i<3; i++ ) {
+      float ms = 0;
+      cuda_safe_call( cudaEventElapsedTime( &ms, e[i], e[i+1] ) );
+      tm[(size_t)i*reps + r] = ms;
+    }
+  }
+  for ( int i=0; i<3; i++ ) {
+    qsort( tm + (size_t)i*reps, reps, sizeof(double), cuda_interp_bench_cmp_PRECISION );
+    t[i] = tm[(size_t)i*reps + reps/2];
+  }
+  t[3] = restrict_sse_layout_PRECISION ? 1 : 0;
+
+  for ( int i=0; i<4; i++ ) cuda_safe_call( cudaEventDestroy( e[i] ) );
+  free( h_fine ); free( h_coarse ); free( tm );
+}
+
+#endif
+
 #endif

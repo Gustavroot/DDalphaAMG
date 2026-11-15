@@ -15,6 +15,11 @@
   void cuda_restrict_PRECISION_vectorwrapper( vector_PRECISION phi_c, vector_PRECISION phi, level_struct *l, struct Thread *threading );
   void cuda_interpolate_PRECISION_vectorwrapper( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, struct Thread *threading );
   void cuda_interpolate3_PRECISION_vectorwrapper( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, struct Thread *threading );
+
+#ifdef CUDA_INTERP_BENCHMARK
+  // times of the GPU parts of one call (see proxies/interpolation_proxy_generic.c)
+  void cuda_interpolation_PRECISION_bench( level_struct *l, int op, int reps, double *t );
+#endif
 #endif
 
 #endif
