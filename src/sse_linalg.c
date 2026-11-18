@@ -174,8 +174,12 @@ void vector_double_saxpy( vector_double z, vector_double x, vector_double y, com
 #endif
 
 #ifdef OPTIMIZED_LINALG_double
-complex_double global_inner_product_double( vector_double phi, vector_double psi, int start, int end, level_struct *l, struct Thread *threading ) {
-  
+complex_double global_inner_product_double_cpu( vector_double *V, vector_double psi,
+               complex_double *result, int n, int start, int end, gmres_double_struct *p,
+               level_struct *l, struct Thread *threading ) {
+
+  vector_double phi = V[0];
+
   PROF_double_START( _GIP, threading );
   complex_double local_alpha = 0, global_alpha = 0;
 
@@ -249,8 +253,12 @@ complex_double global_inner_product_double( vector_double phi, vector_double psi
 #endif
 
 #ifdef OPTIMIZED_LINALG_float
-complex_float global_inner_product_float( vector_float phi, vector_float psi, int start, int end, level_struct *l, struct Thread *threading ) {
-  
+complex_float global_inner_product_float_cpu( vector_float *V, vector_float psi,
+              complex_float *result, int n, int start, int end, gmres_float_struct *p,
+              level_struct *l, struct Thread *threading ) {
+
+  vector_float phi = V[0];
+
   PROF_float_START( _GIP, threading );
   complex_float local_alpha = 0, global_alpha = 0;
 
