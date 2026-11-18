@@ -406,8 +406,9 @@ int cuda_arnoldi_step_PRECISION( cuda_vector_PRECISION *V, cuda_vector_PRECISION
 
   cuda_global_inner_product_PRECISION( V, w, H[j], j+1, start, end, p, l, threading );
 
+  // w = w - sum_i H[j][i] V[i], with H[j][i] = V[i]^dagger w (as in arnoldi_step_PRECISION)
   for( i=0; i<=j; i++ ) {
-    cuda_vector_PRECISION_saxpy( w, w, V[i], make_cu_cmplx_PRECISION(-creal_PRECISION(H[j][i]),cimag_PRECISION(H[j][i])),
+    cuda_vector_PRECISION_saxpy( w, w, V[i], make_cu_cmplx_PRECISION(-creal_PRECISION(H[j][i]),-cimag_PRECISION(H[j][i])),
                                  start, end, l, _CUDA_SYNC, 0, streams );
   }
 
