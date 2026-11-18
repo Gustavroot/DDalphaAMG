@@ -22,6 +22,8 @@
 #include "main.h"
 #include "proxies/dirac_proxy_double.h"
 #include "proxies/dirac_proxy_float.h"
+#include "proxies/interpolation_proxy_double.h"
+#include "proxies/interpolation_proxy_float.h"
 #include "proxies/linsolve_proxy.h"
 #include "proxies/linsolve_proxy_double.h"
 #include "proxies/linsolve_proxy_float.h"

@@ -1618,6 +1618,10 @@ cuda_block_solve_update_6threads_opt(				cu_cmplx_PRECISION* phi, cu_cmplx_PRECI
 
 
 // WARNING: the use of this function may lead to performance reduction
+#ifdef CUDA_DYNAMIC_PARALLELISM
+// Disabled: unused code that relies on CUDA Dynamic Parallelism (device-side kernel launches /
+// cudaMemcpyAsync). CDP is not supported under MPS, so its presence in the device-linked module
+// makes every kernel launch fail when several MPI ranks share one GPU.
 __global__ void
 cuda_block_n_hopping_term_PRECISION(				cu_cmplx_PRECISION* out, cu_cmplx_PRECISION* in,
 								schwarz_PRECISION_struct_on_gpu *s, int thread_id,
@@ -1678,6 +1682,8 @@ cuda_blocks_vector_copy_noncontig_PRECISION_dyn_dev(		cuda_vector_PRECISION out,
 
 }
 
+
+#endif // CUDA_DYNAMIC_PARALLELISM
 
 __forceinline__ __device__ void
 _cuda_block_PRECISION_boundary_op_plus_naive(			cu_cmplx_PRECISION *eta, cu_cmplx_PRECISION *phi, int block_id,
@@ -3613,6 +3619,10 @@ cuda_blocks_vector_copy_noncontig_PRECISION_naive(		cuda_vector_PRECISION out, c
 }
 
 
+#ifdef CUDA_DYNAMIC_PARALLELISM
+// Disabled: unused code that relies on CUDA Dynamic Parallelism (device-side kernel launches /
+// cudaMemcpyAsync). CDP is not supported under MPS, so its presence in the device-linked module
+// makes every kernel launch fail when several MPI ranks share one GPU.
 // Use of dynamic parallelism --> good idea, but not as good as odd-even launch
 // (see cuda_block_oe_vector_PRECISION_copy_6threads_opt(...))
 extern "C" void
@@ -3627,6 +3637,8 @@ cuda_blocks_vector_copy_noncontig_PRECISION_dyn(		cuda_vector_PRECISION out, cud
                                                        l->num_lattice_site_var, s->s_on_gpu );
 }
 
+
+#endif // CUDA_DYNAMIC_PARALLELISM
 
 extern "C" void
 cuda_block_solve_oddeven_PRECISION(				cuda_vector_PRECISION phi, cuda_vector_PRECISION r,

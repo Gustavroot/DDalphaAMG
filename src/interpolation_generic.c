@@ -20,10 +20,11 @@
  */
 
 #include "main.h"
+#include "proxies/interpolation_proxy_PRECISION.h"
 
 #if ( !defined( SSE ) || !defined( INTERPOLATION_OPERATOR_LAYOUT_OPTIMIZED_PRECISION ) )
 
-void interpolation_PRECISION_alloc( level_struct *l ) {
+void cpu_interpolation_PRECISION_alloc( level_struct *l ) {
   
   int k, n = l->num_eig_vect;
   
@@ -57,7 +58,7 @@ void interpolation_PRECISION_dummy_free( level_struct *l ) {
 }
 
 
-void interpolation_PRECISION_free( level_struct *l ) {
+void cpu_interpolation_PRECISION_free( level_struct *l ) {
   
   int n = l->num_eig_vect;
   
@@ -87,10 +88,11 @@ void define_interpolation_PRECISION_operator( complex_PRECISION **interpolation,
       operator++;
     }
   SYNC_CORES(threading)
+  interpolation_PRECISION_op_to_device( l, threading );   // CPU: nothing; GPU: copy of the final operator
 }
 
 
-void interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, struct Thread *threading ) {
+void interpolate_PRECISION_cpu( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, struct Thread *threading ) {
   
   PROF_PRECISION_START( _PR, threading );
   int i, j, k, k1, k2, num_aggregates = l->is_PRECISION.num_agg, num_eig_vect = l->num_eig_vect, sign = 1,
@@ -127,7 +129,7 @@ void interpolate_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_
 }
 
 
-void interpolate3_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, struct Thread *threading ) {
+void interpolate3_PRECISION_cpu( vector_PRECISION phi, vector_PRECISION phi_c, level_struct *l, struct Thread *threading ) {
   
   PROF_PRECISION_START( _PR, threading );
   int i, j, k, k1, k2, num_aggregates = l->is_PRECISION.num_agg, num_eig_vect = l->num_eig_vect,
@@ -166,7 +168,7 @@ void interpolate3_PRECISION( vector_PRECISION phi, vector_PRECISION phi_c, level
 }
 
 
-void restrict_PRECISION( vector_PRECISION phi_c, vector_PRECISION phi, level_struct *l, struct Thread *threading ) {
+void restrict_PRECISION_cpu( vector_PRECISION phi_c, vector_PRECISION phi, level_struct *l, struct Thread *threading ) {
   
   SYNC_CORES(threading)
   SYNC_HYPERTHREADS(threading)

@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "proxies/interpolation_proxy_PRECISION.h"
 #include "proxies/linsolve_proxy_PRECISION.h"
 #include "proxies/operator_proxy_PRECISION.h"
 
