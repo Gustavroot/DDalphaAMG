@@ -70,6 +70,13 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
     END_LOCKED_MASTER(threading)
     if ( g.method == 4 || g.method == 6 ) {
       if ( g.odd_even ) {
+        // depth 0 with GPUs: if phi and eta are still on the GPU (left there by the interpolation
+        // and by the restriction of this V-cycle), the whole smoother runs on the GPU without the
+        // reordering on the CPU and without copying b and x (always 0 without CUDA)
+        int resident = 0;
+        if ( g.method == 4 && l->depth == 0 ) {
+          resident = smoother_resident_PRECISION_check( phi, eta, res, l, threading );
+        }
         if ( res == _RES ) {
           // compute the residual, if necessary. Do this always, except when
           // using GPUs and at depth=0
@@ -92,10 +99,12 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
         // using GPUs and depth=0 .. in this case we have to reorder b and possibly x
 #ifdef CUDA_OPT
         if ( l->depth==0 ) {
-          if ( res==_RES ) {
-            block_to_oddeven_PRECISION( l->sp_PRECISION.x, phi, l, threading );
+          if ( !resident ) {
+            if ( res==_RES ) {
+              block_to_oddeven_PRECISION( l->sp_PRECISION.x, phi, l, threading );
+            }
+            block_to_oddeven_PRECISION( l->sp_PRECISION.b, eta, l, threading );
           }
-          block_to_oddeven_PRECISION( l->sp_PRECISION.b, eta, l, threading );
         }
         else {
           block_to_oddeven_PRECISION( l->sp_PRECISION.b, res==_RES?l->sp_PRECISION.x:eta, l, threading );
@@ -146,7 +155,11 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
           END_MASTER(threading);
 
           if ( l->depth == 0 ) {
-            solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+            if ( resident ) {
+              solve_oddeven_resident_PRECISION( phi, &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+            } else {
+              solve_oddeven_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
+            }
           } else {
             coarse_solve_odd_even_PRECISION( &(l->sp_PRECISION), &(l->oe_op_PRECISION), l, threading );
           }
@@ -168,7 +181,9 @@ void smoother_PRECISION( vector_PRECISION phi, vector_PRECISION Dphi, vector_PRE
           SYNC_CORES(threading)
 #endif
         }
-        if ( res == _NO_RES ) {
+        if ( resident ) {
+          // phi has already been updated on the GPU and copied to the host
+        } else if ( res == _NO_RES ) {
           oddeven_to_block_PRECISION( phi, l->sp_PRECISION.x, l, threading );
         } else {
           oddeven_to_block_PRECISION( l->sp_PRECISION.b, l->sp_PRECISION.x, l, threading );
