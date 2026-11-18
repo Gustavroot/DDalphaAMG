@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "proxies/interpolation_proxy_PRECISION.h"
 #include "vectorization_dirac_PRECISION.h"
 
 #ifdef SSE
@@ -27,6 +28,8 @@
 #include "sse_coarse_operator.h"
 
 void coarse_operator_PRECISION_setup_vectorized( complex_PRECISION *operator, level_struct *l, struct Thread *threading ) {
+  // the interpolation operator is final here (after Gram-Schmidt): CPU: nothing; GPU: copy to the device
+  interpolation_PRECISION_op_to_device( l, threading );
   
   SYNC_HYPERTHREADS(threading)
   SYNC_CORES(threading)

@@ -1,0 +1,16 @@
+# --- CASTNER (HPE Cray, ARM Grace + NVIDIA GH200) ---
+CC   = cc
+NVCC = nvcc
+
+MPI_INCLUDE  = $(MPICH_DIR)/include
+MPI_LIB      = $(MPICH_DIR)/lib
+CUDA_INCLUDE = $(CUDA_HOME)/include
+
+CUDA_ARCH = compute_90
+CUDA_CODE = sm_90
+NVTX_DISABLE = -DNVTX_DISABLE
+
+CUDA_ENABLER   = yes
+SSE_ENABLER    = yes
+AVX_ENABLER    = no
+AVX512_ENABLER = no
