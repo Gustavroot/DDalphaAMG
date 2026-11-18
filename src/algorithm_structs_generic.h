@@ -321,6 +321,12 @@ typedef struct
     complex_PRECISION *op, *eigenvalues, *bootstrap_eigenvalues;
 #ifdef CUDA_OPT
     cuda_vector_PRECISION op_gpu, phi_gpu, phi_c_gpu; // device buffers for restriction
+    // depth 0: the input of the last restriction (eta_gpu) and the result of the last
+    // interpolation (phi_gpu) stay on the GPU for the smoother; *_gpu_host is the host vector
+    // whose copy they hold (NULL: none). oe_perm_gpu: block site -> odd-even site.
+    cuda_vector_PRECISION eta_gpu;
+    vector_PRECISION phi_gpu_host, eta_gpu_host;
+    int *oe_perm_gpu;
 #endif
 } interpolation_PRECISION_struct;
 
