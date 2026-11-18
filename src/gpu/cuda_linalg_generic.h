@@ -19,6 +19,13 @@ void cuda_vector_PRECISION_minus( cuda_vector_PRECISION z, cuda_vector_PRECISION
 void cuda_vector_PRECISION_saxpy( cuda_vector_PRECISION z, cuda_vector_PRECISION x, cuda_vector_PRECISION y, cu_cmplx_PRECISION alpha, int start,
                                   int length, level_struct *l, int sync_type, int stream_id, cudaStream_t *streams );
 
+// number of vectors combined by one call of the kernel of cuda_vector_PRECISION_multi_saxpy
+#define CUDA_MULTI_SAXPY_MAX 16
+
+void cuda_vector_PRECISION_multi_saxpy( cuda_vector_PRECISION z, cuda_vector_PRECISION *V, cu_cmplx_PRECISION *alpha,
+                                        int n, int start, int length, level_struct *l, int sync_type, int stream_id,
+                                        cudaStream_t *streams );
+
 void cuda_global_inner_product_PRECISION_vectorwrapper( vector_PRECISION* V, vector_PRECISION psi,
                                   complex_PRECISION *result, int n, int start, int end, gmres_PRECISION_struct *p,
                                   level_struct *l, struct Thread *threading );

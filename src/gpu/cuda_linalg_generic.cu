@@ -137,6 +137,52 @@ cuda_vector_PRECISION_saxpy( cuda_vector_PRECISION z, cuda_vector_PRECISION x, c
   PROF_PRECISION_STOP( _LA8, (double)(length)/(double)l->inner_vector_size );
 }
 
+typedef struct {
+  cu_cmplx_PRECISION *v[CUDA_MULTI_SAXPY_MAX];
+  cu_cmplx_PRECISION alpha[CUDA_MULTI_SAXPY_MAX];
+} multi_saxpy_args_PRECISION;
+
+__global__ void _cuda_vector_PRECISION_multi_saxpy( cuda_vector_PRECISION z, multi_saxpy_args_PRECISION args, int n,
+                                                    int length ) {
+  for ( int k = threadIdx.x + blockDim.x*blockIdx.x; k < length; k += blockDim.x*gridDim.x ) {
+    cu_cmplx_PRECISION acc = z[k];
+    for ( int i=0; i<n; i++ )
+      acc = cu_cadd_PRECISION( acc, cu_cmul_PRECISION( args.alpha[i], args.v[i][k] ) );
+    z[k] = acc;
+  }
+}
+
+// z = z + sum_i alpha[i] V[i] for i < n, on [start, start+length): one pass over z instead of n
+// calls of cuda_vector_PRECISION_saxpy (each with its own kernel and synchronisation)
+extern "C" void
+cuda_vector_PRECISION_multi_saxpy( cuda_vector_PRECISION z, cuda_vector_PRECISION *V, cu_cmplx_PRECISION *alpha,
+                                   int n, int start, int length, level_struct *l, int sync_type, int stream_id,
+                                   cudaStream_t *streams ){
+
+  const int threads_per_cublock = 256;
+  const int nr_blocks = imin( 1024, (length+threads_per_cublock-1)/threads_per_cublock );
+
+  PROF_PRECISION_START( _LA8 );
+
+  for ( int i0=0; i0<n; i0+=CUDA_MULTI_SAXPY_MAX ) {
+    multi_saxpy_args_PRECISION args;
+    int m = imin( CUDA_MULTI_SAXPY_MAX, n-i0 );
+    for ( int i=0; i<m; i++ ) {
+      args.v[i] = V[i0+i] + start;
+      args.alpha[i] = alpha[i0+i];
+    }
+    _cuda_vector_PRECISION_multi_saxpy<<< nr_blocks, threads_per_cublock, 0, streams[stream_id] >>>
+                                      ( z+start, args, m, length );
+  }
+  cuda_check_error( _SOFT_CHECK );
+
+  if( sync_type == _CUDA_SYNC ){
+    cuda_safe_call( cudaDeviceSynchronize() );
+  }
+
+  PROF_PRECISION_STOP( _LA8, (double)(n)*(double)(length)/(double)l->inner_vector_size );
+}
+
 __global__ void _cuda_process_partial_inner_product_PRECISION( cuda_vector_PRECISION a,
                 cuda_vector_PRECISION b, cu_cmplx_PRECISION* c, int N ) {
 

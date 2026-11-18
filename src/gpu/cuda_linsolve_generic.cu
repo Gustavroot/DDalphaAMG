@@ -406,10 +406,14 @@ int cuda_arnoldi_step_PRECISION( cuda_vector_PRECISION *V, cuda_vector_PRECISION
 
   cuda_global_inner_product_PRECISION( V, w, H[j], j+1, start, end, p, l, threading );
 
-  // w = w - sum_i H[j][i] V[i], with H[j][i] = V[i]^dagger w (as in arnoldi_step_PRECISION)
-  for( i=0; i<=j; i++ ) {
-    cuda_vector_PRECISION_saxpy( w, w, V[i], make_cu_cmplx_PRECISION(-creal_PRECISION(H[j][i]),-cimag_PRECISION(H[j][i])),
-                                 start, end, l, _CUDA_SYNC, 0, streams );
+  // w = w - sum_i H[j][i] V[i], with H[j][i] = V[i]^dagger w (as in arnoldi_step_PRECISION),
+  // in one pass over w for up to CUDA_MULTI_SAXPY_MAX basis vectors
+  for( int i0=0; i0<=j; i0+=CUDA_MULTI_SAXPY_MAX ) {
+    cu_cmplx_PRECISION alpha[CUDA_MULTI_SAXPY_MAX];
+    int m = ( j+1-i0 < CUDA_MULTI_SAXPY_MAX ) ? j+1-i0 : CUDA_MULTI_SAXPY_MAX;
+    for( i=0; i<m; i++ )
+      alpha[i] = make_cu_cmplx_PRECISION( -creal_PRECISION(H[j][i0+i]), -cimag_PRECISION(H[j][i0+i]) );
+    cuda_vector_PRECISION_multi_saxpy( w, V+i0, alpha, m, start, end-start, l, _CUDA_SYNC, 0, streams );
   }
 
   complex_PRECISION tmp2;
