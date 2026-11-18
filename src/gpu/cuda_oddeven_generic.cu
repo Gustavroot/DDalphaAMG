@@ -4518,6 +4518,135 @@ void cuda_solve_oddeven_PRECISION( gmres_PRECISION_struct *p, operator_PRECISION
 // this is the full Dirac operator in odd-even ordering, based on the Schur complement components
 
 void cuda_apply_oe_op_PRECISION( cuda_vector_PRECISION out, cuda_vector_PRECISION in,
+                                 operator_PRECISION_struct *op, level_struct *l );
+
+// block ordering (site by site, as the host vectors of the finest level) -> odd-even ordering,
+// component-wise within the even and within the odd sites (as reorderArrayByComponent)
+__global__ void cuda_block_to_oddeven_componentwise_PRECISION( cu_cmplx_PRECISION *out, const cu_cmplx_PRECISION *in,
+                                                               const int *perm, int n_sites, int n_even, int nsv ) {
+  int m = blockIdx.x*blockDim.x + threadIdx.x;
+  if ( m >= n_sites ) return;
+  int k = perm[m];
+  size_t stride = ( k < n_even ) ? (size_t)n_even : (size_t)(n_sites - n_even);
+  cu_cmplx_PRECISION *dst = ( k < n_even ) ? out + k : out + (size_t)n_even*nsv + (k - n_even);
+  const cu_cmplx_PRECISION *src = in + (size_t)m*nsv;
+  for ( int c=0; c<nsv; c++ )
+    dst[c*stride] = src[c];
+}
+
+// phi (block ordering) += x (odd-even ordering, component-wise)
+__global__ void cuda_add_oddeven_componentwise_to_block_PRECISION( cu_cmplx_PRECISION *phi, const cu_cmplx_PRECISION *x,
+                                                                   const int *perm, int n_sites, int n_even, int nsv ) {
+  int m = blockIdx.x*blockDim.x + threadIdx.x;
+  if ( m >= n_sites ) return;
+  int k = perm[m];
+  size_t stride = ( k < n_even ) ? (size_t)n_even : (size_t)(n_sites - n_even);
+  const cu_cmplx_PRECISION *src = ( k < n_even ) ? x + k : x + (size_t)n_even*nsv + (k - n_even);
+  cu_cmplx_PRECISION *dst = phi + (size_t)m*nsv;
+  for ( int c=0; c<nsv; c++ ) {
+    cu_cmplx_PRECISION a = dst[c], b = src[c*stride];
+    dst[c] = make_cu_cmplx_PRECISION( a.x + b.x, a.y + b.y );
+  }
+}
+
+
+// Depth-0 smoother with phi and eta already on the GPU: phi is the result of the last
+// interpolation (l->is_PRECISION.phi_gpu) and eta the input of the last restriction
+// (l->is_PRECISION.eta_gpu), see cuda_interpolation_generic.cu. Checks that the copies on the GPU
+// belong to these host vectors; the tags are consumed in any case, as the smoother changes phi.
+// Called by all threads at the beginning of the depth-0 odd-even smoother. Returns 1 if
+// cuda_solve_oddeven_PRECISION_resident can be used, 0 otherwise.
+extern "C" int cuda_smoother_resident_PRECISION_check( vector_PRECISION phi, vector_PRECISION eta, int res,
+                                                       level_struct *l, struct Thread *threading ) {
+
+  interpolation_PRECISION_struct *is = &(l->is_PRECISION);
+  int use = ( l->depth == 0 && res == _RES && is->op_gpu != NULL &&
+              is->phi_gpu_host == phi && is->eta_gpu_host == eta );
+
+  // every thread has read the tags before the master resets them
+  SYNC_CORES(threading)
+  START_MASTER(threading)
+  is->phi_gpu_host = NULL;
+  is->eta_gpu_host = NULL;
+  END_MASTER(threading)
+  SYNC_CORES(threading)
+
+  return use;
+}
+
+
+// Depth-0 smoother phi <- phi + M^-1 ( eta - D phi ), entirely on the GPU, with phi and eta already
+// there (see cuda_smoother_resident_PRECISION_check): as cuda_solve_oddeven_PRECISION_vectorwrapper
+// with initial_guess_zero = _RES, but the reordering to the odd-even ordering and back is done on
+// the GPU instead of block_to_oddeven_PRECISION and oddeven_to_block_PRECISION on the CPU, b and x
+// are not copied to the GPU, and phi is copied to the host once at the end.
+extern "C" void cuda_solve_oddeven_PRECISION_resident( vector_PRECISION phi, gmres_PRECISION_struct *p,
+                                                       operator_PRECISION_struct *op, level_struct *l,
+                                                       struct Thread *threading ) {
+
+#ifdef RICHARDSON_SMOOTHER
+  if ( p->richardson_update_omega==1 ) {
+    richardson_update_omega_PRECISION( p, l, threading );
+    START_MASTER(threading)
+    p->richardson_update_omega = 0;
+    END_MASTER(threading)
+  }
+#endif
+
+  START_MASTER(threading)
+
+  interpolation_PRECISION_struct *is = &(l->is_PRECISION);
+  cudaStream_t stream = CU_STREAM_PER_THREAD;
+  cudaStream_t* const streams = &stream;
+  const int n_sites = l->num_inner_lattice_sites, nsv = l->num_lattice_site_var, n_even = op->num_even_sites;
+  const uint block = diracDefaultBlockSize;
+  const uint grid  = minGridSizeForN( n_sites, block );
+
+  // block site -> odd-even site, the mapping of block_to_oddeven_PRECISION
+  if ( is->oe_perm_gpu == NULL ) {
+    const int *tt_oe = l->oe_op_PRECISION.translation_table, *tt_b = l->s_PRECISION.op.translation_table;
+    int *perm = (int*) malloc( n_sites*sizeof(int) );
+    if ( perm == NULL ) {
+      fprintf( stderr, "cuda_solve_oddeven_PRECISION_resident: host allocation failed\n" );
+      MPI_Abort( MPI_COMM_WORLD, 1 );
+    }
+    for ( int i=0; i<n_sites; i++ )
+      perm[ tt_b[i] ] = tt_oe[i];
+    cuda_safe_call( cudaMalloc( (void**)&(is->oe_perm_gpu), n_sites*sizeof(int) ) );
+    cuda_safe_call( cudaMemcpy( is->oe_perm_gpu, perm, n_sites*sizeof(int), cudaMemcpyHostToDevice ) );
+    free( perm );
+  }
+
+  // b = eta and x = phi, in the odd-even component-wise ordering
+  cuda_block_to_oddeven_componentwise_PRECISION<<<grid, block>>>( p->b_componentwise_gpu, is->eta_gpu,
+                                                                 is->oe_perm_gpu, n_sites, n_even, nsv );
+  cuda_block_to_oddeven_componentwise_PRECISION<<<grid, block>>>( p->x_componentwise_gpu, is->phi_gpu,
+                                                                 is->oe_perm_gpu, n_sites, n_even, nsv );
+  cuda_check_error( _SOFT_CHECK );
+  cuda_safe_call( cudaDeviceSynchronize() );
+
+  // residual b = eta - D phi, with the full Dirac operator in odd-even ordering
+  cuda_apply_oe_op_PRECISION( p->w_componentwise_gpu, p->x_componentwise_gpu, op, l );
+  cuda_vector_PRECISION_minus( p->b_componentwise_gpu, p->b_componentwise_gpu, p->w_componentwise_gpu, 0,
+                               l->num_inner_lattice_sites*l->num_lattice_site_var, l, _CUDA_SYNC, 0, streams );
+  p->initial_guess_zero = _NO_RES;
+
+  // x = M^-1 b (Schur complement, GMRES or Richardson, reconstruction of the odd sites)
+  cuda_solve_oddeven_PRECISION( p, op, l, threading );
+
+  // phi += x on the GPU, then one copy of phi to the host
+  cuda_add_oddeven_componentwise_to_block_PRECISION<<<grid, block>>>( is->phi_gpu, p->x_componentwise_gpu,
+                                                                     is->oe_perm_gpu, n_sites, n_even, nsv );
+  cuda_check_error( _SOFT_CHECK );
+  cuda_safe_call( cudaMemcpy( phi, is->phi_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
+                              cudaMemcpyDeviceToHost ) );
+
+  END_MASTER(threading)
+  SYNC_CORES(threading)
+}
+
+
+void cuda_apply_oe_op_PRECISION( cuda_vector_PRECISION out, cuda_vector_PRECISION in,
                                  operator_PRECISION_struct *op, level_struct *l ){
 
   // what we do in this function :
