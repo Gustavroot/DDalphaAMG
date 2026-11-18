@@ -179,8 +179,9 @@ void cuda_global_inner_product_PRECISION( cuda_vector_PRECISION* V, cuda_vector_
      complex_PRECISION *result, int n, int start, int end, gmres_PRECISION_struct *p,
      level_struct *l, struct Thread *threading ) {
 
+  // as many blocks as the partial-sum buffers allow (see the allocation in linsolve_generic.c)
   const int N = end-start;
-  const int blocksPerGrid = imin(32, (N+threadsPerBlockDP-1) / threadsPerBlockDP);
+  const int blocksPerGrid = imin(p->gpu_dotprods_memsize, (N+threadsPerBlockDP-1) / threadsPerBlockDP);
 
   cudaStream_t stream = CU_STREAM_PER_THREAD;
   cudaStream_t* const streams = &stream;
@@ -195,10 +196,11 @@ void cuda_global_inner_product_PRECISION( cuda_vector_PRECISION* V, cuda_vector_
   }
   cuda_safe_call( cudaDeviceSynchronize() );
 
-  for ( int i=0;i<n;i++ ) {
-    cuda_vector_PRECISION_copy( partial_sums[i], dev_partial_sums[i], 0, blocksPerGrid,
-                                l, _D2H, _CUDA_SYNC, 0, streams );
+  // one copy for all the partial sums (dev_partial_sums[i] = dev_partial_sums[0] + i*gpu_dotprods_memsize)
+  cuda_vector_PRECISION_copy( partial_sums[0], dev_partial_sums[0], 0, n*p->gpu_dotprods_memsize,
+                              l, _D2H, _CUDA_SYNC, 0, streams );
 
+  for ( int i=0;i<n;i++ ) {
     result[i] = 0.0;
     for ( int j=0;j<blocksPerGrid;j++ ) {
       result[i] += partial_sums[i][j];

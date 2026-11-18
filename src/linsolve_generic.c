@@ -439,8 +439,9 @@ void cpu_fgmres_PRECISION_struct_alloc( int m, int n, int vl, PRECISION tol, con
 #endif
 
 #ifdef CUDA_OPT
+  // blocks of the GPU dot products: enough to fill the GPU (32 used only a small part of it)
   const int N = p->v_end-p->v_start;
-  const int blocksPerGrid = imin(32, (N+threadsPerBlockDP-1) / threadsPerBlockDP);
+  const int blocksPerGrid = imin(1024, (N+threadsPerBlockDP-1) / threadsPerBlockDP);
   p->gpu_dotprods_memsize = blocksPerGrid;
 
   MALLOC( p->gpu_dotprods_partial_sums, complex_PRECISION*, p->restart_length );
