@@ -3,11 +3,15 @@
 #include "algorithm_structs.h"
 #include "level_struct.h"
 
+struct Thread;
+
 void fgmres_MP_struct_init(gmres_MP_struct *p);
 
 void fgmres_MP_struct_alloc(int m, int n, int vl, double tol, const int prec_kind,
                             void (*precond)(), gmres_MP_struct *p, level_struct *l);
 
 void fgmres_MP_struct_free(gmres_MP_struct *p);
+
+int outer_fgmres_double(gmres_double_struct *p, level_struct *l, struct Thread *threading);
 
 #endif  // LINSOLVE_PROXY_H
