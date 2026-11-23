@@ -216,6 +216,7 @@ extern "C" int cuda_outer_fgmres_double( gmres_double_struct *p, level_struct *l
       is->eta_preloaded_host = l->sbuf_float[0];
       is->keep_phi_on_gpu = 1;
       is->phi_result_host = NULL;
+      is->defer_phi_copy = 1;
       END_LOCKED_MASTER(threading)
       SYNC_MASTER_TO_ALL(threading)
 
@@ -228,7 +229,7 @@ extern "C" int cuda_outer_fgmres_double( gmres_double_struct *p, level_struct *l
         cuda_safe_call( cudaMemcpy( is->phi_gpu, l->sbuf_float[1], (size_t)og.vl*sizeof(cu_cmplx_float),
                                     cudaMemcpyHostToDevice ) );
       }
-      is->keep_phi_on_gpu = 0; is->phi_result_host = NULL;
+      is->keep_phi_on_gpu = 0; is->phi_result_host = NULL; is->defer_phi_copy = 0;
       is->eta_preloaded_host = NULL; is->eta_host_stale = NULL;
       outer_trans_back_float_kernel<<< minGridSizeForN( og.vl, 256 ), 256 >>>( og.Z[j], is->phi_gpu, og.tt, n_sites, nsv );
       cuda_safe_call( cudaDeviceSynchronize() );

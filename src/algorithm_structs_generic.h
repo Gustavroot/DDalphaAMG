@@ -335,6 +335,10 @@ typedef struct
     // result in phi_gpu and does not copy it to the host; phi_result_host is then that host vector
     int keep_phi_on_gpu;
     vector_PRECISION phi_result_host;
+    // outer FGMRES on the GPU: with defer_phi_copy set, the next interpolation (phi = P phi_c) leaves
+    // its result only in phi_gpu; phi_host_stale is then the host vector that is not up to date
+    int defer_phi_copy;
+    vector_PRECISION phi_host_stale;
 #endif
 } interpolation_PRECISION_struct;
 

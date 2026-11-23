@@ -482,6 +482,8 @@ extern "C" void cuda_interpolation_PRECISION_alloc( level_struct *l ) {
   l->is_PRECISION.eta_host_stale     = NULL;
   l->is_PRECISION.keep_phi_on_gpu    = 0;
   l->is_PRECISION.phi_result_host    = NULL;
+  l->is_PRECISION.defer_phi_copy     = 0;
+  l->is_PRECISION.phi_host_stale     = NULL;
 }
 
 
@@ -532,6 +534,8 @@ extern "C" void cuda_interpolation_PRECISION_free( level_struct *l ) {
   l->is_PRECISION.eta_host_stale     = NULL;
   l->is_PRECISION.keep_phi_on_gpu    = 0;
   l->is_PRECISION.phi_result_host    = NULL;
+  l->is_PRECISION.defer_phi_copy     = 0;
+  l->is_PRECISION.phi_host_stale     = NULL;
 }
 
 
@@ -655,9 +659,23 @@ static void cuda_interpolate_PRECISION_host( vector_PRECISION phi, vector_PRECIS
 
   cuda_interpolate_PRECISION( l->is_PRECISION.phi_gpu, l->is_PRECISION.phi_c_gpu, l, add );
 
-  // synchronous copy on the default stream: waits for the kernel to finish
-  cuda_safe_call( cudaMemcpy( phi, l->is_PRECISION.phi_gpu, n_fine*sizeof(cu_cmplx_PRECISION),
-                              cudaMemcpyDeviceToHost ) );
+  // the outer FGMRES on the GPU asks for phi = P phi_c only on the GPU (defer_phi_copy): the depth-0
+  // smoother on the GPU takes it from phi_gpu, and cuda_smoother_resident_PRECISION_check copies it
+  // to the host if the smoother runs on the host vectors
+  int skip_copy = ( l->is_PRECISION.defer_phi_copy && !add );
+#ifdef CUDA_INTERP_TEST
+  if ( do_test ) skip_copy = 0;   // the test compares the host result
+#endif
+  l->is_PRECISION.defer_phi_copy = 0;
+  if ( skip_copy ) {
+    cuda_safe_call( cudaDeviceSynchronize() );
+    l->is_PRECISION.phi_host_stale = phi;
+  } else {
+    // synchronous copy on the default stream: waits for the kernel to finish
+    cuda_safe_call( cudaMemcpy( phi, l->is_PRECISION.phi_gpu, n_fine*sizeof(cu_cmplx_PRECISION),
+                                cudaMemcpyDeviceToHost ) );
+    l->is_PRECISION.phi_host_stale = NULL;
+  }
   // the result stays in phi_gpu for the depth-0 smoother (see cuda_solve_oddeven_PRECISION_resident)
   l->is_PRECISION.phi_gpu_host = phi;
 

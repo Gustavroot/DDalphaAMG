@@ -4572,7 +4572,13 @@ extern "C" int cuda_smoother_resident_PRECISION_check( vector_PRECISION phi, vec
     cuda_safe_call( cudaMemcpy( eta, is->eta_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
                                 cudaMemcpyDeviceToHost ) );
   }
+  if ( !use && is->phi_host_stale == phi ) {
+    // same for the result of the interpolation (defer_phi_copy)
+    cuda_safe_call( cudaMemcpy( phi, is->phi_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
+                                cudaMemcpyDeviceToHost ) );
+  }
   is->eta_host_stale = NULL;
+  is->phi_host_stale = NULL;
   is->phi_gpu_host = NULL;
   is->eta_gpu_host = NULL;
   END_MASTER(threading)
