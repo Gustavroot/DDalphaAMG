@@ -122,6 +122,8 @@ ifdef CUDA_CODE
 endif
 
 COMPILE_FLAGS_CUDA = $(NVCC_ARCHITECTURE_FLAGS) -rdc=true $(COMMON_COMPILE_FLAGS)
+# same output options as COMPILE_FLAGS (the outer FGMRES on the GPU prints the convergence history)
+COMPILE_FLAGS_CUDA += -DTRACK_RES -DFGMRES_RESTEST
 
 ifeq ($(CUDA_ENABLER),yes)
 COMPILE_FLAGS_CUDA += -DOPENMP -Xcompiler "-fopenmp -Wall"
