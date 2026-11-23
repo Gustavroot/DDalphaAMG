@@ -4641,12 +4641,17 @@ extern "C" void cuda_solve_oddeven_PRECISION_resident( vector_PRECISION phi, gmr
   // x = M^-1 b (Schur complement, GMRES or Richardson, reconstruction of the odd sites)
   cuda_solve_oddeven_PRECISION( p, op, l, threading );
 
-  // phi += x on the GPU, then one copy of phi to the host
+  // phi += x on the GPU, then one copy of phi to the host (none if the caller reads it from phi_gpu)
   cuda_add_oddeven_componentwise_to_block_PRECISION<<<grid, block>>>( is->phi_gpu, p->x_componentwise_gpu,
                                                                      is->oe_perm_gpu, n_sites, n_even, nsv );
   cuda_check_error( _SOFT_CHECK );
-  cuda_safe_call( cudaMemcpy( phi, is->phi_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
-                              cudaMemcpyDeviceToHost ) );
+  if ( is->keep_phi_on_gpu ) {
+    cuda_safe_call( cudaDeviceSynchronize() );
+    is->phi_result_host = phi;
+  } else {
+    cuda_safe_call( cudaMemcpy( phi, is->phi_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
+                                cudaMemcpyDeviceToHost ) );
+  }
 
   END_MASTER(threading)
   SYNC_CORES(threading)

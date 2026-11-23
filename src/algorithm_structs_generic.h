@@ -331,6 +331,10 @@ typedef struct
     // already written into eta_gpu (the restriction then does not copy it); eta_host_stale is the
     // host vector whose current values are only in eta_gpu (NULL: none)
     vector_PRECISION eta_preloaded_host, eta_host_stale;
+    // outer FGMRES on the GPU: with keep_phi_on_gpu set, the depth-0 smoother on the GPU leaves its
+    // result in phi_gpu and does not copy it to the host; phi_result_host is then that host vector
+    int keep_phi_on_gpu;
+    vector_PRECISION phi_result_host;
 #endif
 } interpolation_PRECISION_struct;
 

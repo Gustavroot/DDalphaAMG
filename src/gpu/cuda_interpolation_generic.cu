@@ -480,6 +480,8 @@ extern "C" void cuda_interpolation_PRECISION_alloc( level_struct *l ) {
   l->is_PRECISION.oe_perm_gpu  = NULL;
   l->is_PRECISION.eta_preloaded_host = NULL;
   l->is_PRECISION.eta_host_stale     = NULL;
+  l->is_PRECISION.keep_phi_on_gpu    = 0;
+  l->is_PRECISION.phi_result_host    = NULL;
 }
 
 
@@ -528,6 +530,8 @@ extern "C" void cuda_interpolation_PRECISION_free( level_struct *l ) {
   l->is_PRECISION.eta_gpu_host = NULL;
   l->is_PRECISION.eta_preloaded_host = NULL;
   l->is_PRECISION.eta_host_stale     = NULL;
+  l->is_PRECISION.keep_phi_on_gpu    = 0;
+  l->is_PRECISION.phi_result_host    = NULL;
 }
 
 
