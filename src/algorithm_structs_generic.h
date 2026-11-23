@@ -327,6 +327,10 @@ typedef struct
     cuda_vector_PRECISION eta_gpu;
     vector_PRECISION phi_gpu_host, eta_gpu_host;
     int *oe_perm_gpu;
+    // outer FGMRES on the GPU: eta_preloaded_host is the host vector whose values the caller has
+    // already written into eta_gpu (the restriction then does not copy it); eta_host_stale is the
+    // host vector whose current values are only in eta_gpu (NULL: none)
+    vector_PRECISION eta_preloaded_host, eta_host_stale;
 #endif
 } interpolation_PRECISION_struct;
 

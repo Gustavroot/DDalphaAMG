@@ -4566,6 +4566,13 @@ extern "C" int cuda_smoother_resident_PRECISION_check( vector_PRECISION phi, vec
   // every thread has read the tags before the master resets them
   SYNC_CORES(threading)
   START_MASTER(threading)
+  if ( !use && is->eta_host_stale == eta ) {
+    // eta was given to the restriction only on the GPU (outer FGMRES on the GPU), and the smoother
+    // runs on the host vectors: bring it to the host
+    cuda_safe_call( cudaMemcpy( eta, is->eta_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
+                                cudaMemcpyDeviceToHost ) );
+  }
+  is->eta_host_stale = NULL;
   is->phi_gpu_host = NULL;
   is->eta_gpu_host = NULL;
   END_MASTER(threading)
