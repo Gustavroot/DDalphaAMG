@@ -21,13 +21,14 @@
 
 typedef struct
 {
-    config_PRECISION D, clover, oe_clover;
+    config_PRECISION D, clover, oe_clover, clover_oo_copy;
 #ifdef CUDA_OPT
     cuda_config_PRECISION
         /** Self coupling coefficients on the GPU. */
         clover_gpu,
+        clover_gpu_oo_copy,
         /** Self coupling coefficients in componentwise ordering on the GPU.*/
-        clover_componentwise_gpu,
+        clover_componentwise_gpu, clover_componentwise_gpu_oo_copy,
         /** Neighbor coupling coefficients on the GPU. */
         D_gpu;
     /** Neighbor coupling coefficients in componentwise ordering on the GPU.
@@ -226,7 +227,7 @@ typedef struct
 
     cuda_vector_PRECISION b_gpu, b_componentwise_gpu, x_gpu,
                           x_componentwise_gpu, w_componentwise_gpu,
-                          r_componentwise_gpu;
+                          r_componentwise_gpu, *V_componentwise_gpu;
 #endif
     complex_PRECISION **H, *y, *gamma, *c, *s, shift;
     config_PRECISION *D, *clover;
@@ -265,6 +266,13 @@ typedef struct
 #if defined(SINGLE_ALLREDUCE_ARNOLDI) && defined(PIPELINED_ARNOLDI)
     int syst_size;
     vector_PRECISION *Va, *Za;
+#endif
+
+#ifdef CUDA_OPT
+  int gpu_dotprods_memsize;
+  vector_PRECISION *gpu_dotprods_partial_sums;
+  cuda_vector_PRECISION *gpu_dotprods_dev_partial_sums;
+  vector_PRECISION gpu_dotprods_global_sums;
 #endif
 } gmres_PRECISION_struct;
 
@@ -313,6 +321,12 @@ typedef struct
     complex_PRECISION *op, *eigenvalues, *bootstrap_eigenvalues;
 #ifdef CUDA_OPT
     cuda_vector_PRECISION op_gpu, phi_gpu, phi_c_gpu; // device buffers for restriction
+    // depth 0: the input of the last restriction (eta_gpu) and the result of the last
+    // interpolation (phi_gpu) stay on the GPU for the smoother; *_gpu_host is the host vector
+    // whose copy they hold (NULL: none). oe_perm_gpu: block site -> odd-even site.
+    cuda_vector_PRECISION eta_gpu;
+    vector_PRECISION phi_gpu_host, eta_gpu_host;
+    int *oe_perm_gpu;
 #endif
 } interpolation_PRECISION_struct;
 

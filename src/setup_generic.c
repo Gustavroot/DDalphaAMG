@@ -315,7 +315,7 @@ void re_setup_PRECISION( level_struct *l, struct Thread *threading ) {
         if ( g.method >= 4 && g.odd_even ) {
           coarse_oddeven_re_setup_PRECISION( &(l->next_level->s_PRECISION.op), _REORDER, l->next_level, threading );
         }
-        // else {
+        //else {
         coarse_operator_PRECISION_set_couplings( &(l->next_level->s_PRECISION.op), l->next_level, threading );
         //}
       }
@@ -590,8 +590,8 @@ void testvector_analysis_PRECISION( vector_PRECISION *test_vectors, level_struct
     printf0("vector #%02d: ", i+1 );
     apply_operator_PRECISION( l->vbuf_PRECISION[3], test_vectors[i], &(l->p_PRECISION), l, no_threading );
     coarse_gamma5_PRECISION( l->vbuf_PRECISION[0], l->vbuf_PRECISION[3], 0, l->inner_vector_size, l );
-    lambda = global_inner_product_PRECISION( test_vectors[i], l->vbuf_PRECISION[0], 0, l->inner_vector_size, l, no_threading );
-    lambda /= global_inner_product_PRECISION( test_vectors[i], test_vectors[i], 0, l->inner_vector_size, l, no_threading );
+    lambda = global_inner_product_PRECISION_cpu( &(test_vectors[i]), l->vbuf_PRECISION[0], NULL, 1, 0, l->inner_vector_size, &(l->p_PRECISION), l, no_threading );
+    lambda /= global_inner_product_PRECISION_cpu( &(test_vectors[i]), test_vectors[i], NULL, 1, 0, l->inner_vector_size, &(l->p_PRECISION), l, no_threading );
     vector_PRECISION_saxpy( l->vbuf_PRECISION[1], l->vbuf_PRECISION[0], test_vectors[i], -lambda, 0, l->inner_vector_size, l );
     mu = global_norm_PRECISION( l->vbuf_PRECISION[1], 0, l->inner_vector_size, l, no_threading )/global_norm_PRECISION( test_vectors[i], 0, l->inner_vector_size, l, no_threading );
     printf0("singular value: %+lf%+lfi, singular vector precision: %le\n", (double)creal(lambda), (double)cimag(lambda), (double)mu );

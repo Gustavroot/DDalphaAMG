@@ -38,6 +38,8 @@ void schwarz_PRECISION_init_CUDA( schwarz_PRECISION_struct *s, level_struct *l )
   (s->cu_s).local_minres_buffer[1] = NULL;
   (s->cu_s).local_minres_buffer[2] = NULL;
 
+  s->streams = NULL;
+
   s->s_on_gpu = NULL;
 
   s->nr_DD_blocks_in_comms = NULL;
@@ -100,6 +102,35 @@ void schwarz_PRECISION_init_CUDA( schwarz_PRECISION_struct *s, level_struct *l )
     (s->op.c).buffer_gpu[mu_dir] = NULL;
   }
 
+  // TODO : do the following fix anything? Still getting the 'error' message
+
+  (s->cu_s).buf1 = NULL;
+  (s->cu_s).buf2 = NULL;
+  (s->cu_s).buf3 = NULL;
+  (s->cu_s).buf4 = NULL;
+  (s->cu_s).buf5 = NULL;
+  (s->cu_s).buf6 = NULL;
+
+  for( i=0; i<4; i++ ){
+    (s->s_on_gpu_cpubuff).oe_buf[i] = NULL;
+  }
+
+  (s->s_on_gpu_cpubuff).op.oe_clover_vectorized = NULL;
+
+  for ( i=0;i<8;i++ ) {
+    (s->op.c).boundary_table_gpu[i] = NULL;
+    (s->op.c).buffer_gpu[i] = NULL;
+  }
+
+  (s->cu_s).DD_blocks_in_comms = NULL;
+
+  (s->s_on_gpu_cpubuff).op.neighbor_table = NULL;
+
+  (s->s_on_gpu_cpubuff).op.D = NULL;
+
+  for ( i=0;i<16;i++ ) {
+    (s->s_on_gpu_cpubuff).op.Dgpu[i] = NULL;
+  }
 }
 
 

@@ -284,7 +284,7 @@ static int restrict_tested_PRECISION[64] = {0};
 //   2. computes the restriction on the CPU with the loop of interpolation_generic.c
 //   3. runs the plain-layout instance of the GPU kernel
 //   4. compares both GPU results (plain-layout test and production) with the CPU reference
-// Expects phi already uploaded to l->is_PRECISION.phi_gpu and the production result in the transfer buffer.
+// Expects phi already uploaded to l->is_PRECISION.eta_gpu and the production result in the transfer buffer.
 static void cuda_restrict_PRECISION_plain_layout_test( vector_PRECISION phi, level_struct *l ) {
 
   int num_agg   = l->is_PRECISION.num_agg,
@@ -346,7 +346,7 @@ static void cuda_restrict_PRECISION_plain_layout_test( vector_PRECISION phi, lev
   cuda_safe_call( cudaMalloc( (void**)&op_plain_gpu,   n_op*sizeof(cu_cmplx_PRECISION) ) );
   cuda_safe_call( cudaMalloc( (void**)&phi_c_test_gpu, n_coarse*sizeof(cu_cmplx_PRECISION) ) );
   cuda_safe_call( cudaMemcpy( op_plain_gpu, op_plain, n_op*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
-  cuda_restrict_PRECISION_launch<false>( phi_c_test_gpu, l->is_PRECISION.phi_gpu, op_plain_gpu, l );
+  cuda_restrict_PRECISION_launch<false>( phi_c_test_gpu, l->is_PRECISION.eta_gpu, op_plain_gpu, l );
   cuda_safe_call( cudaMemcpy( res_gpu, phi_c_test_gpu, n_coarse*sizeof(cu_cmplx_PRECISION), cudaMemcpyDeviceToHost ) );
   cuda_safe_call( cudaFree( op_plain_gpu ) );
   cuda_safe_call( cudaFree( phi_c_test_gpu ) );
@@ -474,6 +474,10 @@ extern "C" void cuda_interpolation_PRECISION_alloc( level_struct *l ) {
   l->is_PRECISION.op_gpu    = NULL;
   l->is_PRECISION.phi_gpu   = NULL;
   l->is_PRECISION.phi_c_gpu = NULL;
+  l->is_PRECISION.eta_gpu   = NULL;
+  l->is_PRECISION.phi_gpu_host = NULL;
+  l->is_PRECISION.eta_gpu_host = NULL;
+  l->is_PRECISION.oe_perm_gpu  = NULL;
 }
 
 
@@ -489,7 +493,11 @@ extern "C" void cuda_interpolation_PRECISION_op_to_gpu( level_struct *l ) {
     cuda_safe_call( cudaMalloc( (void**)&(l->is_PRECISION.op_gpu),    op_size*sizeof(cu_cmplx_PRECISION) ) );
     cuda_safe_call( cudaMalloc( (void**)&(l->is_PRECISION.phi_gpu),   n_fine*sizeof(cu_cmplx_PRECISION) ) );
     cuda_safe_call( cudaMalloc( (void**)&(l->is_PRECISION.phi_c_gpu), n_coarse*sizeof(cu_cmplx_PRECISION) ) );
+    cuda_safe_call( cudaMalloc( (void**)&(l->is_PRECISION.eta_gpu),   n_fine*sizeof(cu_cmplx_PRECISION) ) );
   }
+  // the operator has changed: no vector on the GPU belongs to the current hierarchy any more
+  l->is_PRECISION.phi_gpu_host = NULL;
+  l->is_PRECISION.eta_gpu_host = NULL;
 
   cuda_safe_call( cudaMemcpy( l->is_PRECISION.op_gpu, l->is_PRECISION.op,
                               op_size*sizeof(cu_cmplx_PRECISION), cudaMemcpyHostToDevice ) );
@@ -502,10 +510,18 @@ extern "C" void cuda_interpolation_PRECISION_free( level_struct *l ) {
     cuda_safe_call( cudaFree( l->is_PRECISION.op_gpu ) );
     cuda_safe_call( cudaFree( l->is_PRECISION.phi_gpu ) );
     cuda_safe_call( cudaFree( l->is_PRECISION.phi_c_gpu ) );
+    cuda_safe_call( cudaFree( l->is_PRECISION.eta_gpu ) );
     l->is_PRECISION.op_gpu    = NULL;
     l->is_PRECISION.phi_gpu   = NULL;
     l->is_PRECISION.phi_c_gpu = NULL;
+    l->is_PRECISION.eta_gpu   = NULL;
   }
+  if ( l->is_PRECISION.oe_perm_gpu != NULL ) {
+    cuda_safe_call( cudaFree( l->is_PRECISION.oe_perm_gpu ) );
+    l->is_PRECISION.oe_perm_gpu = NULL;
+  }
+  l->is_PRECISION.phi_gpu_host = NULL;
+  l->is_PRECISION.eta_gpu_host = NULL;
 }
 
 
@@ -547,10 +563,13 @@ extern "C" void cuda_restrict_PRECISION_vectorwrapper( vector_PRECISION phi_c, v
     MPI_Abort( MPI_COMM_WORLD, 1 );
   }
 
-  cuda_safe_call( cudaMemcpy( l->is_PRECISION.phi_gpu, phi, n_fine*sizeof(cu_cmplx_PRECISION),
+  // the input stays in eta_gpu for the depth-0 smoother (see cuda_solve_oddeven_PRECISION_resident)
+  cuda_safe_call( cudaMemcpy( l->is_PRECISION.eta_gpu, phi, n_fine*sizeof(cu_cmplx_PRECISION),
                               cudaMemcpyHostToDevice ) );
 
-  cuda_restrict_PRECISION( l->is_PRECISION.phi_c_gpu, l->is_PRECISION.phi_gpu, l );
+  cuda_restrict_PRECISION( l->is_PRECISION.phi_c_gpu, l->is_PRECISION.eta_gpu, l );
+  l->is_PRECISION.eta_gpu_host = phi;
+  l->is_PRECISION.phi_gpu_host = NULL;   // the interpolation of this cycle comes after
 
   // synchronous copy on the default stream: waits for the kernel to finish
   cuda_safe_call( cudaMemcpy( l->next_level->gs_PRECISION.transfer_buffer, l->is_PRECISION.phi_c_gpu,
@@ -622,6 +641,8 @@ static void cuda_interpolate_PRECISION_host( vector_PRECISION phi, vector_PRECIS
   // synchronous copy on the default stream: waits for the kernel to finish
   cuda_safe_call( cudaMemcpy( phi, l->is_PRECISION.phi_gpu, n_fine*sizeof(cu_cmplx_PRECISION),
                               cudaMemcpyDeviceToHost ) );
+  // the result stays in phi_gpu for the depth-0 smoother (see cuda_solve_oddeven_PRECISION_resident)
+  l->is_PRECISION.phi_gpu_host = phi;
 
 #ifdef CUDA_INTERP_TEST
   if ( do_test ) {
