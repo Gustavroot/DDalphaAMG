@@ -24,6 +24,7 @@ extern "C"{
   #define IMPORT_FROM_EXTERN_C
   #include "main.h"
   #undef IMPORT_FROM_EXTERN_C
+  #include "profiling.h"
 
   #include "gpu/cuda_oddeven_linalg_double.h"
 
@@ -159,6 +160,8 @@ extern "C" int cuda_outer_fgmres_double( gmres_double_struct *p, level_struct *l
   static std::vector<complex_double> hd;
   static double norm_r0, gamma_jp1, t0, t1;
   static int iter, j, res;
+  // NVTX ranges (built without -DNVTX_DISABLE): the whole outer FGMRES and every outer iteration
+  static RangeHandleType range_solver, range_iter;
 
   const int m = p->restart_length;
   const size_t n_sites = (size_t)l->num_inner_lattice_sites;
@@ -168,6 +171,7 @@ extern "C" int cuda_outer_fgmres_double( gmres_double_struct *p, level_struct *l
   cudaStream_t* const streams = &stream;
 
   START_LOCKED_MASTER(threading)
+  range_solver = startProfilingRange("outer FGMRES (GPU)");
   if ( p->timing || p->print ) prof_init( l );
   t0 = MPI_Wtime();
 #if defined(TRACK_RES) && !defined(WILSON_BENCHMARK)
@@ -209,6 +213,7 @@ extern "C" int cuda_outer_fgmres_double( gmres_double_struct *p, level_struct *l
 
       // Z_j = M V_j: V_j into the depth-0 restriction buffer eta_gpu (float, Schwarz ordering)
       START_LOCKED_MASTER(threading)
+      range_iter = startProfilingRange("outer FGMRES iteration");
       j = il; iter++;
       interpolation_float_struct *is = &(l->is_float);
       outer_trans_float_kernel<<< minGridSizeForN( og.vl, 256 ), 256 >>>( is->eta_gpu, og.V[j], og.tt, n_sites, nsv );
@@ -277,6 +282,7 @@ extern "C" int cuda_outer_fgmres_double( gmres_double_struct *p, level_struct *l
         og.finish = 1;
         og.stop_restart = 1;
       }
+      endProfilingRange( range_iter );
       END_LOCKED_MASTER(threading)
       SYNC_MASTER_TO_ALL(threading)
     }
@@ -334,6 +340,7 @@ extern "C" int cuda_outer_fgmres_double( gmres_double_struct *p, level_struct *l
     printf0("*: only correct if #MPIprocs*#threads == #CPUs\n\n");
   }
   if ( p->timing || p->print ) prof_print( l );
+  endProfilingRange( range_solver );
   END_LOCKED_MASTER(threading)
   SYNC_MASTER_TO_ALL(threading)
 
