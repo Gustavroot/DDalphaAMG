@@ -20,6 +20,7 @@
  */
 
 #include "main.h"
+#include "proxies/linsolve_proxy.h"
 
 void rhs_define( vector_double rhs, level_struct *l, struct Thread *threading ) {
   
@@ -84,7 +85,7 @@ int wilson_driver( vector_double solution, vector_double source, level_struct *l
   } else if ( g.mixed_precision == 2 ) {
     iter = fgmres_MP( &(g.p_MP), l, threading );
   } else {
-    iter = fgmres_double( &(g.p), l, threading );
+    iter = outer_fgmres_double( &(g.p), l, threading );
   }
   vector_double_copy( solution, sol, start, end, l );
 #ifdef WILSON_BENCHMARK

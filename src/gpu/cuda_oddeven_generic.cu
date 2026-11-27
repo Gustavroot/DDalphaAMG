@@ -4566,6 +4566,19 @@ extern "C" int cuda_smoother_resident_PRECISION_check( vector_PRECISION phi, vec
   // every thread has read the tags before the master resets them
   SYNC_CORES(threading)
   START_MASTER(threading)
+  if ( !use && is->eta_host_stale == eta ) {
+    // eta was given to the restriction only on the GPU (outer FGMRES on the GPU), and the smoother
+    // runs on the host vectors: bring it to the host
+    cuda_safe_call( cudaMemcpy( eta, is->eta_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
+                                cudaMemcpyDeviceToHost ) );
+  }
+  if ( !use && is->phi_host_stale == phi ) {
+    // same for the result of the interpolation (defer_phi_copy)
+    cuda_safe_call( cudaMemcpy( phi, is->phi_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
+                                cudaMemcpyDeviceToHost ) );
+  }
+  is->eta_host_stale = NULL;
+  is->phi_host_stale = NULL;
   is->phi_gpu_host = NULL;
   is->eta_gpu_host = NULL;
   END_MASTER(threading)
@@ -4634,12 +4647,17 @@ extern "C" void cuda_solve_oddeven_PRECISION_resident( vector_PRECISION phi, gmr
   // x = M^-1 b (Schur complement, GMRES or Richardson, reconstruction of the odd sites)
   cuda_solve_oddeven_PRECISION( p, op, l, threading );
 
-  // phi += x on the GPU, then one copy of phi to the host
+  // phi += x on the GPU, then one copy of phi to the host (none if the caller reads it from phi_gpu)
   cuda_add_oddeven_componentwise_to_block_PRECISION<<<grid, block>>>( is->phi_gpu, p->x_componentwise_gpu,
                                                                      is->oe_perm_gpu, n_sites, n_even, nsv );
   cuda_check_error( _SOFT_CHECK );
-  cuda_safe_call( cudaMemcpy( phi, is->phi_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
-                              cudaMemcpyDeviceToHost ) );
+  if ( is->keep_phi_on_gpu ) {
+    cuda_safe_call( cudaDeviceSynchronize() );
+    is->phi_result_host = phi;
+  } else {
+    cuda_safe_call( cudaMemcpy( phi, is->phi_gpu, (size_t)l->inner_vector_size*sizeof(cu_cmplx_PRECISION),
+                                cudaMemcpyDeviceToHost ) );
+  }
 
   END_MASTER(threading)
   SYNC_CORES(threading)

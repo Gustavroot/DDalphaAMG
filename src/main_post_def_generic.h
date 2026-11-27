@@ -63,7 +63,16 @@
       END_MASTER(threading)
     }
 #else
+    // time of the operator applications on the coarsest level ("coarsest grid matmul time")
+    START_MASTER(threading)
+    if ( l->level==0 )
+      g.matmul_time -= MPI_Wtime();
+    END_MASTER(threading)
     p->eval_operator( output, input, p->op, l, threading );
+    START_MASTER(threading)
+    if ( l->level==0 )
+      g.matmul_time += MPI_Wtime();
+    END_MASTER(threading)
 #endif
 
 #ifdef CUDA_OPT

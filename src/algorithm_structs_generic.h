@@ -327,6 +327,18 @@ typedef struct
     cuda_vector_PRECISION eta_gpu;
     vector_PRECISION phi_gpu_host, eta_gpu_host;
     int *oe_perm_gpu;
+    // outer FGMRES on the GPU: eta_preloaded_host is the host vector whose values the caller has
+    // already written into eta_gpu (the restriction then does not copy it); eta_host_stale is the
+    // host vector whose current values are only in eta_gpu (NULL: none)
+    vector_PRECISION eta_preloaded_host, eta_host_stale;
+    // outer FGMRES on the GPU: with keep_phi_on_gpu set, the depth-0 smoother on the GPU leaves its
+    // result in phi_gpu and does not copy it to the host; phi_result_host is then that host vector
+    int keep_phi_on_gpu;
+    vector_PRECISION phi_result_host;
+    // outer FGMRES on the GPU: with defer_phi_copy set, the next interpolation (phi = P phi_c) leaves
+    // its result only in phi_gpu; phi_host_stale is then the host vector that is not up to date
+    int defer_phi_copy;
+    vector_PRECISION phi_host_stale;
 #endif
 } interpolation_PRECISION_struct;
 
